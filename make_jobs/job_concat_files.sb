@@ -1,0 +1,18 @@
+#!/bin/bash --login
+
+########### SBATCH Lines for Resource Request ##########
+
+#SBATCH --time=23:59:00             # limit of wall clock time - how long the job will run (same as -t)
+#SBATCH --nodes=1                 # number of different nodes - could be an exact number or a range of nodes (same as -N)
+#SBATCH --mem-per-cpu=100G            # memory required per allocated CPU (or core) - amount of memory (in bytes)
+#SBATCH --job-name concat_files      # you can give your job a name for easier identification (same as -J)
+#SBATCH --output /mnt/scratch/micall12/training_files/job_logs/concat_files.log 
+
+########### Command Lines to Run ##########
+
+source /mnt/home/micall12/combo_trunk_setup_jan19.sh
+
+python /mnt/home/micall12/DNN_LE/concat_files.py
+
+exit $?
+
