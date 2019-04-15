@@ -10,6 +10,7 @@
 ##############################
 
 ## ASSUMPTIONS: All strings >=79 are DeepCore
+## Need to change some lines (with muontrack) if you are using non-numu files
 
 import numpy
 import h5py
@@ -51,7 +52,7 @@ def get_observable_features(frame):
 
     # Current Information: sum charges, time first pulse, Time of last pulse, Charge weighted mean time of pulses, Charge weighted standard deviation of pulse times
     # Old information: sum charges, sum charge <500ns, sum charge <100ns, time first pulse, time when 20 % of charge, time when 50% charge, Time of last pulse, Charge weighted mean time of pulses, Charge weighted standard deviation of pulse times
-    array_DC = numpy.zeros([len(DC_strings),60,5]) #9
+    array_DC = numpy.zeros([len(DC_strings),60,5]) #9 #take only DOMs in main region, not veto layer
     array_IC_near_DC = numpy.zeros([len(IC_near_DC_strings),60,5]) #9
     count_outside = 0
     charge_outside = 0
@@ -69,15 +70,15 @@ def get_observable_features(frame):
             if string_val not in store_string:
                 store_string.append(string_val)
 
-            # Populate IceCube near DeepCore strings
+            # Check IceCube near DeepCore DOMs
             if( (string_val in IC_near_DC_strings) and dom_index<60):
                 string_index = IC_near_DC_strings.index(string_val)
                 timelist.append(pulse.time)
                 chargelist.append(pulse.charge)
                 IC_near_DC_flag = True
 
-            # Populate DeepCore strings
-            elif ( (string_val in DC_strings) and dom_index<60):
+            # Check DeepCore DOMS
+            elif ( (string_val in DC_strings) and dom_index<60): #dom_index >=10
                 string_index = DC_strings.index(string_val)
                 timelist.append(pulse.time)
                 chargelist.append(pulse.charge)
@@ -173,16 +174,16 @@ def read_files(filename_list, drop_fraction_of_tracks=0.88, drop_fraction_of_cas
             # some truth labels (we do *not* have these in real data and would like to figure out what they are)
             truth_labels = dict(
                 neutrino = frame["trueNeutrino"],
-                muon = frame['trueMuon'],
+                #muon = frame['trueMuon'],
                 cascade = frame['trueCascade'],
-                nu_x = frame["trueNeutrino"].pos.x,
-                nu_y = frame["trueNeutrino"].pos.y,
-                nu_z = frame["trueNeutrino"].pos.z,
-                nu_zenith = frame["trueNeutrino"].dir.zenith,
-                nu_azimuth = frame["trueNeutrino"].dir.azimuth,
-                nu_energy = frame["trueNeutrino"].energy,
-                nu_time = frame["trueNeutrino"].time,
-                track_length = frame["trueMuon"].length,
+                nu_x = neutrino.pos.x,
+                nu_y = neutrino.pos.y,
+                nu_z = neutrino.pos.z,
+                nu_zenith = neutrino.dir.zenith,
+                nu_azimuth = neutrino.dir.azimuth,
+                nu_energy = neutrino.energy,
+                nu_time = neutrino.time,
+                #track_length = frame["trueMuon"].length,
                 isTrack = frame['I3MCWeightDict']['InteractionType']==1.,   # it is a cascade with a track
                 isCascade = frame['I3MCWeightDict']['InteractionType']==2., # it is just a cascade
                 isOther = frame['I3MCWeightDict']['InteractionType']!=1. and frame['I3MCWeightDict']['InteractionType']!=2., # it is something else (should not happen)
@@ -191,7 +192,18 @@ def read_files(filename_list, drop_fraction_of_tracks=0.88, drop_fraction_of_cas
             # input file sanity check: this should not print anything since "isOther" should always be false
             if truth_labels['isOther']:
                 print(frame['I3MCWeightDict'])
+            
+            # reset track classification
+            if ((frame["trueNeutrino"].type == dataclasses.I3Particle.NuMu or frame["trueNeutrino"].type == dataclasses.I3Particle.NuMuBar) and truth_labels['isTrack'] == True):
+                truth_labels['isTrack'] = True
+            elif truth_labels['isOther']:
+                continue
+            else:
+                truth_labels['isCascade'] = True
+        
+            if 
 
+            
             # Decide how many track events to keep
             if truth_labels['isTrack'] and random.random() < drop_fraction_of_tracks:
                 continue
@@ -217,7 +229,10 @@ def read_files(filename_list, drop_fraction_of_tracks=0.88, drop_fraction_of_cas
 
             
             # regression variables
-            output_labels.append( numpy.array([ float(truth_labels['nu_energy']),float(truth_labels['nu_zenith']),float(truth_labels['nu_azimuth']),float(truth_labels['nu_time']),float(truth_labels['track_length']),float(truth_labels['nu_x']),float(truth_labels['nu_y']),float(truth_labels['nu_z']) ]) )
+            # OUTPUT: [ nu energy, nu zenith, nu azimyth, nu time, nu track, nu x, nu y, nu z]
+
+            #output_labels.append( numpy.array([ float(truth_labels['nu_energy']),float(truth_labels['nu_zenith']),float(truth_labels['nu_azimuth']),float(truth_labels['nu_time']),float(truth_labels['track_length']),float(truth_labels['nu_x']),float(truth_labels['nu_y']),float(truth_labels['nu_z']) ]) )
+            output_labels.append( numpy.array([ float(truth_labels['nu_energy']),float(truth_labels['nu_zenith']),float(truth_labels['nu_azimuth']),float(truth_labels['nu_time']),float(truth_labels['nu_x']),float(truth_labels['nu_y']),float(truth_labels['nu_z']) ]) )
 
             DC_array, IC_near_DC_array = get_observable_features(frame)
             
@@ -244,12 +259,12 @@ assert event_file_names,"No files loaded, please check path."
 
 #Call function to read and label files
 #Currently set to ONLY get track events, no cascades!!! #
-features_DC, features_IC, labels = read_files(event_file_names, drop_fraction_of_tracks=0.0,drop_fraction_of_cascades=1.0)
+features_DC, features_IC, labels = read_files(event_file_names, drop_fraction_of_tracks=1.0,drop_fraction_of_cascades=0.0)
 
 print(features_DC.shape)
 
 #Save output to hdf5 file
-output_path = "/mnt/scratch/micall12/training_files/" + output_name + ".hdf5"
+output_path = "/mnt/scratch/micall12/training_files/" + output_name + "_cascade_lt60_vertexDC.hdf5"
 f = h5py.File(output_path, "w")
 f.create_dataset("features_DC", data=features_DC)
 f.create_dataset("features_IC", data=features_IC)
