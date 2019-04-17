@@ -26,7 +26,7 @@ import random
 ## Create ability to change settings from terminal ##
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input",type=str,default='Level5_IC86.2013_genie_numu.014640.00000?.i3.bz2',
-                    dest="input_file", help="name of the input file")
+                    dest="input_file", help="path and name of the input file")
 parser.add_argument("-n", "--name",type=str,default='Level5_IC86.2013_genie_numu.014640.00000X',
                     dest="output_name",help="name for output file (no path)")
 args = parser.parse_args()
@@ -148,7 +148,7 @@ def get_observable_features(frame):
 
     return array_DC, array_IC_near_DC 
 
-def read_files(filename_list, drop_fraction_of_tracks=0.88, drop_fraction_of_cascades=0.00):
+def read_files(filename_list, drop_fraction_of_tracks=0.00, drop_fraction_of_cascades=0.00):
     """
     Read list of files, make sure they pass L5 cuts, create truth labels
     Receives:
@@ -172,67 +172,88 @@ def read_files(filename_list, drop_fraction_of_tracks=0.88, drop_fraction_of_cas
             frame = event_file.pop_physics()
 
             # some truth labels (we do *not* have these in real data and would like to figure out what they are)
-            truth_labels = dict(
-                neutrino = frame["trueNeutrino"],
-                #muon = frame['trueMuon'],
-                cascade = frame['trueCascade'],
-                nu_x = neutrino.pos.x,
-                nu_y = neutrino.pos.y,
-                nu_z = neutrino.pos.z,
-                nu_zenith = neutrino.dir.zenith,
-                nu_azimuth = neutrino.dir.azimuth,
-                nu_energy = neutrino.energy,
-                nu_time = neutrino.time,
-                #track_length = frame["trueMuon"].length,
-                isTrack = frame['I3MCWeightDict']['InteractionType']==1.,   # it is a cascade with a track
-                isCascade = frame['I3MCWeightDict']['InteractionType']==2., # it is just a cascade
-                isOther = frame['I3MCWeightDict']['InteractionType']!=1. and frame['I3MCWeightDict']['InteractionType']!=2., # it is something else (should not happen)
-            )
+            nu = frame["trueNeutrino"]
+            #muon = frame['trueMuon']
+            cascade = frame['trueCascade']
+            nu_x = nu.pos.x
+            nu_y = nu.pos.y
+            nu_z = nu.pos.z
+            nu_zenith = nu.dir.zenith
+            nu_azimuth = nu.dir.azimuth
+            nu_energy = nu.energy
+            nu_time = nu.time
+            #track_length = frame["trueMuon"].length
+            isTrack = frame['I3MCWeightDict']['InteractionType']==1.   # it is a cascade with a trac
+            isCascade = frame['I3MCWeightDict']['InteractionType']==2. # it is just a cascade
+            isCC = frame['I3MCWeightDict']['InteractionType']==1.
+            isNC = frame['I3MCWeightDict']['InteractionType']==2.
+            isOther = not isCC and not isNC
+
 
             # input file sanity check: this should not print anything since "isOther" should always be false
-            if truth_labels['isOther']:
+            if isOther:
                 print(frame['I3MCWeightDict'])
             
-            # reset track classification
-            if ((frame["trueNeutrino"].type == dataclasses.I3Particle.NuMu or frame["trueNeutrino"].type == dataclasses.I3Particle.NuMuBar) and truth_labels['isTrack'] == True):
-                truth_labels['isTrack'] = True
-            elif truth_labels['isOther']:
+            # set track classification for numu CC only
+            if ((nu.type == dataclasses.I3Particle.NuMu or nu.type == dataclasses.I3Particle.NuMuBar) and isCC):
+                isTrack = True
+                isCascade = False
+                track_length = frame["trueMuon"].length
+            elif isOther: #Don't save non NC or CC
                 continue
             else:
-                truth_labels['isCascade'] = True
+                isTrack = False
+                isCascade = True
+                track_length = 0
         
-            if 
-
+            #Save flavor and particle type (anti or not)
+            if (nu.type == dataclasses.I3Particle.NuMu):
+                neutrino_type = 14
+                particle_type = 0 #particle
+            if (nu.type == dataclasses.I3Particle.NuMuBar):
+                neutrino_type = 14
+                particle_type = 1 #antiparticle
+            if (nu.type == dataclasses.I3Particle.NuE):
+                neutrino_type = 12
+                particle_type = 0 #particle
+            if (nu.type == dataclasses.I3Particle.NuEBar):
+                neutrino_type = 12
+                particle_type = 1 #antiparticle
+            if (nu.type == dataclasses.I3Particle.NuTau):
+                neutrino_type = 16
+                particle_type = 0 #particle
+            if (nu.type == dataclasses.I3Particle.NuTauBar):
+                neutrino_type = 16
+                particle_type = 1 #antiparticle
             
             # Decide how many track events to keep
-            if truth_labels['isTrack'] and random.random() < drop_fraction_of_tracks:
+            if isTrack and random.random() < drop_fraction_of_tracks:
                 continue
 
             # Decide how many cascade events to kep
-            if truth_labels['isCascade'] and random.random() < drop_fraction_of_cascades:
+            if isCascade and random.random() < drop_fraction_of_cascades:
                 continue
 
             # Only look at "low energy" events for now
-            if truth_labels["nu_energy"] > 60.0:
-                                continue
+            if nu_energy > 60.0:
+                continue
             
             # Cut to only use events with true vertex in DeepCore
             radius = 90
             x_origin = 54
             y_origin = -36
-            shift_x = truth_labels["nu_x"] - x_origin
-            shift_y = truth_labels["nu_y"] - y_origin
-            z_val = truth_labels["nu_z"]
+            shift_x = nu_x - x_origin
+            shift_y = nu_y - y_origin
+            z_val = nu_z
             radius_calculation = numpy.sqrt(shift_x**2+shift_y**2)
             if( radius_calculation > radius or z_val > 192 or z_val < -505 ):
                 continue
 
             
             # regression variables
-            # OUTPUT: [ nu energy, nu zenith, nu azimyth, nu time, nu track, nu x, nu y, nu z]
+            # OUTPUT: [ nu energy, nu zenith, nu azimuth, nu time, nu x, nu y, nu z, track length (0 for cascade), isTrack, flavor, type (anti = 1), isCC]
 
-            #output_labels.append( numpy.array([ float(truth_labels['nu_energy']),float(truth_labels['nu_zenith']),float(truth_labels['nu_azimuth']),float(truth_labels['nu_time']),float(truth_labels['track_length']),float(truth_labels['nu_x']),float(truth_labels['nu_y']),float(truth_labels['nu_z']) ]) )
-            output_labels.append( numpy.array([ float(truth_labels['nu_energy']),float(truth_labels['nu_zenith']),float(truth_labels['nu_azimuth']),float(truth_labels['nu_time']),float(truth_labels['nu_x']),float(truth_labels['nu_y']),float(truth_labels['nu_z']) ]) )
+            output_labels.append( numpy.array([ float(nu_energy), float(nu_zenith), float(nu_azimuth), float(nu_time), float(nu_x), float(nu_y), float(nu_z), float(track_length), float(isTrack), float(neutrino_type), float(particle_type), float(isCC) ]) )
 
             DC_array, IC_near_DC_array = get_observable_features(frame)
             
@@ -259,12 +280,12 @@ assert event_file_names,"No files loaded, please check path."
 
 #Call function to read and label files
 #Currently set to ONLY get track events, no cascades!!! #
-features_DC, features_IC, labels = read_files(event_file_names, drop_fraction_of_tracks=1.0,drop_fraction_of_cascades=0.0)
+features_DC, features_IC, labels = read_files(event_file_names, drop_fraction_of_tracks=0.0,drop_fraction_of_cascades=0.0)
 
 print(features_DC.shape)
 
 #Save output to hdf5 file
-output_path = "/mnt/scratch/micall12/training_files/" + output_name + "_cascade_lt60_vertexDC.hdf5"
+output_path = "/mnt/scratch/micall12/training_files/" + output_name + "_all_lt60_vertexDC.hdf5"
 f = h5py.File(output_path, "w")
 f.create_dataset("features_DC", data=features_DC)
 f.create_dataset("features_IC", data=features_IC)
