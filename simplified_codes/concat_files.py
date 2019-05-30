@@ -19,6 +19,8 @@ parser.add_argument("-d", "--path",type=str,default='/mnt/scratch/micall12/train
                     dest="path", help="path to input files")
 parser.add_argument("-o", "--output",type=str,default='Level5_IC86.2013_genie_numu.014640.all',
                     dest="output", help="names for output files")
+parser.add_argument("--reco", type=bool,default=False,
+                    dest="reco",help="do you have the reco variables and initial stats?")
 args = parser.parse_args()
 input_files = args.input_files
 path = args.path
@@ -31,6 +33,9 @@ assert event_file_names,"No files loaded, please check path."
 full_features_DC = None
 full_features_IC = None
 full_labels = None
+full_reco = None
+full_initial_stats = None
+full_num_pulses = None
 for a_file in event_file_names:
     print("Pulling data from %s"%a_file)
 
@@ -38,6 +43,10 @@ for a_file in event_file_names:
     file_features_DC = f["features_DC"][:]
     file_features_IC = f["features_IC"][:]
     file_labels = f["labels"][:]
+    if args.reco:
+        file_reco = f["reco_labels"][:]
+        file_initial_stats = f["initial_stats"][:]
+        file_num_pulses = f["num_pulses_per_dom"][:]
     f.close()
     del f
 
@@ -58,6 +67,22 @@ for a_file in event_file_names:
     else:
         full_labels = np.concatenate((full_labels, file_labels))
 
+    if args.reco:
+        if full_reco is None:
+            full_reco = file_reco
+        else:
+            full_reco = np.concatenate((full_reco, file_reco))
+
+        if full_initial_stats is None:
+            full_initial_stats = file_initial_stats 
+        else:
+            full_initial_stats  = np.concatenate((full_initial_stats , file_initial_stats ))
+
+        if full_num_pulses is None:
+            full_num_pulses = file_num_pulses
+        else:
+            full_num_pulses = np.concatenate((full_num_pulses, file_num_pulses))
+
 #Save output to hdf5 file
 print(full_features_DC.shape)
 print(full_features_IC.shape)
@@ -68,4 +93,8 @@ f = h5py.File(output_name, "w")
 f.create_dataset("features_DC", data=full_features_DC)
 f.create_dataset("features_IC", data=full_features_IC)
 f.create_dataset("labels", data=full_labels)
+if args.reco:
+    f.create_dataset("reco_labels",data=full_reco)
+    f.create_dataset("initial_stats",data=full_initial_stats)
+    f.create_dataset("num_pulses_per_dom",data=full_num_pulses)
 f.close()

@@ -9,9 +9,6 @@
 #       -n name: name for output file, automatically puts in my scratch
 ##############################
 
-## ASSUMPTIONS: All strings >=79 are DeepCore
-## Need to change some lines (with muontrack) if you are using non-numu files
-
 import numpy
 import h5py
 import argparse
@@ -29,9 +26,15 @@ parser.add_argument("-i", "--input",type=str,default='Level5_IC86.2013_genie_num
                     dest="input_file", help="path and name of the input file")
 parser.add_argument("-n", "--name",type=str,default='Level5_IC86.2013_genie_numu.014640.00000X',
                     dest="output_name",help="name for output file (no path)")
+parser.add_argument("-r", "--reco",type=str,default=False,
+                    dest="reco", help="True if using Level5p or have a pegleg reco")
 args = parser.parse_args()
 input_file = args.input_file
 output_name = args.output_name
+if args.reco == "True" or args.reco == "true":
+    use_old_reco = True
+else:
+    use_old_reco = False
 
 def get_observable_features(frame):
     """
@@ -54,17 +57,35 @@ def get_observable_features(frame):
     # Old information: sum charges, sum charge <500ns, sum charge <100ns, time first pulse, time when 20 % of charge, time when 50% charge, Time of last pulse, Charge weighted mean time of pulses, Charge weighted standard deviation of pulse times
     array_DC = numpy.zeros([len(DC_strings),60,5]) #9 #take only DOMs in main region, not veto layer
     array_IC_near_DC = numpy.zeros([len(IC_near_DC_strings),60,5]) #9
+    initial_stats = numpy.zeros([4])
+    num_pulses_per_dom = numpy.zeros([len(DC_strings),60,1])
     count_outside = 0
     charge_outside = 0
+    count_inside = 0
+    charge_inside = 0
 
+    # Find median time for subset of strings
+    all_times = []
+    for omkey, pulselist in ice_pulses:
+        dom_index =  omkey.om-1
+        string_val = omkey.string
+        for pulse in pulselist:
+            if( (string_val in IC_near_DC_strings) and dom_index<60):
+                all_times.append(pulse.time)
+            if ( (string_val in DC_strings) and dom_index<60):
+                all_times.append(pulse.time)
+    median_time = numpy.median(all_times)
+    
     for omkey, pulselist in ice_pulses:
         dom_index =  omkey.om-1
         string_val = omkey.string
         timelist = []
         chargelist = []
+
         DC_flag = False
         IC_near_DC_flag = False
 
+        
         for pulse in pulselist:
             
             if string_val not in store_string:
@@ -90,13 +111,18 @@ def get_observable_features(frame):
                 
         if DC_flag == True or IC_near_DC_flag == True:
 
-
             charge_array = numpy.array(chargelist)
             time_array = numpy.array(timelist)
+            time_array = [ (t_value - median_time) for t_value in time_array ]
             time_shifted = [ (t_value - time_array[0]) for t_value in time_array ]
             time_shifted = numpy.array(time_shifted)
             mask_500 = time_shifted<500
             mask_100 = time_shifted<100
+
+
+            #Original Stats
+            count_inside += len(chargelist)
+            charge_inside += sum(chargelist)
 
             # Check that pulses are sorted
             for i_t,time in enumerate(time_array):
@@ -132,6 +158,7 @@ def get_observable_features(frame):
             #array_DC[string_index,dom_index,2] = sum(charge_array[mask_100])
             #array_DC[string_index,dom_index,4] = time_array[time_20p]
             #array_DC[string_index,dom_index,5] = time_array[time_50p]
+            num_pulses_per_dom[string_index,dom_index,0] = len(chargelist)
         
         if IC_near_DC_flag == True:
             array_IC_near_DC[string_index,dom_index,0] = sum(chargelist)
@@ -144,9 +171,14 @@ def get_observable_features(frame):
             #array_IC_near_DC[string_index,dom_index,4] = time_array[time_20p]
             #array_IC_near_DC[string_index,dom_index,5] = time_array[time_50p]
 
-    print(count_outside, charge_outside, charge_outside/(sum(array_DC[:,:,0].flatten())+charge_outside))
+    #print(count_outside, charge_outside, charge_outside/(sum(array_DC[:,:,0].flatten())+charge_outside))
 
-    return array_DC, array_IC_near_DC 
+    initial_stats[0] = count_outside
+    initial_stats[1] = charge_outside
+    initial_stats[2] = count_inside
+    initial_stats[3] = charge_inside
+
+    return array_DC, array_IC_near_DC, initial_stats, num_pulses_per_dom 
 
 def read_files(filename_list, drop_fraction_of_tracks=0.00, drop_fraction_of_cascades=0.00):
     """
@@ -163,6 +195,9 @@ def read_files(filename_list, drop_fraction_of_tracks=0.00, drop_fraction_of_cas
     output_features_DC = []
     output_features_IC = []
     output_labels = []
+    output_reco_labels = []
+    output_initial_stats = []
+    output_num_pulses_per_dom = []
 
     for event_file_name in filename_list:
         print("reading file: {}".format(event_file_name))
@@ -189,6 +224,16 @@ def read_files(filename_list, drop_fraction_of_tracks=0.00, drop_fraction_of_cas
             isNC = frame['I3MCWeightDict']['InteractionType']==2.
             isOther = not isCC and not isNC
 
+            if not frame.Has('IC86_Dunkman_L6_PegLeg_MultiNest8D_NumuCC'):
+                continue
+            reco_nu = frame['IC86_Dunkman_L6_PegLeg_MultiNest8D_NumuCC']
+            reco_energy = reco_nu.energy
+            reco_time = reco_nu.time
+            reco_zenith = reco_nu.dir.zenith
+            reco_azimuth = reco_nu.dir.azimuth
+            reco_x = reco_nu.pos.x
+            reco_y = reco_nu.pos.y
+            reco_z = reco_nu.pos.z
 
             # input file sanity check: this should not print anything since "isOther" should always be false
             if isOther:
@@ -255,10 +300,15 @@ def read_files(filename_list, drop_fraction_of_tracks=0.00, drop_fraction_of_cas
 
             output_labels.append( numpy.array([ float(nu_energy), float(nu_zenith), float(nu_azimuth), float(nu_time), float(nu_x), float(nu_y), float(nu_z), float(track_length), float(isTrack), float(neutrino_type), float(particle_type), float(isCC) ]) )
 
-            DC_array, IC_near_DC_array = get_observable_features(frame)
+            if use_old_reco:
+                output_reco_labels.append( numpy.array([ float(reco_energy), float(reco_zenith), float(reco_azimuth), float(reco_time), float(reco_x), float(reco_y), float(reco_z) ]) )
+
+            DC_array, IC_near_DC_array,initial_stats,num_pulses_per_dom = get_observable_features(frame)
             
             output_features_DC.append(DC_array)
             output_features_IC.append(IC_near_DC_array)
+            output_initial_stats.append(initial_stats)
+            output_num_pulses_per_dom.append(num_pulses_per_dom)
 
 
         # close the input file once we are done
@@ -267,8 +317,12 @@ def read_files(filename_list, drop_fraction_of_tracks=0.00, drop_fraction_of_cas
     output_features_DC=numpy.asarray(output_features_DC)
     output_features_IC=numpy.asarray(output_features_IC)
     output_labels=numpy.asarray(output_labels)
+    output_initial_stats=numpy.asarray(output_initial_stats)
+    output_num_pulses_per_dom=numpy.asarray(output_num_pulses_per_dom)
+    if use_old_reco:
+        output_reco_labels=numpy.asarray(output_reco_labels)
 
-    return output_features_DC, output_features_IC, output_labels
+    return output_features_DC, output_features_IC, output_labels, output_reco_labels, output_initial_stats, output_num_pulses_per_dom
 
 #Construct list of filenames
 import glob
@@ -280,7 +334,7 @@ assert event_file_names,"No files loaded, please check path."
 
 #Call function to read and label files
 #Currently set to ONLY get track events, no cascades!!! #
-features_DC, features_IC, labels = read_files(event_file_names, drop_fraction_of_tracks=0.0,drop_fraction_of_cascades=0.0)
+features_DC, features_IC, labels, reco_labels, initial_stats, num_pulses_per_dom = read_files(event_file_names, drop_fraction_of_tracks=0.0,drop_fraction_of_cascades=0.0)
 
 print(features_DC.shape)
 
@@ -290,4 +344,8 @@ f = h5py.File(output_path, "w")
 f.create_dataset("features_DC", data=features_DC)
 f.create_dataset("features_IC", data=features_IC)
 f.create_dataset("labels", data=labels)
+if use_old_reco:
+    f.create_dataset("reco_labels", data=reco_labels)
+f.create_dataset("initial_stats", data=initial_stats)
+f.create_dataset("num_pulses_per_dom", data=num_pulses_per_dom)
 f.close()

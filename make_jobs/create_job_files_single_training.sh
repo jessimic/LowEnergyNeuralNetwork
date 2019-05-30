@@ -1,22 +1,23 @@
 #!/bin/bash
 
-INPUT="Level5_IC86.2013_genie_numu.014640."
+SYST_SET=603
+INPUTFILES="/mnt/research/IceCube/jpandre/Matt/level5p/nue/12${SYST_SET}/*"
+#INPUTFILES="/mnt/scratch/neergarr/level2/nue/12640/*"
 FILEPATH=/mnt/scratch/micall12/training_files
 
-if [[ "x$INPUT" == "x" ]]; then
-        INPUT=""
-fi
 
-LOG_FOLDER=$FILEPATH/job_logs
+LOG_FOLDER=$FILEPATH/job_logs/L5p_12${SYST_SET}
+mkdir $LOG_FOLDER
+mkdir $LOG_FOLDER/slurm
 
 COUNT=0
-for file in /mnt/research/IceCube/jpandre/Matt/level5/numu/14640/${INPUT}*.i3.bz2;
+for file in $INPUTFILES;
 do
     name=`basename $file`
-    #echo $name
+    echo $name
     sed     -e "s|@@file@@|${file}|g" \
         -e "s|@@log@@|${LOG_FOLDER}/$name.log|g" \
         -e "s|@@name@@|$name|g" \
-        < job_template_single_file.sb > $LOG_FOLDER/pbs/$name.pbs
+        < job_template_single_file.sb > $LOG_FOLDER/slurm/$name.slurm
     let COUNT=$COUNT+1
 done

@@ -1,0 +1,17 @@
+#What files to ingore
+
+VariableChecks/*
+subset_L_16_16_tanh_weightsFalse/*
+best_network_test/*
+old_files/*
+slurm_out/*
+job_scripts_DNN_tests/*
+__pycache__/*
+output_plots/*
+.ipynb_checkpoints/*
+
+#Don't want to upload all the data files
+*.hdf5
+
+#Don't save outfile logs from jobs
+*.out
