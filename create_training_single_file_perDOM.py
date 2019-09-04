@@ -7,6 +7,9 @@
 #   Input:
 #       -i input: name of input file, include path
 #       -n name: name for output file, automatically puts in my scratch
+#       -r reco: flag to save Level5p pegleg reco output (to compare)
+#       --level2: flag to use level2 frames for input (True if Level2)
+#       --emax: maximum energy saved (60 is default, so keep all < 60 GeV)
 ##############################
 
 import numpy
@@ -26,17 +29,32 @@ parser.add_argument("-i", "--input",type=str,default='Level5_IC86.2013_genie_num
                     dest="input_file", help="path and name of the input file")
 parser.add_argument("-n", "--name",type=str,default='Level5_IC86.2013_genie_numu.014640.00000X',
                     dest="output_name",help="name for output file (no path)")
-parser.add_argument("-r", "--reco",type=str,default=False,
+parser.add_argument("-r", "--reco",type=str,default="False",
                     dest="reco", help="True if using Level5p or have a pegleg reco")
+parser.add_argument("--level2",type=str,default="False",
+                    dest="level2", help="True if using Level2 MC")
+parser.add_argument("--emax",type=float,default=60.0,
+                    dest="emax",help="Max energy to keep, cut anything above")
+parser.add_argument("--vertex",type=str, default="DC",
+                    dest="vertex_name",help="Name of vertex cut to put on file")
 args = parser.parse_args()
 input_file = args.input_file
 output_name = args.output_name
-if args.reco == "True" or args.reco == "true":
+emax = args.emax
+vertex_name = args.vertex_name
+if args.reco == 'True' or args.reco == 'true':
     use_old_reco = True
+    print("Expecting old reco values in files, pulling from pegleg frames")
 else:
     use_old_reco = False
+if args.level2 == 'True' or args.level2 == 'true':
+    level2 = True
+else:
+    level2 = False
+    print("Expecting Level5 or 5p data, using trueNeutrino")
 
-def get_observable_features(frame):
+
+def get_observable_features(frame,low_window=-500,high_window=4000):
     """
     Load observable features from IceCube files
     Receives:
@@ -45,11 +63,12 @@ def get_observable_features(frame):
         observable_features: Observables dictionary
     """
 
-    ice_pulses = dataclasses.I3RecoPulseSeriesMap.from_frame(frame,'InIcePulses')
+    ice_pulses = dataclasses.I3RecoPulseSeriesMap.from_frame(frame,'SplitInIcePulses')
 
     #Look inside ice pulses and get stats on charges and time
     # DC = deep core which is certain strings/DOMs in IceCube
     store_string = []
+    #IC_near_DC_strings = [17, 18, 19, 25, 26, 27, 28, 34, 35, 36, 37, 38, 44, 45, 46, 47, 54, 55, 56]
     IC_near_DC_strings = [26, 27, 35, 36, 37, 45, 46]
     DC_strings = [79, 80, 81, 82, 83, 84, 85, 86]
 
@@ -64,18 +83,43 @@ def get_observable_features(frame):
     count_inside = 0
     charge_inside = 0
 
+    # SHIFT BY TRIGGER TIME NOW --> SEE NEXT CODE BLOCK
     # Find median time for subset of strings
-    all_times = []
-    for omkey, pulselist in ice_pulses:
-        dom_index =  omkey.om-1
-        string_val = omkey.string
-        for pulse in pulselist:
-            if( (string_val in IC_near_DC_strings) and dom_index<60):
-                all_times.append(pulse.time)
-            if ( (string_val in DC_strings) and dom_index<60):
-                all_times.append(pulse.time)
-    median_time = numpy.median(all_times)
+    #all_times = []
+    #for omkey, pulselist in ice_pulses:
+    #    dom_index =  omkey.om-1
+    #    string_val = omkey.string
+    #    for pulse in pulselist:
+    #        if( (string_val in IC_near_DC_strings) and dom_index<60):
+    #            all_times.append(pulse.time)
+    #        if ( (string_val in DC_strings) and dom_index<60):
+    #            all_times.append(pulse.time)
+    #median_time = numpy.median(all_times)
     
+    # Config 1011 is SMT3
+    # dataclasses.TriggerKey(source, ttype, config_id)
+    triggers = frame['I3TriggerHierarchy']
+    trigger_time = None
+    num_extra_DC_triggers = 0
+    for trig in triggers:
+        key_str = str(trig.key)
+        s = key_str.strip('[').strip(']').split(':')
+        if len(s) > 2:
+            config_id = int(s[2])
+            if config_id == 1011:
+                if trigger_time:
+                    num_extra_DC_triggers +=1
+                trigger_time = trig.time
+                
+    if trigger_time == None:
+        shift_time_by = 0
+    else:
+        shift_time_by = trigger_time
+
+    #Start by making all times negative shift time (distinguish null from 0)
+    array_DC[...,1:] = -20000
+    array_IC_near_DC[...,1:] = -20000
+
     for omkey, pulselist in ice_pulses:
         dom_index =  omkey.om-1
         string_val = omkey.string
@@ -113,12 +157,26 @@ def get_observable_features(frame):
 
             charge_array = numpy.array(chargelist)
             time_array = numpy.array(timelist)
-            time_array = [ (t_value - median_time) for t_value in time_array ]
+            time_array = [ (t_value - shift_time_by) for t_value in time_array ]
             time_shifted = [ (t_value - time_array[0]) for t_value in time_array ]
             time_shifted = numpy.array(time_shifted)
             mask_500 = time_shifted<500
             mask_100 = time_shifted<100
 
+            # Remove pulses so only those in certain time window are saved
+            original_num_pulses = len(timelist)
+            time_array_in_window = list(time_array)
+            charge_array_in_window = list(charge_array)
+            for time_index in range(0,original_num_pulses):
+                time_value =  time_array[time_index]
+                if time_value < low_window or time_value > high_window:
+                    time_array_in_window.remove(time_value)
+                    charge_array_in_window.remove(charge_array[time_index])
+            charge_array = numpy.array(charge_array_in_window)
+            time_array = numpy.array(time_array_in_window)
+            assert len(charge_array)==len(time_array), "Mismatched pulse time and charge"
+            if len(charge_array) == 0:
+                continue
 
             #Original Stats
             count_inside += len(chargelist)
@@ -141,8 +199,9 @@ def get_observable_features(frame):
                     flag_20p = True
                 if current_charge/float(charge_array[-1]) > 0.5:
                     time_50p = sum_index
-                    break
+                    break            
             
+            # Charge weighted mean and stdev
             weighted_avg_time = numpy.average(time_array,weights=charge_array)
             weighted_std_time = numpy.sqrt( numpy.average((time_array - weighted_avg_time)**2, weights=charge_array) )
 
@@ -178,7 +237,7 @@ def get_observable_features(frame):
     initial_stats[2] = count_inside
     initial_stats[3] = charge_inside
 
-    return array_DC, array_IC_near_DC, initial_stats, num_pulses_per_dom 
+    return array_DC, array_IC_near_DC, initial_stats, num_pulses_per_dom, trigger_time, num_extra_DC_triggers
 
 def read_files(filename_list, drop_fraction_of_tracks=0.00, drop_fraction_of_cascades=0.00):
     """
@@ -189,8 +248,16 @@ def read_files(filename_list, drop_fraction_of_tracks=0.00, drop_fraction_of_cas
         drop_fraction_of_cascades = how many cascade events to drop
                                 --> track & cascade not evenly simulated
     Returns:
-        output_features = dict from observable features, passed to here
-        output_labels = dict with output labels
+        output_features_DC = dict with input observable features from the DC strings
+        output_features_IC = dict with input observable features from the IC strings
+        output_labels = dict with output labels  (energy, zenith, azimith, time, x, y, z, 
+                        tracklength, isTrack, flavor ID, isAntiNeutrino, isCC)
+        output_reco_labels = dict with PegLeg output labels (energy, zenith, azimith, time, x, y, z)
+        output_initial_stats = array with info on number of pulses and sum of charge "inside" the strings used 
+                                vs. "outside", i.e. the strings not used (pulse count outside, charge outside,
+                                pulse count inside, charge inside) for finding statistics
+        output_num_pulses_per_dom = array that only holds the number of pulses seen per DOM (finding statistics)
+        output_trigger_times = list of trigger times for each event (used to shift raw pulse times)
     """
     output_features_DC = []
     output_features_IC = []
@@ -198,18 +265,28 @@ def read_files(filename_list, drop_fraction_of_tracks=0.00, drop_fraction_of_cas
     output_reco_labels = []
     output_initial_stats = []
     output_num_pulses_per_dom = []
+    output_trigger_times = []
+    not_in_DC = 0
 
     for event_file_name in filename_list:
         print("reading file: {}".format(event_file_name))
         event_file = dataio.I3File(event_file_name)
 
         while event_file.more():
-            frame = event_file.pop_physics()
+            try:
+                frame = event_file.pop_physics()
+            except:
+                continue
+            if frame["I3EventHeader"].sub_event_stream != "InIceSplit":
+                continue
 
             # some truth labels (we do *not* have these in real data and would like to figure out what they are)
-            nu = frame["trueNeutrino"]
+            if level2 == True:
+                nu = frame["I3MCTree"][0]
+            else:
+                nu = frame["trueNeutrino"]
             #muon = frame['trueMuon']
-            cascade = frame['trueCascade']
+            #cascade = frame['trueCascade']
             nu_x = nu.pos.x
             nu_y = nu.pos.y
             nu_z = nu.pos.z
@@ -223,17 +300,19 @@ def read_files(filename_list, drop_fraction_of_tracks=0.00, drop_fraction_of_cas
             isCC = frame['I3MCWeightDict']['InteractionType']==1.
             isNC = frame['I3MCWeightDict']['InteractionType']==2.
             isOther = not isCC and not isNC
+            
+            if use_old_reco:
 
-            if not frame.Has('IC86_Dunkman_L6_PegLeg_MultiNest8D_NumuCC'):
-                continue
-            reco_nu = frame['IC86_Dunkman_L6_PegLeg_MultiNest8D_NumuCC']
-            reco_energy = reco_nu.energy
-            reco_time = reco_nu.time
-            reco_zenith = reco_nu.dir.zenith
-            reco_azimuth = reco_nu.dir.azimuth
-            reco_x = reco_nu.pos.x
-            reco_y = reco_nu.pos.y
-            reco_z = reco_nu.pos.z
+                if not frame.Has('IC86_Dunkman_L6_PegLeg_MultiNest8D_NumuCC'):
+                    continue
+                reco_nu = frame['IC86_Dunkman_L6_PegLeg_MultiNest8D_NumuCC']
+                reco_energy = reco_nu.energy
+                reco_time = reco_nu.time
+                reco_zenith = reco_nu.dir.zenith
+                reco_azimuth = reco_nu.dir.azimuth
+                reco_x = reco_nu.pos.x
+                reco_y = reco_nu.pos.y
+                reco_z = reco_nu.pos.z
 
             # input file sanity check: this should not print anything since "isOther" should always be false
             if isOther:
@@ -243,7 +322,10 @@ def read_files(filename_list, drop_fraction_of_tracks=0.00, drop_fraction_of_cas
             if ((nu.type == dataclasses.I3Particle.NuMu or nu.type == dataclasses.I3Particle.NuMuBar) and isCC):
                 isTrack = True
                 isCascade = False
-                track_length = frame["trueMuon"].length
+                if level2 == True:
+                    track_length = frame["I3MCTree"][1].length
+                else:
+                    track_length = frame["trueMuon"].length
             elif isOther: #Don't save non NC or CC
                 continue
             else:
@@ -255,21 +337,24 @@ def read_files(filename_list, drop_fraction_of_tracks=0.00, drop_fraction_of_cas
             if (nu.type == dataclasses.I3Particle.NuMu):
                 neutrino_type = 14
                 particle_type = 0 #particle
-            if (nu.type == dataclasses.I3Particle.NuMuBar):
+            elif (nu.type == dataclasses.I3Particle.NuMuBar):
                 neutrino_type = 14
                 particle_type = 1 #antiparticle
-            if (nu.type == dataclasses.I3Particle.NuE):
+            elif (nu.type == dataclasses.I3Particle.NuE):
                 neutrino_type = 12
                 particle_type = 0 #particle
-            if (nu.type == dataclasses.I3Particle.NuEBar):
+            elif (nu.type == dataclasses.I3Particle.NuEBar):
                 neutrino_type = 12
                 particle_type = 1 #antiparticle
-            if (nu.type == dataclasses.I3Particle.NuTau):
+            elif (nu.type == dataclasses.I3Particle.NuTau):
                 neutrino_type = 16
                 particle_type = 0 #particle
-            if (nu.type == dataclasses.I3Particle.NuTauBar):
+            elif (nu.type == dataclasses.I3Particle.NuTauBar):
                 neutrino_type = 16
                 particle_type = 1 #antiparticle
+            else:
+                print("Do not know particle type, skipping this event")
+                continue
             
             # Decide how many track events to keep
             if isTrack and random.random() < drop_fraction_of_tracks:
@@ -280,11 +365,16 @@ def read_files(filename_list, drop_fraction_of_tracks=0.00, drop_fraction_of_cas
                 continue
 
             # Only look at "low energy" events for now
-            if nu_energy > 60.0:
+            if nu_energy > emax:
                 continue
             
             # Cut to only use events with true vertex in DeepCore
-            radius = 90
+            if vertex_name == "IC19":
+                #print("Using IC19 radius for cuts")
+                radius = 300
+            if vertex_name == "DC":
+                #print("Using DC only for cuts")
+                radius = 90
             x_origin = 54
             y_origin = -36
             shift_x = nu_x - x_origin
@@ -292,9 +382,17 @@ def read_files(filename_list, drop_fraction_of_tracks=0.00, drop_fraction_of_cas
             z_val = nu_z
             radius_calculation = numpy.sqrt(shift_x**2+shift_y**2)
             if( radius_calculation > radius or z_val > 192 or z_val < -505 ):
+                not_in_DC += 1
                 continue
 
             
+            DC_array, IC_near_DC_array,initial_stats,num_pulses_per_dom, trig_time, extra_triggers  = get_observable_features(frame)
+
+            # Check if there were multiple SMT3 triggers or no SMT3 triggers
+            # Skip event if so
+            if extra_triggers > 0 or trig_time == None:
+                continue
+
             # regression variables
             # OUTPUT: [ nu energy, nu zenith, nu azimuth, nu time, nu x, nu y, nu z, track length (0 for cascade), isTrack, flavor, type (anti = 1), isCC]
 
@@ -303,12 +401,14 @@ def read_files(filename_list, drop_fraction_of_tracks=0.00, drop_fraction_of_cas
             if use_old_reco:
                 output_reco_labels.append( numpy.array([ float(reco_energy), float(reco_zenith), float(reco_azimuth), float(reco_time), float(reco_x), float(reco_y), float(reco_z) ]) )
 
-            DC_array, IC_near_DC_array,initial_stats,num_pulses_per_dom = get_observable_features(frame)
             
             output_features_DC.append(DC_array)
             output_features_IC.append(IC_near_DC_array)
             output_initial_stats.append(initial_stats)
             output_num_pulses_per_dom.append(num_pulses_per_dom)
+            output_trigger_times.append(trig_time)
+    
+        print("Got rid of %i events not in DC so far"%not_in_DC)
 
 
         # close the input file once we are done
@@ -319,10 +419,13 @@ def read_files(filename_list, drop_fraction_of_tracks=0.00, drop_fraction_of_cas
     output_labels=numpy.asarray(output_labels)
     output_initial_stats=numpy.asarray(output_initial_stats)
     output_num_pulses_per_dom=numpy.asarray(output_num_pulses_per_dom)
+    output_trigger_times = numpy.asarray(output_trigger_times)
     if use_old_reco:
         output_reco_labels=numpy.asarray(output_reco_labels)
 
-    return output_features_DC, output_features_IC, output_labels, output_reco_labels, output_initial_stats, output_num_pulses_per_dom
+    print("Got rid of %i events not in DC in total"%not_in_DC)
+
+    return output_features_DC, output_features_IC, output_labels, output_reco_labels, output_initial_stats, output_num_pulses_per_dom, output_trigger_times
 
 #Construct list of filenames
 import glob
@@ -334,12 +437,12 @@ assert event_file_names,"No files loaded, please check path."
 
 #Call function to read and label files
 #Currently set to ONLY get track events, no cascades!!! #
-features_DC, features_IC, labels, reco_labels, initial_stats, num_pulses_per_dom = read_files(event_file_names, drop_fraction_of_tracks=0.0,drop_fraction_of_cascades=0.0)
+features_DC, features_IC, labels, reco_labels, initial_stats, num_pulses_per_dom, output_trigger_times = read_files(event_file_names, drop_fraction_of_tracks=0.0,drop_fraction_of_cascades=0.0)
 
 print(features_DC.shape)
 
 #Save output to hdf5 file
-output_path = "/mnt/scratch/micall12/training_files/" + output_name + "_all_lt60_vertexDC.hdf5"
+output_path = "/mnt/scratch/micall12/training_files/" + output_name + "_lt" + str(int(emax)) + "_vertex" + vertex_name + ".hdf5"
 f = h5py.File(output_path, "w")
 f.create_dataset("features_DC", data=features_DC)
 f.create_dataset("features_IC", data=features_IC)
@@ -348,4 +451,5 @@ if use_old_reco:
     f.create_dataset("reco_labels", data=reco_labels)
 f.create_dataset("initial_stats", data=initial_stats)
 f.create_dataset("num_pulses_per_dom", data=num_pulses_per_dom)
+f.create_dataset("trigger_times",data=output_trigger_times)
 f.close()
