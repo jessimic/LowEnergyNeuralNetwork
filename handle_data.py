@@ -1,6 +1,13 @@
+############################
+# Important functions used when processing data for neural network training
+#   CutMask: Creates dict of masks based on set labels isTrack and isCC
+#   Shuffler: shuffles features_DC, features_IC, and labels, keeping events together
+#   SplitTrainTest: Splits features_DC, features_IC, and labels into 2 or 3 sets (train, test, validate (optional))
+#############################
+
 import numpy as np
 
-def CutMask(set_label):
+def CutMask(set_labels):
     """Creates dictionary full of possible cut masks
     NOTE: cut name is the type of events you want to KEEP
     Currently outputs cuts: track, cascade, CC, NC, track CC, track NC, cascade CC, cascade NC, all
@@ -11,18 +18,18 @@ def CutMask(set_label):
         mask: dict with all masks possible
     """
 
-    #energy = file_labels[:,0]
-    #zenith = file_labels[:,1]
-    #flavor = file_labels[:,9]
+    #energy = set_labels[:,0]
+    #zenith = set_labels[:,1]
+    #flavor = set_labels[:,9]
     #number_events = len(energy)
-    isTrack = file_labels[:,8]
-    isCC = file_labels[:,11]
+    isTrack = set_labels[:,8]
+    isCC = set_labels[:,11]
 
     mask = {}
     mask['track'] = isTrack==1 
     mask['cascade'] = isTrack==0 
-    mask['CC'] = isTrack==1 
-    mask['NC'] = isTrack==0
+    mask['CC'] = isCC==1 
+    mask['NC'] = isCC==0
     mask['track CC'] = np.logical_and( mask['track'], mask['CC'] )
     mask['track NC'] = np.logical_and( mask['track'], mask['NC'] )
     mask['cascade CC'] = np.logical_and( mask['cascade'], mask['CC'] )

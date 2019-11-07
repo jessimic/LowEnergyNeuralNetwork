@@ -1,6 +1,6 @@
 #################################
 # Functions to scale data for neural network
-#   transform_charge = moves true 0 to -1, moves fractional charge to 1, log transformation
+#   transform_charge = moves true 0 to -1, log transformation
 #   transform_time = moves any value not in hit window to null hit value
 #   transform_null = changes what is defined as the null hit (meant for timing)
 #   new_transform = applies transform_charge, transform_time, transform_null to 5 variable dataset
@@ -19,22 +19,38 @@ def transform_charge(a_list):
     Returns:
         a_list = transformed so no hit is at -1 and the rest are log distributed
     """
-    a_list = numpy.array(a_list)
+    a_list = np.array(a_list)
     assert any(a_list) >= 0, "There are values less than zero! Are you sure this is charge input data?"
     mask_zero_charge = a_list==0
     mask_some_charge = a_list>0
-    mask_fractional_charge = numpy.logical_and(a_list<1,a_list>0)
+    mask_fractional_charge = np.logical_and(a_list<1,a_list>0)
     
     #Change all fractional charge to 1, for simplicity
-    a_list[mask_fractional_charge] = 1
+    #a_list[mask_fractional_charge] = 1
     
     #Move all zero charge to -1, since log(0) = -inf
-    a_list[mask_zero_charge] = -1
+    a_list[mask_zero_charge] = -4
     
     #Apply log transform to only > 1 things
-    a_list[mask_some_charge] = numpy.log(a_list[mask_some_charge])
+    a_list[mask_some_charge] = np.log(a_list[mask_some_charge])
     
     return a_list
+
+def time_bin_transform(full_data_set):
+    """
+    Apply specific charge transformations to time binned data (event, dom, string, time bin, charge)
+    Apply transform_charge values so that 0 --> -1, fractional --> 1, log transform (keep 0 at -1)
+    Input:
+        full_data_set = N-D dataset with charge variable stored in last index
+    Output:
+        transformed_data_set = N-D dataset with all variables transformed
+    """
+    transformed_data_set = np.copy(full_data_set)    
+    data_list = full_data_set[...,0].flatten()
+    data_transformed = transform_charge(data_list)
+    transformed_data_set[...,0] = data_transformed.reshape(full_data_set.shape[:-1])
+        
+    return transformed_data_set
 
 def transform_time(a_list,low_window=-500,high_window=4000,null_hit_value=-1000):
     """
@@ -49,9 +65,9 @@ def transform_time(a_list,low_window=-500,high_window=4000,null_hit_value=-1000)
     Outputs:
         a_list = transformed so all pulse times are in a window and the rest are at null_hit_value
     """
-    a_list = numpy.array(a_list)
+    a_list = np.array(a_list)
     assert null_hit_value<low_window, "Lower bound on window will not include null hits"
-    mask_outside_window = numpy.logical_or(a_list<low_window,a_list>high_window)
+    mask_outside_window = np.logical_or(a_list<low_window,a_list>high_window)
     a_list[mask_outside_window] = null_hit_value
     
     return a_list
@@ -66,7 +82,7 @@ def transform_null(a_list,old_null=-20000,new_null=-1000):
     Output:
         a_list = 1D list with null hit value changed
     """
-    a_list = numpy.array(a_list)
+    a_list = np.array(a_list)
     mask_null = a_list==old_null
     a_list[mask_null] = new_null
     
@@ -76,7 +92,7 @@ def transform_null(a_list,old_null=-20000,new_null=-1000):
 def new_transform(full_data_set):
     """
     Apply specific charge and pulse time transformations
-    Apply transform_charge values so that 0 --> -1, fractional --> 1, log transform (keep 0 at -1)
+    Apply transform_charge values so that 0 --> -1, log transform (keep 0 at -1)
     Apply transform_time so all hits not in window are moved to null hit value
     Apply transform_null to move the null hit values (for mean and standard deviation)
     Input:
@@ -84,7 +100,7 @@ def new_transform(full_data_set):
     Output:
         transformed_data_set = N-D dataset with all variables transformed
     """
-    transformed_data_set = numpy.copy(full_data_set)
+    transformed_data_set = np.copy(full_data_set)
     for variable_index in range(0,full_data_set.shape[-1]):
         
         data_list = full_data_set[...,variable_index].flatten()
@@ -148,7 +164,7 @@ def TransformData(full_data_set,low_stats=None,high_stats=None,scaler="MaxAbs"):
             data_scaled = RobustScaler(data_list,q1,q3)
         
         elif scaler == "MinMax":
-            if type(low_stats) == None: #Find quartiles on this given dataset
+            if low_stats is None: #Find quartiles on this given dataset
                 print("Not given min, so finding min and max from this dataset")
                 min_val = np.min(data_list)
                 max_val = np.max(data_list)
@@ -162,9 +178,9 @@ def TransformData(full_data_set,low_stats=None,high_stats=None,scaler="MaxAbs"):
             data_scaled = MinMaxScaler(data_list,min_val,max_val)
         
         elif scaler == "MaxAbs":
-            if type(high_stats) == None:
+            if high_stats is None:
                 print("Not given max values, so finding max from this dataset") 
-                high_stats = max(abs(data_list))
+                max_val = max(abs(data_list))
             else:
                 if type(high_stats) == list or type(high_stats) == np.ndarray:
                     max_val = high_stats[data_index]

@@ -37,6 +37,8 @@ parser.add_argument("--emax",type=float,default=60.0,
                     dest="emax",help="Max energy to keep, cut anything above")
 parser.add_argument("--vertex",type=str, default="DC",
                     dest="vertex_name",help="Name of vertex cut to put on file")
+parser.add_argument("--cleaned",type=str,default="False",
+                    dest="cleaned", help="True if wanted to use SRTTWOfflinePulsesDC")
 args = parser.parse_args()
 input_file = args.input_file
 output_name = args.output_name
@@ -52,6 +54,10 @@ if args.level2 == 'True' or args.level2 == 'true':
 else:
     level2 = False
     print("Expecting Level5 or 5p data, using trueNeutrino")
+if args.cleaned == "True" or args.cleaned == "true":
+    use_cleaned_pulses = True
+else:
+    use_cleaned_pulses = False
 
 
 def get_observable_features(frame,low_window=-500,high_window=4000):
@@ -62,8 +68,10 @@ def get_observable_features(frame,low_window=-500,high_window=4000):
     Returns:
         observable_features: Observables dictionary
     """
-
-    ice_pulses = dataclasses.I3RecoPulseSeriesMap.from_frame(frame,'SplitInIcePulses')
+    if use_cleaned_pulses:
+        ice_pulses = dataclasses.I3RecoPulseSeriesMap.from_frame(frame,'SRTTWOfflinePulsesDC')
+    else:
+        ice_pulses = dataclasses.I3RecoPulseSeriesMap.from_frame(frame,'SplitInIcePulses')
 
     #Look inside ice pulses and get stats on charges and time
     # DC = deep core which is certain strings/DOMs in IceCube
@@ -267,6 +275,7 @@ def read_files(filename_list, drop_fraction_of_tracks=0.00, drop_fraction_of_cas
     output_num_pulses_per_dom = []
     output_trigger_times = []
     not_in_DC = 0
+    isOther_count = 0
 
     for event_file_name in filename_list:
         print("reading file: {}".format(event_file_name))
@@ -277,7 +286,15 @@ def read_files(filename_list, drop_fraction_of_tracks=0.00, drop_fraction_of_cas
                 frame = event_file.pop_physics()
             except:
                 continue
+            
             if frame["I3EventHeader"].sub_event_stream != "InIceSplit":
+                continue
+
+            # ALWAYS USE EVENTS THAT PASSES CLEANING!
+            #if use_cleaned_pulses:
+            try:
+                cleaned = frame["SRTTWOfflinePulsesDC"]
+            except:
                 continue
 
             # some truth labels (we do *not* have these in real data and would like to figure out what they are)
@@ -316,14 +333,22 @@ def read_files(filename_list, drop_fraction_of_tracks=0.00, drop_fraction_of_cas
 
             # input file sanity check: this should not print anything since "isOther" should always be false
             if isOther:
-                print(frame['I3MCWeightDict'])
+                print("isOTHER - not Track or Cascade...skipping")
+                isOther_count += 1
+                continue
+
+                #print(frame['I3MCWeightDict'])
             
             # set track classification for numu CC only
             if ((nu.type == dataclasses.I3Particle.NuMu or nu.type == dataclasses.I3Particle.NuMuBar) and isCC):
                 isTrack = True
                 isCascade = False
                 if level2 == True:
-                    track_length = frame["I3MCTree"][1].length
+                    if frame["I3MCTree"][1].type == dataclasses.I3Particle.MuMinus or frame["I3MCTree"][1].type == dataclasses.I3Particle.MuPlus:
+                        track_length = frame["I3MCTree"][1].length
+                    else:
+                        print("Second particle not Muon, continuing")
+                        continue
                 else:
                     track_length = frame["trueMuon"].length
             elif isOther: #Don't save non NC or CC
@@ -353,7 +378,7 @@ def read_files(filename_list, drop_fraction_of_tracks=0.00, drop_fraction_of_cas
                 neutrino_type = 16
                 particle_type = 1 #antiparticle
             else:
-                print("Do not know particle type, skipping this event")
+                print("Do not know first particle type in MCTree, should be neutrino, skipping this event")
                 continue
             
             # Decide how many track events to keep
@@ -409,6 +434,7 @@ def read_files(filename_list, drop_fraction_of_tracks=0.00, drop_fraction_of_cas
             output_trigger_times.append(trig_time)
     
         print("Got rid of %i events not in DC so far"%not_in_DC)
+        print("Got rid of %i events classified as other so far"%isOther_count)
 
 
         # close the input file once we are done

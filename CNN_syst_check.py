@@ -1,3 +1,12 @@
+###################################
+# Meant to check systematic sets after network is trained
+#   Edit input files names to pull from syst sets
+#   Edit model path AND MATCH NETWORK EXACTLY -- all manual
+#   Outputs a number of comparson plots
+#   Needs PlottingFunctions to access these plots
+#####################################
+
+
 import numpy
 import h5py
 import time

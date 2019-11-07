@@ -78,7 +78,6 @@ def GetMinMaxList(full_data_set):
         min_list = list of the minimum values for all variables in dataset
         max_list = list of the maximum values for all variables in dataset
     """
-
     min_list = []
     max_list = []
     for data_index in range(0,full_data_set.shape[-1]):
@@ -91,7 +90,7 @@ def GetMinMaxList(full_data_set):
     return min_list, max_list
 
 def GetMaxList(full_data_set):
-   """ 
+    """ 
     Finds the max for multiple variables in an N-D dataset
     Assumes last index is each independent variable
     Input:

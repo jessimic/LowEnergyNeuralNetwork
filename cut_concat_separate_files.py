@@ -7,8 +7,7 @@
 #       -c  cuts:       name of cuts you want to apply (i.e. track only = track)
 #       -r  reco:       bool if files have pegleg reco in them
 #       --num_out:      number of output files to split output into (default = 1, i.e. no split)
-#       --vertex:       for naming only, DC or IC19 were previously used
-#       --emax:         for naming only, energy cut used
+#       --emax:         Energy cut, keep all events below value
 #       --find_minmax   Find min and max of data sets and save to output file, true by default
 #       --find_quartiles    Find quartiles of darta sets and save to output file, false by default
 #                            NOTE: CANT DO BOTH MINMAX AND FIND QUARTILES TRUE
@@ -21,11 +20,11 @@ import h5py
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--input_files",default='Level5_IC86.2013_genie_numu.014640.*.hdf5',
+parser.add_argument("-i", "--input_files",default=None,
                     type=str,dest="input_files", help="names for input files")
 parser.add_argument("-d", "--path",type=str,default='/mnt/scratch/micall12/training_files/',
                     dest="path", help="path to input files")
-parser.add_argument("-o", "--output",type=str,default='Level5_IC86.2013_genie_numu.014640.',
+parser.add_argument("-o", "--output",type=str,default='cut_concat_separated',
                     dest="output", help="names for output files")
 parser.add_argument("-c", "--cuts", type=str, default="all",
                     dest="cuts", help="name of cuts applied (see name options on line 38)")
@@ -33,8 +32,6 @@ parser.add_argument("-r","--reco",type=str, default=False,
                     dest="reco", help="bool if the file has pegleg reco info + initial stats, etc. (if using Level5p files)")
 parser.add_argument("--num_out",type=int,default=1,
                     dest="num_out",help="number of output files you want to split the output into")
-parser.add_argument("--vertex",type=str, default="DC",
-                    dest="vertex_name",help="Name of vertex cut to put on file")
 parser.add_argument("--emax",type=float,default=60.0,
                     dest="emax",help="Max energy to keep, cut anything above")
 parser.add_argument("--find_minmax",type=str, default=True,
@@ -47,10 +44,9 @@ args = parser.parse_args()
 input_files = args.input_files
 path = args.path
 output = args.output
-cuts = args.cuts
+cut_name = args.cuts
 num_outputs = args.num_out
 assert num_outputs<100, "NEED TO CHANGE FILENAME TO ACCOMODATE THIS MANY NUMBERS"
-vertex_name = args.vertex_name
 emax = args.emax
 if args.reco == "True" or args.reco == "true":
     use_old_reco = True
@@ -73,7 +69,8 @@ else:
     shuffle = True
 # cut names: track, cascade, CC, NC, track CC, track NC, cascade CC, cascade NC 
 
-print("Keeping %s event types"%cuts)
+print("Keeping %s event types"%cut_name)
+print("Saving PEGLEG info: %s \nNumber output files: %i \nFindMinMax: %s Find quartiles: %s \nEnergy Max: %f GeV \nShuffling: %s \nKeeping event types: %s"%(use_old_reco,num_outputs,find_minmax,find_quartiles,emax,shuffle,cut_name)) 
 
 file_names = path + input_files
 event_file_names = sorted(glob.glob(file_names))
@@ -90,7 +87,6 @@ full_num_pulses = None
 # Labels: [ nu energy, nu zenith, nu azimuth, nu time, nu x, nu y, nu z, track length (0 for cascade), isTrack (track = 1, cascasde = 0), flavor, type (anti = 1), isCC (CC=1, NC = 0)]
 
 for a_file in event_file_names:
-    #print("Pulling data from %s"%a_file)
 
     f = h5py.File(a_file, "r")
     file_features_DC = f["features_DC"][:]
@@ -102,10 +98,12 @@ for a_file in event_file_names:
         file_num_pulses = f["num_pulses_per_dom"][:]
     f.close()
     del f
-    
+   
     from handle_data import CutMask
     mask = CutMask(file_labels)
-    keep_index = mask[cuts]
+    e_mask = file_labels[:,0]<emax
+    keep_index = np.logical_and(mask[cut_name],e_mask)
+    number_events = sum(keep_index)
 
     if full_features_DC is None:
         full_features_DC = file_features_DC[keep_index]
@@ -175,7 +173,7 @@ if find_minmax:
 
 #Save output to hdf5 file
 print("Total events saved: %i"%full_features_DC.shape[0])
-cut_name = cuts.replace(" ","")
+cut_name_nospaces = cut_name.replace(" ","")
 events_per_file = int(full_features_DC.shape[0]/num_outputs) + 1
 for sep_file in range(0,num_outputs):
     start = events_per_file*sep_file
@@ -183,7 +181,7 @@ for sep_file in range(0,num_outputs):
         end = events_per_file*(sep_file+1)
     else:
         end = full_features_DC.shape[0]
-    output_name = path + output +  cut_name + ".lt" + str(int(emax)) + "_vertex" + vertex_name + "_file%02d.hdf5"%sep_file 
+    output_name = path + output +  cut_name_nospaces + ".lt" + str(int(emax)) +  "_file%02d.hdf5"%sep_file 
     print("I put evnts %i - %i into %s"%(start,end,output_name))
     f = h5py.File(output_name, "w")
     f.create_dataset("features_DC", data=shuffled_features_DC[start:end])

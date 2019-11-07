@@ -1,3 +1,11 @@
+#######################################
+# Takes initial hdf5 file and plots start time and charge
+#   Plots all doms for all events
+#   Slow way to do this...
+#   There are better ways to do this...
+#####################################
+
+
 import numpy as np
 import h5py
 import argparse

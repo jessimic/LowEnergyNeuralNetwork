@@ -11,6 +11,9 @@
 #   -v validate:    bool if output should have validation arrays
 #   --scaler:       name of scaler to use (MaxAbs, MinMax, Robust)
 #   --read_statistics:  True if incoming file has the stats included
+#   --shuffle:      shuffles data
+#   --trans_output: transforms energy and zenith output
+#   --emax:         max energy (MaxAbs) to transform output energy
 ###########################################
 
 import numpy
@@ -23,8 +26,8 @@ import itertools
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--input_file",type=str,default='Level5_IC86.2013_genie_nue.012640.100.cascade.lt60_vertexDC.hdf5',
-                    dest="input_file", help="names for input files")
+parser.add_argument("-i", "--input_file",type=str,default=None,
+                    dest="input_file", help="name for input file (can only take one at a time)")
 parser.add_argument("-d", "--path",type=str,default='/mnt/scratch/micall12/training_files/',
                     dest="path", help="path to input files")
 parser.add_argument("-r","--reco",type=str, default=False,
@@ -35,10 +38,16 @@ parser.add_argument("--scaler",type=str, default='MaxAbs',
                     dest="scaler", help="name of transformation scaler type (Robust, MaxAbs, MinMax)")
 parser.add_argument("--read_statistics",type=str, default=False,
                     dest="statistics", help="bool if the input file has the quartiles or minmax in it")
+parser.add_argument("--shuffle",type=str, default=False,
+                    dest="shuffle", help="True if you want to shuffle")
+parser.add_argument("--trans_output",type=str, default=False,
+                    dest="trans_output", help="True if you want to transform the energy and zenith")
+parser.add_argument("--emax",type=float,default=None,
+                    dest="emax", help="max energy to divide by for transforming output")
 args = parser.parse_args()
 working_dir = args.path
-input_file = working_dir + args.input_file
 transform = args.scaler
+max_energy = args.emax
 if args.reco == "True" or args.reco == "true":
     use_old_reco = True
 else:
@@ -52,8 +61,21 @@ if args.statistics == "True" or args.statistics == "true":
 else:
     read_statistics = False
     print("MAKING OWN QUARTILES or MINMAX! Not taking it from file")
+if args.shuffle == "True" or args.shuffle == "true":
+    shuffle = True
+else:
+    shuffle = False
+if args.trans_output == "True" or args.trans_output == "true":
+    transform_output = True
+else:
+    transform_output = False
+if not max_energy:
+    max_energy_print = "None"
+
+print("Saving PEGLEG info: %s \nMake Validation set: %s \nScaler Transformation used: %s \nRead statistics from input file: %s \nShuffling: %s \nTransform output energy & zenith: %s \nMaximum Energy to divide output by: %s GeV"%(use_old_reco,create_validation,transform,read_statistics,shuffle,transform_output,max_energy))
 
 ### Import Files ###
+input_file = working_dir + args.input_file
 f = h5py.File(input_file, 'r')
 features_DC = f['features_DC'][:]
 features_IC = f['features_IC'][:]
@@ -83,6 +105,16 @@ else:
 f.close()
 del f
 
+if shuffle:
+    from handle_data import Shuffler
+
+    features_DC, features_IC, labels, \
+    reco, initial_stats, num_pulses = \
+    Shuffler(features_DC,features_IC,labels, \
+    use_old_reco_flag=use_old_reco)
+
+    print("SHUFFLED")
+
 #Split data
 from handle_data import SplitTrainTest
 X_train_DC_raw, X_train_IC_raw, Y_train_raw, \
@@ -93,7 +125,7 @@ reco_train_raw, reco_test_raw, reco_validate_raw  \
 reco=reco,use_old_reco=use_old_reco,create_validation=create_validation,\
 fraction_test=0.1,fraction_validate=0.2)
 
-#Transform Data
+#Transform Input Data
 from scaler_transformations import TransformData, new_transform
 
 X_train_DC_partial = new_transform(X_train_DC_raw) 
@@ -141,8 +173,30 @@ if use_old_reco:
     if create_validation:
         reco_validate = numpy.copy(reco_validate_raw)
 
+# Transform Energy and Zenith Data
+# MaxAbs on Energy
+# Cos on Zenith
+if transform_output:
+    if not max_energy:
+        print("Not given max energy, finding it from the Y_test in the given file!!!")
+        max_energy = max(abs(Y_test[:,0]))
+
+    print("Transforming the energy and zenith output. Dividing energy by %f and taking cosine of zenith"%max_energy)
+
+    Y_train[:,0] = Y_train[:,0]/float(max_energy) #energy
+    Y_train[:,1] = numpy.cos(Y_train[:,1]) #cos zenith
+
+    Y_validate[:,0] = Y_validate[:,0]/float(max_energy) #energy
+    Y_validate[:,1] = numpy.cos(Y_validate[:,1]) #cos zenith
+
+    Y_test[:,0] = Y_test[:,0]/float(max_energy) #energy
+    Y_test[:,1] = numpy.cos(Y_test[:,1]) #cos zenith
+
 #Save output to hdf5 file
-output_file = input_file[:-4] + "transformed.hdf5"
+transform_name = "transformedinput"
+if transform_output:
+    transform_name = transform_name + "output"
+output_file = input_file[:-4] + transform_name + ".hdf5"
 print("Output file: %s"%output_file)
 f = h5py.File(output_file, "w")
 f.create_dataset("Y_train", data=Y_train)
