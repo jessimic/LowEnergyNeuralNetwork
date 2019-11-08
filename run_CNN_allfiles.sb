@@ -2,16 +2,18 @@
 
 ########## SBATCH Lines for Resource Request ##########
  
-#SBATCH --time=23:59:00             # limit of wall clock time - how long the job will run (same as -t)
-#SBATCH --gres=gpu:2                # number of different nodes - could be an exact number or a range of nodes (same as -N)
-#SBATCH --mem-per-cpu=10G            # memory required per allocated CPU (or core) - amount of memory (in bytes)
-#SBATCH --job-name CNN_TEST      # you can give your job a name for easier identification (same as -J)
-#SBATCH --output CNN_TEST.out
+#SBATCH --time=3:59:00             # limit of wall clock time - how long the job will run (same as -t)
+#SBATCH --gres=gpu:1                # number of different nodes - could be an exact number or a range of nodes (same as -N)
+#SBATCH --mem=250G            # memory required per allocated CPU (or core) - amount of memory (in bytes)
+#SBATCH --job-name CNN_mlarson_IC19_EZ      # you can give your job a name for easier identification (same as -J)
+#SBATCH --output /mnt/home/micall12/DNN_LE/CNN_mlarson_IC19_energyzenith.out
 
 ########## Command Lines to Run ##########
 
 cd /mnt/home/micall12
 
-source activate python-tfgpu \
+export PATH="/mnt/home/micall12/anaconda2/bin:$PATH"
 
-python /mnt/home/micall12/DNN_LE/CNN_NuE_Best_18Apr19.py -i Level5p_IC86.2013_genie_nue.012640.300.transformed.hdf5 -n nue_5p_cascade_allfiles_drop30_TEST -e 100 --drop 0.3
+source activate python3-tfgpu 
+
+python /mnt/home/micall12/DNN_LE/CNN_CreateRunModel.py -i mlarson_NuMu_140000_allfiles_level2.all.lt1000_vertexIC19.transformed.hdf5 --name mlarson_energyzenith_IC19_all --variables 2

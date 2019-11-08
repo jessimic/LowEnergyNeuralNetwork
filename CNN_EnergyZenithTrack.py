@@ -4,6 +4,9 @@
 # Runs net and plots
 # Can take in energy, zenith, and track
 # 1 = energy, 2 = energy and zenith, 3 = energy, zeith, track
+#
+#
+#
 #############################
 
 import numpy
@@ -21,7 +24,7 @@ import matplotlib.pyplot as plt
 import keras
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--input_file",type=str,default='/mnt/research/IceCube/jmicallef/DNN_files/NuMu_140000_trigtime_lt150_vertexDC_flat_75bins_5000evtperbin.split.transformed_input.hdf5',
+parser.add_argument("-i", "--input_file",type=str,default=None,
                     dest="input_file", help="name and path for input file")
 parser.add_argument("-d", "--path",type=str,default='/mnt/scratch/micall12/training_files/',
                     dest="path", help="path to input files")
@@ -41,14 +44,9 @@ parser.add_argument("--old_model", type=str, default = None,
                     dest ="old_model", help="Path + name of old model hdf5 file to load weights from")
 parser.add_argument("--variables", type=int, default = 1,
                     dest ="train_variables", help="1 for energy only, 2 for energy and zenith")
-parser.add_argument("-r","--reco",type=str, default=False,
-                    dest="reco", help="bool if the file has pegleg reco info + initial stats, etc. (if using Level5p files)")
 args = parser.parse_args()
 
-#num_epochs = 60
-#train_variables = 1
-#filename = 'numu_flat_energy_trigtime_cut10'
-
+# Settings from args
 input_file = args.input_file
 path = args.path
 num_epochs = args.epochs
@@ -68,7 +66,6 @@ if save==True:
         
 use_old_weights = args.load_weights
 old_model_name = args.old_model
-use_old_reco = args.reco
 
 
 # Import files
@@ -83,8 +80,6 @@ X_test_IC = f['X_test_IC'][:]
 X_validate_DC = f['X_validate_DC'][:]
 X_validate_IC = f['X_validate_IC'][:]
 Y_validate = f['Y_validate'][:]
-if use_old_reco:
-    file_reco = f["reco_labels"][:]
 f.close()
 del f
 
