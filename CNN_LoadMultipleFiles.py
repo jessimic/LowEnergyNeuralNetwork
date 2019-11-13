@@ -10,26 +10,45 @@ import numpy
 import h5py
 import time
 import os, sys
-import random
-from collections import OrderedDict
-import itertools
+import argparse
+import glob
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-train_variables = 2
-num_labels = train_variables
-path = "/mnt/research/IceCube/jmicallef/DNN_files/"
+parser = argparse.ArgumentParser()
+parser.add_argument("-i", "--input_files",type=str,default=None,
+                    dest="input_files", help="name and path for input files")
+parser.add_argument("-d", "--path",type=str,default='/mnt/research/IceCube/jmicallef/DNN_files/',
+                    dest="path", help="path to input files")
+parser.add_argument("-n", "--name",type=str,default='numu_flat_EZ_5_100_CC_cleaned',
+                    dest="name", help="name for output directory and model file name")
+parser.add_argument("-e","--epochs", type=int,default=30,
+                    dest="epochs", help="number of epochs for neural net")
+parser.add_argument("--start", type=int,default=0,
+                    dest="start_epoch", help="epoch number to start at")
+parser.add_argument("--variables", type=int,default=2,
+                    dest="train_variables", help="1 for energy only, 2 for energy and zenith")
+args = parser.parse_args()
 
+# Settings from args
+input_files = args.input_files
+path = args.path
+num_epochs = args.epochs
+filename = args.name
+
+train_variables = args.train_variables
+num_labels = train_variables
 batch_size = 256
 dropout = 0.2
 learning_rate = 1e-3
 DC_drop_value = dropout
 IC_drop_value =dropout
 connected_drop_value = dropout
-min_energy = 5
+min_energy = 5.
 max_energy = 100.
-num_epochs = 7*20
+start_epoch = args.start_epoch
 
-filename = 'numu_flat_EZ_5_100_CC_uncleaned_cleanedpulsesonly_3600kevents'
 save = True
 save_folder_name = "output_plots/%s/"%(filename)
 if save==True:
@@ -38,8 +57,11 @@ if save==True:
         
 use_old_reco = False
 
+files_with_paths = path + input_files
+file_names = sorted(glob.glob(files_with_paths))
 
-afile = path + "NuMu_140000_level2.zst_uncleaned_cleanedpulsesonly_lt100_CC_flat_95bins_36034evtperbinall_file00.transformed.hdf5"
+
+afile = file_names[0]
 f = h5py.File(afile, 'r')
 X_train_DC = f['X_train_DC'][:]
 X_train_IC = f['X_train_IC'][:]
@@ -189,10 +211,16 @@ def ZenithLoss(y_truth,y_predicted):
     #return logcosh(y_truth[:,1],y_predicted[:,1])
     return mean_squared_error(y_truth[:,1],y_predicted[:,1])
 
-def CustomLoss(y_truth,y_predicted):
-    energy_loss = EnergyLoss(y_truth,y_predicted)
-    zenith_loss = ZenithLoss(y_truth,y_predicted)
-    return energy_loss + zenith_loss
+if train_variables == 2:
+    def CustomLoss(y_truth,y_predicted):
+        energy_loss = EnergyLoss(y_truth,y_predicted)
+        zenith_loss = ZenithLoss(y_truth,y_predicted)
+        return energy_loss + zenith_loss
+
+if train_variables == 1:
+    def CustomLoss(y_truth,y_predicted):
+        energy_loss = EnergyLoss(y_truth,y_predicted)
+        return energy_loss
 
 
 # Run neural network and record time ##
@@ -203,18 +231,8 @@ zenith_loss = []
 val_energy_loss = []
 val_zenith_loss = []
 
-
-file_names = [path + "NuMu_140000_level2.zst_uncleaned_cleanedpulsesonly_lt100_CC_flat_95bins_36034evtperbinall_file00.transformed.hdf5",\
-path +"NuMu_140000_level2.zst_uncleaned_cleanedpulsesonly_lt100_CC_flat_95bins_36034evtperbinall_file01.transformed.hdf5",\
-path +"NuMu_140000_level2.zst_uncleaned_cleanedpulsesonly_lt100_CC_flat_95bins_36034evtperbinall_file02.transformed.hdf5",\
-path +"NuMu_140000_level2.zst_uncleaned_cleanedpulsesonly_lt100_CC_flat_95bins_36034evtperbinall_file03.transformed.hdf5",\
-path +"NuMu_140000_level2.zst_uncleaned_cleanedpulsesonly_lt100_CC_flat_95bins_36034evtperbinall_file04.transformed.hdf5",\
-path +"NuMu_140000_level2.zst_uncleaned_cleanedpulsesonly_lt100_CC_flat_95bins_36034evtperbinall_file05.transformed.hdf5",\
-path +"NuMu_140000_level2.zst_uncleaned_cleanedpulsesonly_lt100_CC_flat_95bins_36034evtperbinall_file06.transformed.hdf5"]
-
-start_epoch = 0
-end_epoch = num_epochs
-current_epoch = 0
+end_epoch = start_epoch + num_epochs
+current_epoch = start_epoch
 t0 = time.time()
 for epoch in range(start_epoch,end_epoch):
     
@@ -246,9 +264,14 @@ for epoch in range(start_epoch,end_epoch):
         print(current_epoch,end_epoch)
     
     # Compile model
-    model_DC.compile(loss=CustomLoss,
+    if num_labels == 2:
+        model_DC.compile(loss=CustomLoss,
               optimizer=Adam(lr=learning_rate),
               metrics=[EnergyLoss,ZenithLoss])
+    if num_labels ==1:
+        model_DC.compile(loss=CustomLoss,
+              optimizer=Adam(lr=learning_rate),
+              metrics=[EnergyLoss])
     
     #Run one epoch with dataset
     network_history = model_DC.fit([X_train_DC, X_train_IC], Y_train_use,
@@ -264,15 +287,20 @@ for epoch in range(start_epoch,end_epoch):
     val_loss = val_loss + network_history.history['val_loss']
     energy_loss = energy_loss + network_history.history['EnergyLoss']
     val_energy_loss = val_energy_loss + network_history.history['val_EnergyLoss']
-    zenith_loss = zenith_loss + network_history.history['ZenithLoss']
-    val_zenith_loss = val_zenith_loss + network_history.history['val_ZenithLoss']
+    if train_variables > 1:
+        zenith_loss = zenith_loss + network_history.history['ZenithLoss']
+        val_zenith_loss = val_zenith_loss + network_history.history['val_ZenithLoss']
     
     if epoch%len(file_names) == 6:
         model_DC.save("%s%s_%iepochs_model.hdf5"%(save_folder_name,filename,current_epoch+1))
 
         file = open("%ssaveloss_%iepochs.txt"%(save_folder_name,current_epoch+1),"w")
-        losses = [loss, energy_loss, zenith_loss, val_loss, val_energy_loss, val_zenith_loss]
-        losses_names = ['loss', 'energy_loss', 'zenith_loss', 'val_loss', 'val_energy_loss', 'val_zenith_loss']
+        if train_variables > 1:
+            losses = [loss, energy_loss, zenith_loss, val_loss, val_energy_loss, val_zenith_loss]
+            losses_names = ['loss', 'energy_loss', 'zenith_loss', 'val_loss', 'val_energy_loss', 'val_zenith_loss']
+        else:
+            losses = [loss, energy_loss, val_loss, val_energy_loss]
+            losses_names = ['loss', 'energy_loss', 'val_loss', 'val_energy_loss']
         losslen = len(losses_names)
         for a_list in range(0,losslen): 
             file.write("%s = ["%losses_names[a_list])
@@ -331,8 +359,12 @@ if save==True:
     file.write("training on {} samples, testing on {} samples".format(len(Y_train),len(Y_test)))
     file.write("final score on test data: loss: {:.4f} / accuracy: {:.4f}\n".format(score[0], score[1]))
     file.write("This took %f minutes\n"%((t1-t0)/60.))
-    losses = [loss, energy_loss, zenith_loss, val_loss, val_energy_loss, val_zenith_loss]
-    losses_names = ['loss', 'energy_loss', 'zenith_loss', 'val_loss', 'val_energy_loss', 'val_zenith_loss']
+    if train_variables > 1:
+        losses = [loss, energy_loss, zenith_loss, val_loss, val_energy_loss, val_zenith_loss]
+        losses_names = ['loss', 'energy_loss', 'zenith_loss', 'val_loss', 'val_energy_loss', 'val_zenith_loss']
+    else:
+        losses = [loss, energy_loss, val_loss, val_energy_loss]
+        losses_names = ['loss', 'energy_loss', 'val_loss', 'val_energy_loss']
     losslen = len(losses_names)
     for a_list in range(0,losslen):
         file.write("%s = ["%losses_names[a_list])
@@ -348,6 +380,7 @@ from PlottingFunctions import plot_history
 from PlottingFunctions import plot_bin_slices
 from PlottingFunctions import plot_history_from_list
 from PlottingFunctions import plot_history_from_list_split
+from PlottingFunctions import plot_distributions
 
 plot_2D_prediction(Y_test_use[:,0]*max_energy, Y_test_predicted[:,0]*max_energy,save,save_folder_name,bins=int(max_energy-min_energy),minval=min_energy,maxval=max_energy,variable="Energy",units='GeV')
 plot_single_resolution(Y_test_use[:,0]*max_energy, Y_test_predicted[:,0]*max_energy,\
@@ -373,5 +406,6 @@ if num_labels > 1:
     plot_distributions(Y_test_use[:,1], Y_test_predicted[:,1],save,save_folder_name,variable="CosZenith",units='')
 
 plot_history_from_list(loss,val_loss,save,save_folder_name,logscale=True)
-plot_history_from_list_split(energy_loss,val_energy_loss,zenith_loss,val_zenith_loss,save=save,savefolder=save_folder_name,logscale=True)
+if num_labels > 1:
+    plot_history_from_list_split(energy_loss,val_energy_loss,zenith_loss,val_zenith_loss,save=save,savefolder=save_folder_name,logscale=True)
 
