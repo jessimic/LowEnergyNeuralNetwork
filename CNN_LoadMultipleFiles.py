@@ -29,6 +29,8 @@ parser.add_argument("--start", type=int,default=0,
                     dest="start_epoch", help="epoch number to start at")
 parser.add_argument("--variables", type=int,default=2,
                     dest="train_variables", help="1 for energy only, 2 for energy and zenith")
+parser.add_argument("--model",default=None,
+                    dest="model",help="Name of file with model weights to load--will start from here if file given")
 args = parser.parse_args()
 
 # Settings from args
@@ -49,13 +51,17 @@ min_energy = 5.
 max_energy = 100.
 start_epoch = args.start_epoch
 
+old_model_given = args.model
+
 save = True
-save_folder_name = "output_plots/%s/"%(filename)
+save_folder_name = "/mnt/home/micall12/DNN_LE/output_plots/%s/"%(filename)
 if save==True:
     if os.path.isdir(save_folder_name) != True:
         os.mkdir(save_folder_name)
         
 use_old_reco = False
+
+print("Starting at epoch: %s \nTraining until: %s epoch \nTraining on %s variables"%(start_epoch,start_epoch+num_epochs,train_variables))
 
 files_with_paths = path + input_files
 file_names = sorted(glob.glob(files_with_paths))
@@ -256,9 +262,13 @@ for epoch in range(start_epoch,end_epoch):
     Y_val_use = Y_validate[:,:train_variables]
     
     # Use old weights
-    if epoch > 0: #start_epoch:
+    if epoch > 0 and not old_model_given:
         last_model = '%scurrent_model_while_running.hdf5'%save_folder_name
         model_DC.load_weights(last_model)
+    elif old_model_given:
+        print("Using given model %s"%old_model_given)
+        model_DC.load_weights(old_model_given)
+        old_model_given = None
     else:
         print("Training set: %i, Validation set: %i"%(len(Y_train_use),len(Y_val_use)))
         print(current_epoch,end_epoch)
@@ -291,7 +301,7 @@ for epoch in range(start_epoch,end_epoch):
         zenith_loss = zenith_loss + network_history.history['ZenithLoss']
         val_zenith_loss = val_zenith_loss + network_history.history['val_ZenithLoss']
     
-    if epoch%len(file_names) == 6:
+    if epoch%len(file_names) == (len(file_names)-1):
         model_DC.save("%s%s_%iepochs_model.hdf5"%(save_folder_name,filename,current_epoch+1))
 
         file = open("%ssaveloss_%iepochs.txt"%(save_folder_name,current_epoch+1),"w")

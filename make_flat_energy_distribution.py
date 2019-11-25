@@ -49,7 +49,7 @@ parser.add_argument("-c", "--cuts",type=str, default="all",
                     dest="cuts", help="Type of events to keep (all, cascade, track, CC, NC, etc.)")
 args = parser.parse_args()
 input_files = args.input_files
-print("CURRENTLY MANUALLY PUT IN FILENAMES NO MATTER WHAT YOU TYPE AS ARG")
+#print("CURRENTLY MANUALLY PUT IN FILENAMES NO MATTER WHAT YOU TYPE AS ARG")
 path = args.path
 output = args.output
 bin_size = args.bin_size
@@ -75,13 +75,11 @@ else:
 
 print("Saving PEGLEG info: %s \nBin size: %f GeV \nMax Count Per Bin: %i events \nEnergy Range: %f - %f \nCut so vertex in DC: %s \nShuffling: %s \nKeeping event types: %s"%(use_old_reco,bin_size,max_events_per_bin,emin,emax,cut_DC,shuffle,cut_name)) 
 
-#file_names = path + input_files
 #event_file_names = ['/mnt/scratch/micall12/training_files/NuMu_140000_all_level2_uncleaned_cleanedpulsesonly_LEall.lt200_vertexDC_file00.hdf5', \
 #'/mnt/scratch/micall12/training_files/NuMu_140000_all_level2.zst_uncleaned_cleanedpulsesonly_all.lt200_vertexDC_file00.hdf5', \
 #'/mnt/scratch/micall12/training_files/NuMu_140000_all_level2.zst_uncleaned_cleanedpulsesonly_sim3_all.lt200_vertexDC_file00.hdf5'] #sorted(glob.glob(file_names))
-event_file_names = ['/mnt/scratch/micall12/training_files/NuMu_140000_all_level2.zst_cleaned_LEall_all.lt100_file00.hdf5', \
-'/mnt/scratch/micall12/training_files/NuMu_140000_all_level2.zst_cleaned_all_all.lt100_file00.hdf5', \
-'/mnt/scratch/micall12/training_files/NuMu_140000_all_level2.zst_cleaned_sim3all_all.lt100_file00.hdf5'] #sorted(glob.glob(file_names))
+file_names = path + input_files
+event_file_names = sorted(glob.glob(file_names))
 if add_file:
     print("Adding this file %s"%add_file)
     event_file_names.insert(0,path + add_file)

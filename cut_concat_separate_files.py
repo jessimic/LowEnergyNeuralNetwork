@@ -32,7 +32,7 @@ parser.add_argument("-r","--reco",type=str, default=False,
                     dest="reco", help="bool if the file has pegleg reco info + initial stats, etc. (if using Level5p files)")
 parser.add_argument("--num_out",type=int,default=1,
                     dest="num_out",help="number of output files you want to split the output into")
-parser.add_argument("--emax",type=float,default=60.0,
+parser.add_argument("--emax",type=float,default=200.0,
                     dest="emax",help="Max energy to keep, cut anything above")
 parser.add_argument("--find_minmax",type=str, default=True,
                     dest="find_minmax",help="True if you want it to return min and max values from data, and save them in output file")
@@ -72,8 +72,14 @@ else:
 print("Keeping %s event types"%cut_name)
 print("Saving PEGLEG info: %s \nNumber output files: %i \nFindMinMax: %s Find quartiles: %s \nEnergy Max: %f GeV \nShuffling: %s \nKeeping event types: %s"%(use_old_reco,num_outputs,find_minmax,find_quartiles,emax,shuffle,cut_name)) 
 
-file_names = path + input_files
-event_file_names = sorted(glob.glob(file_names))
+#file_names = path + input_files
+#event_file_names = sorted(glob.glob(file_names))
+
+event_file_names = ["/mnt/scratch/micall12/training_files/NuMu_140000_level2.zst_cleaned_lt100_CC_flat_95bins_36034evtperbinall.lt100_file00.hdf5",\
+                    "/mnt/scratch/micall12/training_files/NuMu_140000_level2.zst_cleaned_lt100_CC_flat_95bins_36034evtperbinall.lt100_file01.hdf5",\
+                    "/mnt/scratch/micall12/training_files/NuMu_140000_level2.zst_cleaned_lt100_CC_flat_95bins_36034evtperbinall.lt100_file02.hdf5",\
+                    "/mnt/scratch/micall12/training_files/NuE_120000_level2_cleaned_lt100_vertexDC_CC_flat_95bins_15478evtperbinall.allfiles.CC.lt100_file00.hdf5"]
+print("I AM USING HARDCODED FILENAMES, IGNORING YOUR INPUT ARG!!!!!!")
 assert event_file_names,"No files loaded, please check path."
 
 full_features_DC = None
@@ -98,6 +104,10 @@ for a_file in event_file_names:
         file_num_pulses = f["num_pulses_per_dom"][:]
     f.close()
     del f
+
+    if file_labels.shape[-1] != 12:
+        print("Skipping file %s, output labels not expected and CutMask could be cutting the wrong thing"%a_file)
+        continue
    
     from handle_data import CutMask
     mask = CutMask(file_labels)

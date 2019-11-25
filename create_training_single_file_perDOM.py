@@ -8,8 +8,9 @@
 #       -i input: name of input file, include path
 #       -n name: name for output file, automatically puts in my scratch
 #       -r reco: flag to save Level5p pegleg reco output (to compare)
-#       --level2: flag to use level2 frames for input (True if Level2)
 #       --emax: maximum energy saved (60 is default, so keep all < 60 GeV)
+#       --cleaned: if you want to pull from SRTTWOfflinePulsesDC, instead of SplitInIcePulses
+#       --true_name: string of key to check true particle info from against I3MCTree[0] 
 ##############################
 
 import numpy
@@ -31,29 +32,25 @@ parser.add_argument("-n", "--name",type=str,default='Level5_IC86.2013_genie_numu
                     dest="output_name",help="name for output file (no path)")
 parser.add_argument("-r", "--reco",type=str,default="False",
                     dest="reco", help="True if using Level5p or have a pegleg reco")
-parser.add_argument("--level2",type=str,default="False",
-                    dest="level2", help="True if using Level2 MC")
 parser.add_argument("--emax",type=float,default=60.0,
                     dest="emax",help="Max energy to keep, cut anything above")
 parser.add_argument("--vertex",type=str, default="DC",
                     dest="vertex_name",help="Name of vertex cut to put on file")
 parser.add_argument("--cleaned",type=str,default="False",
                     dest="cleaned", help="True if wanted to use SRTTWOfflinePulsesDC")
+parser.add_argument("--true_name",type=str,default=None,
+                    dest="true_name", help="Name of key for true particle info if you want to check with I3MCTree[0]")
 args = parser.parse_args()
 input_file = args.input_file
 output_name = args.output_name
 emax = args.emax
 vertex_name = args.vertex_name
+true_name = args.true_name
 if args.reco == 'True' or args.reco == 'true':
     use_old_reco = True
     print("Expecting old reco values in files, pulling from pegleg frames")
 else:
     use_old_reco = False
-if args.level2 == 'True' or args.level2 == 'true':
-    level2 = True
-else:
-    level2 = False
-    print("Expecting Level5 or 5p data, using trueNeutrino")
 if args.cleaned == "True" or args.cleaned == "true":
     use_cleaned_pulses = True
 else:
@@ -298,12 +295,18 @@ def read_files(filename_list, drop_fraction_of_tracks=0.00, drop_fraction_of_cas
                 continue
 
             # some truth labels (we do *not* have these in real data and would like to figure out what they are)
-            if level2 == True:
-                nu = frame["I3MCTree"][0]
-            else:
-                nu = frame["trueNeutrino"]
-            #muon = frame['trueMuon']
-            #cascade = frame['trueCascade']
+            nu = frame["I3MCTree"][0]
+            
+            if true_name:
+                nu_check = frame[true_name]
+                assert nu==nu_check,"CHECK I3MCTree[0], DOES NOT MATCH TRUTH IN GIVEN KEY"
+            
+            if (nu.type != dataclasses.I3Particle.NuMu and nu.type != dataclasses.I3Particle.NuMuBar\
+                and nu.type != dataclasses.I3Particle.NuE and nu.type != dataclasses.I3Particle.NuEBar\
+                and nu.type != dataclasses.I3Particle.NuTau and nu.type != dataclasses.I3Particle.NuTauBar):
+                print("PARTICLE IS NOT NEUTRUNO!! Skipping event...")
+                continue           
+ 
             nu_x = nu.pos.x
             nu_y = nu.pos.y
             nu_z = nu.pos.z
@@ -333,7 +336,7 @@ def read_files(filename_list, drop_fraction_of_tracks=0.00, drop_fraction_of_cas
 
             # input file sanity check: this should not print anything since "isOther" should always be false
             if isOther:
-                print("isOTHER - not Track or Cascade...skipping")
+                print("isOTHER - not Track or Cascade...skipping event...")
                 isOther_count += 1
                 continue
 
@@ -343,16 +346,11 @@ def read_files(filename_list, drop_fraction_of_tracks=0.00, drop_fraction_of_cas
             if ((nu.type == dataclasses.I3Particle.NuMu or nu.type == dataclasses.I3Particle.NuMuBar) and isCC):
                 isTrack = True
                 isCascade = False
-                if level2 == True:
-                    if frame["I3MCTree"][1].type == dataclasses.I3Particle.MuMinus or frame["I3MCTree"][1].type == dataclasses.I3Particle.MuPlus:
-                        track_length = frame["I3MCTree"][1].length
-                    else:
-                        print("Second particle not Muon, continuing")
-                        continue
+                if frame["I3MCTree"][1].type == dataclasses.I3Particle.MuMinus or frame["I3MCTree"][1].type == dataclasses.I3Particle.MuPlus:
+                    track_length = frame["I3MCTree"][1].length
                 else:
-                    track_length = frame["trueMuon"].length
-            elif isOther: #Don't save non NC or CC
-                continue
+                    print("Second particle in MCTree not muon for numu CC? Skipping event...")
+                    continue
             else:
                 isTrack = False
                 isCascade = True

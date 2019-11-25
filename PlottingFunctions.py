@@ -82,7 +82,7 @@ def plot_history_from_list(loss,val,save=False,savefolder=None,logscale=False):
     if logscale:
         plt.yscale('log')
     plt.plot(loss,label="Training")
-    plt.plot(val_loss,label="Validation")
+    plt.plot(val,label="Validation")
     plt.legend(fontsize=15)
     if save == True:
         plt.savefig("%sloss_vs_epochs.png"%savefolder) 
