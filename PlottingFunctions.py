@@ -75,30 +75,62 @@ def plot_history(network_history,save=False,savefolder=None,use_logscale=False):
 
     plt.show()
 
-def plot_history_from_list(loss,val,save=False,savefolder=None,logscale=False):
+def plot_history_from_list(loss,val,save=False,savefolder=None,logscale=False,ymin=None,ymax=None,title=None):
+    
     plt.figure(figsize=(10,7))
-    plt.xlabel('Epochs',fontsize=15)
-    plt.ylabel('Loss',fontsize=15)
-    if logscale:
-        plt.yscale('log')
     plt.plot(loss,label="Training")
     plt.plot(val,label="Validation")
+   
+    #Edit Axis
+    if logscale:
+        plt.yscale('log')
+    if ymin and ymax:
+        plt.ylim(ymin,ymax)
+    elif ymin:
+        plt.ylim(ymin,max(max(loss),max(val)))
+    elif ymax:
+        plt.ylim(min(min(loss),min(val)),ymax)
+    
+    #Add labels
+    if title:
+        plt.title(title,fontsize=25)
+    else:
+        plt.title("Training and Validation Loss after %s Epochs"%len(loss),fontsize=25)
+    plt.xlabel('Epochs',fontsize=15)
+    plt.ylabel('Loss',fontsize=15)
     plt.legend(fontsize=15)
+    
     if save == True:
         plt.savefig("%sloss_vs_epochs.png"%savefolder) 
 
 
-def plot_history_from_list_split(energy_loss,val_energy_loss,zenith_loss,val_zenith_loss,save=True,savefolder=None,logscale=False):
+def plot_history_from_list_split(energy_loss,val_energy_loss,zenith_loss,val_zenith_loss,save=True,savefolder=None,logscale=False,ymin=None,ymax=None,title=None):
+    
     plt.figure(figsize=(10,7))
-    plt.xlabel('Epochs',fontsize=15)
-    plt.ylabel('Loss',fontsize=15)
-    if logscale:
-        plt.yscale('log')
     plt.plot(energy_loss,'b',label="Energy Training")
     plt.plot(val_energy_loss,'c',label="Energy Validation")
     plt.plot(zenith_loss,'r',label="Zenith Training")
     plt.plot(val_zenith_loss,'m',label="Zenith Validation")
+    
+    #Edit Axis
+    if logscale:
+        plt.yscale('log')
+    if ymin and ymax:
+        plt.ylim(ymin,ymax)
+    elif ymin:
+        plt.ylim(ymin,max(max(loss),max(val)))
+    elif ymax:
+        plt.ylim(min(min(loss),min(val)),ymax)
+    
+    #Add labels
+    if title:
+        plt.title(title,fontsize=25)
+    else:
+        plt.title("Training and Validation Loss after %s Epochs"%len(energy_loss),fontsize=25)
+    plt.xlabel('Epochs',fontsize=15)
+    plt.ylabel('Loss',fontsize=15)
     plt.legend(fontsize=15)
+    
     if save == True:
         plt.savefig("%sloss_vs_epochs_split.png"%savefolder)
 

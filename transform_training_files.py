@@ -44,10 +44,13 @@ parser.add_argument("--trans_output",type=str, default=False,
                     dest="trans_output", help="True if you want to transform the energy and zenith")
 parser.add_argument("--emax",type=float,default=None,
                     dest="emax", help="max energy to divide by for transforming output")
+parser.add_argument("--tmax",type=float,default=None,
+                    dest="tmax", help="max track length to divide by for transforming output")
 args = parser.parse_args()
 working_dir = args.path
 transform = args.scaler
 max_energy = args.emax
+max_track = args.tmax
 if args.reco == "True" or args.reco == "true":
     use_old_reco = True
 else:
@@ -72,7 +75,12 @@ else:
 if not max_energy:
     max_energy_print = "None"
 
-print("Saving PEGLEG info: %s \nMake Validation set: %s \nScaler Transformation used: %s \nRead statistics from input file: %s \nShuffling: %s \nTransform output energy & zenith: %s \nMaximum Energy to divide output by: %s GeV"%(use_old_reco,create_validation,transform,read_statistics,shuffle,transform_output,max_energy))
+print("Saving PEGLEG info: %s \nMake Validation set: %s \nScaler Transformation used: %s \nRead statistics from input file: %s \nShuffling: %s \nTransform output energy, zenith, and track: %s \nMaximum Energy to divide output by: %s GeV \nMaximum Track Length to divide output by: %s m"%(use_old_reco,create_validation,transform,read_statistics,shuffle,transform_output,max_energy,max_track))
+
+static_stats = [25., 4000., 4000., 4000., 2000.] 
+if read_statistics:
+    print("Using static values to transform training input variables.")
+    print("Diviving [sum of charge, time of first pulse, time of last pulse, charge weighted mean, charge weighted standard deviations] by", static_stats)
 
 ### Import Files ###
 input_file = working_dir + args.input_file
@@ -85,15 +93,16 @@ if use_old_reco:
 else: 
     reco = None
 if read_statistics:
-    low_stat_DC = f['low_stat_DC'][:]
-    high_stat_DC = f['high_stat_DC'][:]
-    low_stat_IC = f['low_stat_IC'][:]
-    high_stat_IC = f['high_stat_IC'][:]
-    low_stat_labels = f['low_stat_labels'][:]
-    high_stat_labels = f['high_stat_labels'][:]
-    if use_old_reco:
-        low_stat_reco = f['low_stat_reco'][:]
-        high_stat_reco = f['high_stat_reco'][:]
+    low_stat_DC = static_stats #f['low_stat_DC'][:]
+    high_stat_DC = static_stats #f['high_stat_DC'][:]
+    low_stat_IC = static_stats #f['low_stat_IC'][:]
+    high_stat_IC = static_stats #f['high_stat_IC'][:]
+
+    #low_stat_labels = f['low_stat_labels'][:]
+    #high_stat_labels = f['high_stat_labels'][:]
+    #if use_old_reco:
+    #    low_stat_reco = f['low_stat_reco'][:]
+    #    high_stat_reco = f['high_stat_reco'][:]
     print("USING STATISTICS FOUND IN FILE")
 else:
     low_stat_DC      = None
@@ -113,65 +122,20 @@ if shuffle:
     Shuffler(features_DC,features_IC,labels, \
     use_old_reco_flag=use_old_reco)
 
-    print("SHUFFLED")
+    print("Finished shuffling...")
 
-#Split data
-from handle_data import SplitTrainTest
-X_train_DC_raw, X_train_IC_raw, Y_train_raw, \
-X_test_DC_raw, X_test_IC_raw, Y_test_raw, \
-X_validate_DC_raw, X_validate_IC_raw, Y_validate_raw,\
-reco_train_raw, reco_test_raw, reco_validate_raw  \
-= SplitTrainTest(features_DC,features_IC,labels,\
-reco=reco,use_old_reco=use_old_reco,create_validation=create_validation,\
-fraction_test=0.1,fraction_validate=0.2)
-
-#Transform Input Data
 from scaler_transformations import TransformData, new_transform
+#Transform Input Data
 
-X_train_DC_partial = new_transform(X_train_DC_raw) 
-X_train_DC_full = TransformData(X_train_DC_partial, low_stats=low_stat_DC, high_stats=high_stat_DC, scaler=transform)
-print("Finished train DC")
+features_DC_partial_transform = new_transform(features_DC)
+features_DC_full_transform = TransformData(features_DC_partial_transform, low_stats=low_stat_DC, high_stats=high_stat_DC, scaler=transform)
+print("Finished DC")
 
-X_test_DC_partial = new_transform(X_test_DC_raw)
-X_test_DC_full  = TransformData(X_test_DC_partial, low_stats=low_stat_DC, high_stats=high_stat_DC, scaler=transform)
-print("Finished test DC")
-
-X_train_IC_partial = new_transform(X_train_IC_raw)
-X_train_IC_full = TransformData(X_train_IC_partial, low_stats=low_stat_IC, high_stats=high_stat_IC, scaler=transform)
-print("Finished train IC")
-
-X_test_IC_partial = new_transform(X_test_IC_raw)
-X_test_IC_full  = TransformData(X_test_IC_partial, low_stats=low_stat_IC, high_stats=high_stat_IC, scaler=transform)
-print("Finished test IC")
-
-if create_validation:
-    X_validate_DC_partial = new_transform(X_validate_DC_raw)
-    X_validate_DC_full = TransformData(X_validate_DC_partial, low_stats=low_stat_DC, high_stats=high_stat_DC, scaler=transform)
-    print("Finished validate DC")
-    
-    X_validate_IC_partial = new_transform(X_validate_IC_raw)
-    X_validate_IC_full = TransformData(X_validate_IC_partial, low_stats=low_stat_IC, high_stats=high_stat_IC, scaler=transform)
-    print("Finished validate IC")
+features_IC_partial_transform = new_transform(features_IC)
+features_IC_full_transform = TransformData(features_IC_partial_transform, low_stats=low_stat_IC, high_stats=high_stat_IC, scaler=transform)
+print("Finished IC")
 
 print("Finished transforming the data using %s Scaler"%transform)
-
-Y_train = numpy.copy(Y_train_raw)
-Y_test       = numpy.copy(Y_test_raw)
-X_train_DC = numpy.copy(X_train_DC_full)
-X_test_DC           = numpy.copy(X_test_DC_full)
-X_train_IC = numpy.copy(X_train_IC_full)
-X_test_IC           = numpy.copy(X_test_IC_full)
-
-if create_validation:
-    Y_validate = numpy.copy(Y_validate_raw)
-    X_validate_DC = numpy.copy(X_validate_DC_full)
-    X_validate_IC = numpy.copy(X_validate_IC_full)
-
-if use_old_reco:
-    reco_train = numpy.copy(reco_train_raw)
-    reco_test = numpy.copy(reco_test_raw)
-    if create_validation:
-        reco_validate = numpy.copy(reco_validate_raw)
 
 # Transform Energy and Zenith Data
 # MaxAbs on Energy
@@ -179,23 +143,40 @@ if use_old_reco:
 if transform_output:
     if not max_energy:
         print("Not given max energy, finding it from the Y_test in the given file!!!")
-        max_energy = max(abs(Y_test[:,0]))
+        max_energy = max(abs(labels[:,0]))
+    if not max_track:
+        print("Not given max track, finding it from the Y_test in the given file!!!")
+        max_track = max(labels[:,7])
+
+    labels_full = numpy.copy(labels)
+
+    labels_full[:,0] = labels[:,0]/float(max_energy) #energy
+    labels_full[:,1] = numpy.cos(labels[:,1]) #cos zenith
+    labels_full[:,2] = labels[:,7]/float(max_track) #MAKE TRACK THIRD INPUT
+    labels_full[:,7] = labels[:,2] #MOVE AZIMUTH TO WHERE TRACK WAS
 
     print("Transforming the energy and zenith output. Dividing energy by %f and taking cosine of zenith"%max_energy)
+    print("Transforming track output. Dividing track by %f and MOVING IT TO INDEX 2 IN ARRAY. AZIMUTH NOW AT 7"%max_track)
+else:
+    labels_full = np.array(labels)
 
-    Y_train[:,0] = Y_train[:,0]/float(max_energy) #energy
-    Y_train[:,1] = numpy.cos(Y_train[:,1]) #cos zenith
+#Split data
+from handle_data import SplitTrainTest
+X_train_DC, X_train_IC, Y_train, \
+X_test_DC, X_test_IC, Y_test, \
+X_validate_DC, X_validate_IC, Y_validate,\
+reco_train, reco_test, reco_validate  \
+= SplitTrainTest(features_DC_full_transform,features_IC_full_transform,labels_full,\
+reco=reco,use_old_reco=use_old_reco,create_validation=create_validation,\
+fraction_test=0.1,fraction_validate=0.2)
 
-    Y_validate[:,0] = Y_validate[:,0]/float(max_energy) #energy
-    Y_validate[:,1] = numpy.cos(Y_validate[:,1]) #cos zenith
-
-    Y_test[:,0] = Y_test[:,0]/float(max_energy) #energy
-    Y_test[:,1] = numpy.cos(Y_test[:,1]) #cos zenith
 
 #Save output to hdf5 file
 transform_name = "transformedinput"
+if read_statistics:
+    transform_name = transform_name + "given"
 if transform_output:
-    transform_name = transform_name + "output"
+    transform_name = transform_name + "_transformed3output"
 output_file = input_file[:-4] + transform_name + ".hdf5"
 print("Output file: %s"%output_file)
 f = h5py.File(output_file, "w")

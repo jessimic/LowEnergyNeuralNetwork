@@ -72,14 +72,14 @@ else:
 print("Keeping %s event types"%cut_name)
 print("Saving PEGLEG info: %s \nNumber output files: %i \nFindMinMax: %s Find quartiles: %s \nEnergy Max: %f GeV \nShuffling: %s \nKeeping event types: %s"%(use_old_reco,num_outputs,find_minmax,find_quartiles,emax,shuffle,cut_name)) 
 
-#file_names = path + input_files
-#event_file_names = sorted(glob.glob(file_names))
+file_names = path + input_files
+event_file_names = sorted(glob.glob(file_names))
 
-event_file_names = ["/mnt/scratch/micall12/training_files/NuMu_140000_level2.zst_cleaned_lt100_CC_flat_95bins_36034evtperbinall.lt100_file00.hdf5",\
-                    "/mnt/scratch/micall12/training_files/NuMu_140000_level2.zst_cleaned_lt100_CC_flat_95bins_36034evtperbinall.lt100_file01.hdf5",\
-                    "/mnt/scratch/micall12/training_files/NuMu_140000_level2.zst_cleaned_lt100_CC_flat_95bins_36034evtperbinall.lt100_file02.hdf5",\
-                    "/mnt/scratch/micall12/training_files/NuE_120000_level2_cleaned_lt100_vertexDC_CC_flat_95bins_15478evtperbinall.allfiles.CC.lt100_file00.hdf5"]
-print("I AM USING HARDCODED FILENAMES, IGNORING YOUR INPUT ARG!!!!!!")
+#event_file_names = ["/mnt/scratch/micall12/training_files/NuMu_140000_level2.zst_cleaned_lt100_CC_flat_95bins_36034evtperbinall.lt100_file00.hdf5",\
+#                    "/mnt/scratch/micall12/training_files/NuMu_140000_level2.zst_cleaned_lt100_CC_flat_95bins_36034evtperbinall.lt100_file01.hdf5",\
+#                    "/mnt/scratch/micall12/training_files/NuMu_140000_level2.zst_cleaned_lt100_CC_flat_95bins_36034evtperbinall.lt100_file02.hdf5",\
+#                    "/mnt/scratch/micall12/training_files/NuE_120000_level2_cleaned_lt100_vertexDC_CC_flat_95bins_15478evtperbinall.allfiles.CC.lt100_file00.hdf5"]
+#print("I AM USING HARDCODED FILENAMES, IGNORING YOUR INPUT ARG!!!!!!")
 assert event_file_names,"No files loaded, please check path."
 
 full_features_DC = None
@@ -166,9 +166,14 @@ else:
 
 if find_quartiles:
     from get_statistics import GetQuartilesList
+    from scaler_transformations import new_transform
     #low_stat = q1, high_stat = max
     low_stat_DC, high_stat_DC = GetQuartilesList(full_features_DC)
+    low_stat_DC = new_tranform(low_stat_DC)
+    high_stat_DC = new_tranform(high_stat_DC)
     low_stat_IC, high_stat_IC = GetQuartilesList(full_features_IC)
+    low_stat_IC = new_tranform(low_stat_IC)
+    high_stat_IC = new_tranform(high_stat_IC)
     low_stat_labels, high_stat_labels = GetQuartilesList(full_labels)
     if use_old_reco:
         low_stat_reco, high_stat_reco = GetQuartilesList(full_reco)
@@ -176,7 +181,13 @@ if find_minmax:
     from get_statistics import GetMinMaxList
     #low_stat = min, high_stat = max
     low_stat_DC, high_stat_DC = GetMinMaxList(full_features_DC)
+    low_stat_DC = new_tranform(low_stat_DC)
+    high_stat_DC = new_tranform(high_stat_DC)
+    print("Max list for DC inputs: %f"%high_stat_DC)
     low_stat_IC, high_stat_IC = GetMinMaxList(full_features_IC)
+    low_stat_IC = new_tranform(low_stat_IC)
+    high_stat_IC = new_tranform(high_stat_IC)
+    print("Max list for IC inputs: %f"%high_stat_IC)
     low_stat_labels, high_stat_labels = GetMinMaxList(full_labels)
     if use_old_reco:
         low_stat_reco, high_stat_reco = GetMinMaxList(full_reco)

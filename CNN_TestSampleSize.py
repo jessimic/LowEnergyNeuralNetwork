@@ -31,6 +31,8 @@ parser.add_argument("--variables", type=int,default=2,
                     dest="train_variables", help="1 for energy only, 2 for energy and zenith")
 parser.add_argument("--model",default=None,
                     dest="model",help="Name of file with model weights to load--will start from here if file given")
+parser.add_argument("--num_files", type=int,default=1,
+                    dest="num_files", help="number of files to train with, meant for sample size testing")
 args = parser.parse_args()
 
 # Settings from args
@@ -38,6 +40,7 @@ input_files = args.input_files
 path = args.path
 num_epochs = args.epochs
 filename = args.name
+num_files = args.num_files
 
 train_variables = args.train_variables
 num_labels = train_variables
@@ -63,8 +66,8 @@ use_old_reco = False
 
 files_with_paths = path + input_files
 file_names = sorted(glob.glob(files_with_paths))
-
-print("HARD CODED CUTTING AT 60 GeV ASSUMING ENERGY/100GeV FOR OUTPUT VALUES!!!!!!!!!!!")
+file_names = file_names[:num_files]
+print(file_names)
 
 print("\nFiles Used \nTraining %i files that look like %s \nStarting with model: %s \nSaving output to: %s"%(len(file_names),file_names[0],old_model_given,save_folder_name))
 
@@ -266,16 +269,7 @@ for epoch in range(start_epoch,end_epoch):
     
     Y_train_use = Y_train[:,:train_variables]
     Y_val_use = Y_validate[:,:train_variables]
-
-    e_train_mask = Y_train_use[:,0] < 0.6
-    e_val_mask = Y_val_use[:,0] < 0.6
-    Y_train_use = Y_train_use[e_train_mask]
-    Y_val_use = Y_val_use[e_val_mask]
-    X_train_DC = X_train_DC[e_train_mask]
-    X_train_IC = X_train_IC[e_train_mask]
-    X_validate_DC = X_validate_DC[e_val_mask]
-    X_validate_IC = X_validate_IC[e_val_mask]
-
+    
     # Use old weights
     if epoch > 0 and not old_model_given:
         last_model = '%scurrent_model_while_running.hdf5'%save_folder_name
@@ -293,12 +287,10 @@ for epoch in range(start_epoch,end_epoch):
         model_DC.compile(loss=CustomLoss,
               optimizer=Adam(lr=learning_rate),
               metrics=[EnergyLoss,ZenithLoss])
-    elif num_labels ==1:
+    if num_labels ==1:
         model_DC.compile(loss=CustomLoss,
               optimizer=Adam(lr=learning_rate),
               metrics=[EnergyLoss])
-    else:
-        print("Only supports 1 or 2 labels. Not compiling. This will fail")
     
     #Run one epoch with dataset
     network_history = model_DC.fit([X_train_DC, X_train_IC], Y_train_use,
@@ -365,10 +357,6 @@ for file in file_names:
         X_test_IC_use = numpy.concatenate((X_test_IC_use, X_test_IC))
 print(Y_test_use.shape)
 
-e_test_mask = Y_test_use[:,0] < 0.6
-Y_test_use = Y_test_use[e_test_mask]
-X_test_DC_use = X_test_DC_use[e_test_mask]
-X_test_IC_use = X_test_IC_use[e_test_mask]
 
 # Score network
 score = model_DC.evaluate([X_test_DC_use,X_test_IC_use], Y_test_use, batch_size=256)
