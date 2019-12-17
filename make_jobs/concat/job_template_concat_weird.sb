@@ -1,0 +1,17 @@
+#!/bin/bash --login
+
+########### SBATCH Lines for Resource Request ##########
+
+#SBATCH --time=3:59:00             # limit of wall clock time - how long the job will run (same as -t)
+#SBATCH --nodes=1                 # number of different nodes - could be an exact number or a range of nodes (same as -N)
+#SBATCH --mem=350G            # memory required per allocated CPU (or core) - amount of memory (in bytes)
+#SBATCH --job-name concat_events      # you can give your job a name for easier identification (same as -J)
+
+########### Command Lines to Run ##########
+
+#export PATH="/mnt/home/micall12/anaconda2/bin:$PATH"
+source /mnt/home/micall12/setup_anaconda.sh
+
+python /mnt/home/micall12/DNN_LE/cut_concat_separate_files.py -i "NuE_120000_level2_cleaned_lt100_vertexDC_CC_lt100_CC_flat_95bins_15478evtperbinall.lt100_file0?.hdf5" -o NuE_NuMu_level2_cleaned_lt100_vertexDC_CC_flat_95bins_15478evtperbinall.3million. --emax 100 --cuts CC --find_minmax True --shuffle True --num_out 6
+
+exit $?

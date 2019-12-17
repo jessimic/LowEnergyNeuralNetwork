@@ -1,0 +1,17 @@
+#!/bin/bash --login
+
+########### SBATCH Lines for Resource Request ##########
+
+#SBATCH --time=3:59:00             # limit of wall clock time - how long the job will run (same as -t)
+#SBATCH --nodes=1                 # number of different nodes - could be an exact number or a range of nodes (same as -N)
+#SBATCH --mem-per-cpu=10G            # memory required per allocated CPU (or core) - amount of memory (in bytes)
+#SBATCH --job-name mlarson_concat      # you can give your job a name for easier identification (same as -J)
+
+########### Command Lines to Run ##########
+
+export PATH="/mnt/home/micall12/anaconda2/bin:$PATH"
+
+python /mnt/home/micall12/DNN_LE/cut_concat_files.py -i "mlarson_NuMu_140000_00${1}??_level2.i3.bz2_lt1000_vertexIC19.hdf5" -o mlarson_NuMu_140000_${1}00_level2.lt1000_vertexIC19. -c all
+
+exit $?
+

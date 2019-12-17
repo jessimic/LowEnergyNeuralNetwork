@@ -1,0 +1,21 @@
+#!/bin/bash --login
+
+########### SBATCH Lines for Resource Request ##########
+
+#SBATCH --time=00:59:00             # limit of wall clock time - how long the job will run (same as -t)
+#SBATCH --nodes=1                 # number of different nodes - could be an exact number or a range of nodes (same as -N)
+#SBATCH --mem=15G            # memory required per allocated CPU (or core) - amount of memory (in bytes)
+#SBATCH --job-name @@name@@      # you can give your job a name for easier identification (same as -J)
+#SBATCH --output @@log@@
+
+########### Command Lines to Run ##################
+
+#source /mnt/home/micall12/setup_icecube_software.sh 
+module purge
+source /mnt/home/micall12/setup_anaconda.sh 
+source activate py2 
+source /mnt/home/micall12/combo_trunk_setup_jan19.sh 
+
+python /mnt/home/micall12/DNN_LE/create_training_single_file_perDOM.py -i @@file@@ -n @@name@@ --emax 100 --vertex DC --cleaned True
+
+exit $?

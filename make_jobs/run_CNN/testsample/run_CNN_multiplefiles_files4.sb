@@ -1,0 +1,13 @@
+#!/bin/bash --login
+
+########## SBATCH Lines for Resource Request ##########
+ 
+#SBATCH --time=119:59:00             # limit of wall clock time - how long the job will run (same as -t)
+#SBATCH --gres=gpu:1                # number of different nodes - could be an exact number or a range of nodes (same as -N)
+#SBATCH --mem=200G            # memory required per allocated CPU (or core) - amount of memory (in bytes)
+#SBATCH --job-name CNN_energy_multiplefiles      # you can give your job a name for easier identification (same as -J)
+#SBATCH --output /mnt/home/micall12/DNN_LE/make_jobs/run_CNN/CNN_multiplefiles_energy_file4.out
+
+########## Command Lines to Run ##########
+
+singularity exec --nv /mnt/research/IceCube/Software/icetray_stable-tensorflow.sif python /mnt/home/micall12/DNN_LE/CNN_TestSampleSize.py --input_files "/NuMu_140000_level2.zst_uncleaned_cleanedpulsesonly_lt100_CC_flat_95bins_36034evtperbinall_file0?.transformed.hdf5" --name numu_flat_E_5_100_CC_uncleaned_3600kevents_file4 -e 350 --start 0 --variables 1 --num_files 4

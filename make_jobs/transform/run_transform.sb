@@ -1,0 +1,18 @@
+#!/bin/bash --login
+
+########## SBATCH Lines for Resource Request ##########
+ 
+#SBATCH --time=23:59:00             # limit of wall clock time - how long the job will run (same as -t)
+#SBATCH --mem-per-cpu=10G            # memory required per allocated CPU (or core) - amount of memory (in bytes)
+#SBATCH --job-name transform    # you can give your job a name for easier identification (same as -J)
+#SBATCH --output transform.out
+
+########## Command Lines to Run ##########
+
+cd /mnt/home/micall12
+
+source setup_anaconda.sh
+
+cd DNN_LE
+
+python /mnt/home/micall12/DNN_LE/transform_training_files.py -i Level5p_IC86.2013_genie_nue.012640.300.timebins.cascade.lt60_vertexDC.hdf5 -v True

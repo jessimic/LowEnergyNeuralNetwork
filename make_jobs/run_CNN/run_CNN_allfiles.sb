@@ -1,0 +1,19 @@
+#!/bin/bash --login
+
+########## SBATCH Lines for Resource Request ##########
+ 
+#SBATCH --time=3:59:00             # limit of wall clock time - how long the job will run (same as -t)
+#SBATCH --gres=gpu:1                # number of different nodes - could be an exact number or a range of nodes (same as -N)
+#SBATCH --mem=250G            # memory required per allocated CPU (or core) - amount of memory (in bytes)
+#SBATCH --job-name CNN_mlarson_IC19_EZ      # you can give your job a name for easier identification (same as -J)
+#SBATCH --output /mnt/home/micall12/DNN_LE/CNN_mlarson_IC19_energyzenith.out
+
+########## Command Lines to Run ##########
+
+cd /mnt/home/micall12
+
+export PATH="/mnt/home/micall12/anaconda2/bin:$PATH"
+
+source activate python3-tfgpu 
+
+python /mnt/home/micall12/DNN_LE/CNN_CreateRunModel.py -i mlarson_NuMu_140000_allfiles_level2.all.lt1000_vertexIC19.transformed.hdf5 --name mlarson_energyzenith_IC19_all --variables 2

@@ -1,0 +1,17 @@
+#!/bin/bash --login
+
+########## SBATCH Lines for Resource Request ##########
+ 
+#SBATCH --time=01:00:00             # limit of wall clock time - how long the job will run (same as -t)
+#SBATCH --mem=4G            # memory required per allocated CPU (or core) - amount of memory (in bytes)
+#SBATCH --job-name transform       # you can give your job a name for easier identification (same as -J)
+
+########## Command Lines to Run ##########
+
+cd /mnt/home/micall12/DNN_LE
+
+export PATH="/mnt/home/micall12/anaconda2/bin:$PATH"
+
+echo python transform_training_files.py -i NuMu_140000_level2_flat_60bins_10000evtperbin.all.lt61_vertexIC19_file$(printf %02d $1).hdf5 -v True -r False --read_quartiles True
+
+python /mnt/home/micall12/DNN_LE/transform_training_files.py -i NuMu_140000_level2_flat_60bins_10000evtperbin.all.lt61_vertexIC19_file$(printf %02d $1).hdf5 -r False -v True --read_quartiles True
