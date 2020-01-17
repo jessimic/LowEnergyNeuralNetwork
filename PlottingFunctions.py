@@ -631,7 +631,8 @@ def plot_energy_slices(truth, nn_reco, \
     if save == True:
         plt.savefig("%s%s.png"%(savefolder,savename))
 
-def plot_bin_slices(truth, nn_reco, \
+def plot_bin_slices(truth, nn_reco, true_energy = None, \
+                       min_energy = 0., max_energy = 100., \
                        use_fraction = False, use_old_reco = False, old_reco=None,\
                        bins=10,min_val=0.,max_val=60.,\
                        save=False,savefolder=None,\
@@ -662,8 +663,12 @@ def plot_bin_slices(truth, nn_reco, \
 
     left_tail_percentile  = (100.-percentile_in_peak)/2
     right_tail_percentile = 100.-left_tail_percentile
-
-    variable_ranges  = numpy.linspace(min_val,max_val, num=bins)
+    
+    if true_energy is None:
+        variable_ranges  = numpy.linspace(min_val,max_val, num=bins)
+    else:
+        variable_ranges  = numpy.linspace(min_energy,max_energy, num=bins)
+    
     variable_centers = (variable_ranges[1:] + variable_ranges[:-1])/2.
 
     medians  = numpy.zeros(len(variable_centers))
@@ -678,12 +683,15 @@ def plot_bin_slices(truth, nn_reco, \
         medians_reco  = numpy.zeros(len(variable_centers))
         err_from_reco = numpy.zeros(len(variable_centers))
         err_to_reco   = numpy.zeros(len(variable_centers))
-
+    
     for i in range(len(variable_ranges)-1):
         var_from = variable_ranges[i]
         var_to   = variable_ranges[i+1]
-
-        cut = (truth >= var_from) & (truth < var_to)
+        
+        if true_energy is None:
+            cut = (truth >= var_from) & (truth < var_to)
+        else:
+            cut = (true_energy*max_energy >= var_from) & (true_energy*max_energy < var_to)
 
         lower_lim = numpy.percentile(resolution[cut], left_tail_percentile)
         upper_lim = numpy.percentile(resolution[cut], right_tail_percentile)
@@ -707,13 +715,19 @@ def plot_bin_slices(truth, nn_reco, \
     if use_old_reco:
         plt.errorbar(variable_centers, medians_reco, yerr=[medians_reco-err_from_reco, err_to_reco-medians_reco], xerr=[ variable_centers-variable_ranges[:-1], variable_ranges[1:]-variable_centers ], capsize=5.0, fmt='o',label="Pegleg Reco")
         plt.legend(loc="upper center")
-    plt.plot([min_val,max_val], [0,0], color='k')
-    plt.xlim(min_val,max_val)
+    if true_energy is None:
+        plt.plot([min_val,max_val], [0,0], color='k')
+        plt.xlim(min_val,max_val)
+        plt.xlabel("%s Range (%s)"%(variable,units))
+    else:
+        plt.plot([min_energy,max_energy], [0,0], color='k')
+        plt.xlim(min_energy,max_energy)
+        plt.xlabel("Energy (GeV)")
     if variable=="Energy":
-        plt.ylim(-1.,1.3)
+        plt.ylim(-.3,1.3)
     if variable=="CosZenith":
         plt.ylim(-1.,.7)
-    plt.xlabel("%s Range (%s)"%(variable,units))
+    
     if use_fraction:
         plt.ylabel("Fractional Resolution: \n (reconstruction - truth)/truth")
     else:
@@ -725,5 +739,7 @@ def plot_bin_slices(truth, nn_reco, \
         savename += "Frac"
     if use_old_reco:
         savename += "_CompareOldReco"
+    if true_energy is not None:
+        savename += "EnergyBinned"
     if save == True:
         plt.savefig("%s%s.png"%(savefolder,savename))

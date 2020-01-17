@@ -21,6 +21,8 @@ parser.add_argument("-i", "--input_files",type=str,default=None,
                     dest="input_files", help="name and path for input files")
 parser.add_argument("-d", "--path",type=str,default='/mnt/research/IceCube/jmicallef/DNN_files/',
                     dest="path", help="path to input files")
+parser.add_argument("-o", "--output_dir",type=str,default='/mnt/home/micall12/DNN_LE/',
+                    dest="output_dir", help="path to output_plots directory, do not end in /")
 parser.add_argument("-n", "--name",type=str,default='numu_flat_EZ_5_100_CC_cleaned',
                     dest="name", help="name for output directory and model file name")
 parser.add_argument("-e","--epochs", type=int,default=30,
@@ -54,7 +56,7 @@ start_epoch = args.start_epoch
 old_model_given = args.model
 
 save = True
-save_folder_name = "/mnt/home/micall12/DNN_LE/output_plots/%s/"%(filename)
+save_folder_name = "%s/output_plots/%s/"%(args.output_dir,filename)
 if save==True:
     if os.path.isdir(save_folder_name) != True:
         os.mkdir(save_folder_name)
@@ -413,30 +415,47 @@ from PlottingFunctions import plot_history_from_list
 from PlottingFunctions import plot_history_from_list_split
 from PlottingFunctions import plot_distributions
 
-plot_2D_prediction(Y_test_use[:,0]*max_energy, Y_test_predicted[:,0]*max_energy,save,save_folder_name,bins=int(max_energy-min_energy),minval=min_energy,maxval=max_energy,variable="Energy",units='GeV')
-plot_single_resolution(Y_test_use[:,0]*max_energy, Y_test_predicted[:,0]*max_energy,\
-                       save=save,savefolder=save_folder_name,\
-                       variable="Energy",units='GeV')
-plot_bin_slices(Y_test_use[:,0]*max_energy, Y_test_predicted[:,0]*max_energy,\
-                        use_fraction = True,\
-                        bins=10,min_val=5.,max_val=100.,\
-                       save=True,savefolder=save_folder_name,\
-                       variable="Energy",units="GeV")
-plot_distributions(Y_test_use[:,0]*max_energy, Y_test_predicted[:,0]*max_energy,save,save_folder_name,variable="Energy",units='GeV')
-
-if num_labels > 1:
-    plot_2D_prediction(Y_test_use[:,1], Y_test_predicted[:,1],save,save_folder_name,minval=-1,maxval=1,variable="CosZenith",units='')
-    plot_single_resolution(Y_test_use[:,1], Y_test_predicted[:,1],\
-                       save=save,savefolder=save_folder_name,\
-                       variable="CosZenith",units='')
-    plot_bin_slices(Y_test_use[:,1], Y_test_predicted[:,1],\
-                        use_fraction = False,\
-                        bins=10,min_val=-1.,max_val=1.,\
-                       save=True,savefolder=save_folder_name,\
-                       variable="CosZenith",units="")
-    plot_distributions(Y_test_use[:,1], Y_test_predicted[:,1],save,save_folder_name,variable="CosZenith",units='')
-
 plot_history_from_list(loss,val_loss,save,save_folder_name,logscale=True)
 if num_labels > 1:
     plot_history_from_list_split(energy_loss,val_energy_loss,zenith_loss,val_zenith_loss,save=save,savefolder=save_folder_name,logscale=True)
 
+
+plots_names = ["Energy", "CosZenith", "Track"]
+plots_units = ["GeV", "", "m"]
+maxabs_factors = [100., 1., 200.]
+maxvals = [max_energy, 1., max(Y_test_use[:,plot_num])*maxabs_factor]
+minvals = [min_energy, -1., 0.]
+use_fractions = [True, False, True]
+for num in num_labels:
+
+    plot_num = num
+    plot_name = plots_names[num]
+    plot_units = plots_units[num]
+    maxabs_factor = maxabs_factors[num]
+    maxval = maxvals[num]
+    minval = minvals[num]
+    use_frac = use_fractions[num]
+    print("Plotting %s at position %i in test output"%(plot_name, num))
+
+    plot_2D_prediction(Y_test_use[:,plot_num]*maxabs_factor, Y_test_predicted[:,plot_num]*maxabs_factor,\
+			save,save_folder_name,\
+			minval=minval,maxval=maxval,\
+			variable=plot_name,units=plot_units)
+    plot_single_resolution(Y_test_use[:,plot_num]*maxabs_factor, Y_test_predicted[:,plot_num]*maxabs_factor,\
+                       save=save,savefolder=save_folder_name,\
+                       variable=plot_name,units=plot_units)
+    plot_distributions(Y_test_use[:,plot_num]*maxabs_factor, Y_test_predicted[:,plot_num]*maxabs_factor,\
+			save,save_folder_name,\
+			variable=plot_name,units=plot_units)
+    plot_bin_slices(Y_test_use[:,plot_num]*maxabs_factor, Y_test_predicted[:,plot_num]*maxabs_factor,\
+                        use_fraction = use_frac,\
+                        bins=10,min_val=minval,max_val=maxval,\
+                       save=True,savefolder=save_folder_name,\
+                       variable=plot_name,units=plot_units)
+    if num > 1:
+	plot_bin_slices(Y_test_use[:,num], Y_test_predicted[:,num], \
+                       min_energy = min_energy, max_energy=max_energy, true_energy=Y_test_use[:,0]*max_energy, \
+                       use_fraction = False, \
+                       bins=10,min_val=minval,max_val=maxval,\
+                       save=True,savefolder=save_folder_name,\
+                       variable=plot_name,units=plot_units)
