@@ -22,8 +22,8 @@ def CutMask(set_labels):
     #zenith = set_labels[:,1]
     #flavor = set_labels[:,9]
     #number_events = len(energy)
-    isTrack = set_labels[:,8]
-    isCC = set_labels[:,11]
+    isTrack = np.array(set_labels[:,8])
+    isCC = np.array(set_labels[:,11])
 
     mask = {}
     mask['track'] = isTrack==1 
