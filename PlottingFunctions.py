@@ -22,6 +22,7 @@ import matplotlib.pyplot as plt
 from scipy.interpolate import UnivariateSpline
 from scipy import interpolate
 import scipy.stats
+import itertools
 
 import matplotlib 
 matplotlib.rc('xtick', labelsize=20) 
@@ -51,6 +52,48 @@ def get_FWHM(resolution,bins):
     else:
         r1, r2 = spline.roots()
     return r1, r2
+
+def find_contours_2D(x_values,y_values,xbins,c1=16,c2=84):   
+    """
+    Find upper and lower contours and median
+    x_values = array, input for hist2d for x axis (typically truth)
+    y_values = array, input for hist2d for y axis (typically reconstruction)
+    xbins = values for the starting edge of the x bins (output from hist2d)
+    c1 = percentage for lower contour bound (16% - 84% means a 68% band, so c1 = 16)
+    c2 = percentage for upper contour bound (16% - 84% means a 68% band, so c2=84)
+    Returns:
+        x = values for xbins, repeated for plotting (i.e. [0,0,1,1,2,2,...]
+        y_median = values for y value medians per bin, repeated for plotting (i.e. [40,40,20,20,50,50,...]
+        y_lower = values for y value lower limits per bin, repeated for plotting (i.e. [30,30,10,10,20,20,...]
+        y_upper = values for y value upper limits per bin, repeated for plotting (i.e. [50,50,40,40,60,60,...]
+    """
+    y_values = numpy.array(y_values)
+    indices = numpy.digitize(x_values,xbins)
+    r1_save = []
+    r2_save = []
+    median_save = []
+    for i in range(1,len(xbins)):
+        mask = indices==i
+        if len(y_values[mask])>0:
+            r1, m, r2 = numpy.percentile(y_values[mask],[c1,50,c2])
+        else:
+            print(i,'empty bin')
+            r1 = 0
+            m = 0
+            r2 = 0
+        median_save.append(m)
+        r1_save.append(r1)
+        r2_save.append(r2)
+    median = numpy.array(median_save)
+    lower = numpy.array(r1_save)
+    upper = numpy.array(r2_save)
+
+    x = list(itertools.chain(*zip(xbins[:-1],xbins[1:])))
+    y_median = list(itertools.chain(*zip(median,median)))
+    y_lower = list(itertools.chain(*zip(lower,lower)))
+    y_upper = list(itertools.chain(*zip(upper,upper)))
+    
+    return x, y_median, y_lower, y_upper
 
 def plot_history(network_history,save=False,savefolder=None,use_logscale=False):
     """
@@ -196,8 +239,7 @@ def plot_distributions(truth,reco,save=False,savefolder=None,variable="Energy",u
 
 def plot_2D_prediction(truth, nn_reco, \
                         save=False,savefolder=None,syst_set="",\
-                        use_fraction=False,bins=60,\
-                        minval=None,maxval=None,\
+                        bins=60,minval=None,maxval=None,\
                         cut_truth = False, axis_square =False,
                         variable="Energy", units = "GeV"):
     """
@@ -212,21 +254,22 @@ def plot_2D_prediction(truth, nn_reco, \
         minval = float, minimum value to cut nn_reco results
         maxval = float, maximum value to cut nn_reco results
         cut_truth = bool, true if you want to make the value cut on truth rather than nn results
+        axis_square = bool, cut axis to be square based on minval and maxval inputs
         variable = string, name of the variable you are plotting
         units = string, units for the variable you are plotting
     Returns:
         2D plot of True vs Reco
     """
-    
+
     if cut_truth:
-        
+
         if not minval:
             minval = min(truth)
         if not maxval:
             maxval= max(truth)
         mask = numpy.logical_and(truth >= minval, truth <= maxval)
         name = "True %s [%.2f, %.2f]"%(variable,minval,maxval)
-    
+
     else:
         if not minval:
             minval = min([min(nn_reco),min(truth)])
@@ -234,7 +277,7 @@ def plot_2D_prediction(truth, nn_reco, \
             maxval= max([max(nn_reco),max(truth)])
         mask = numpy.logical_and(nn_reco >= minval, nn_reco <= maxval)
         name = "NN %s [%.2f, %.2f]"%(variable,minval,maxval)
-    
+
     #Check if cutting
     cutting = False
     if sum(mask)!= len(truth):
@@ -243,52 +286,135 @@ def plot_2D_prediction(truth, nn_reco, \
         cutting = True
     maxplotline = min([max(nn_reco),max(truth)])
     minplotline = max([min(nn_reco),min(truth)])
-
     
     truth = truth[mask]
     nn_reco = nn_reco[mask]
     
-    if not use_fraction:
-        plt.figure(figsize=(10,7))
-        
-        cts,xbin,ybin,img = plt.hist2d(truth, nn_reco, bins=bins)
-        if cutting == True:
-            plt.plot([minval,maxval],[minval,maxval],'k:')
-        else: 
-            plt.plot([minplotline,maxplotline],[minplotline,maxplotline],'k:')
-        
-        if axis_square:
-            plt.xlim(minval,maxval)
-            plt.ylim(minval,maxval)
-        else:
-            plt.xlim(min(truth),max(truth))
-            plt.ylim(min(nn_reco),max(nn_reco))
-            
-        plt.xlabel("True Neutrino %s (%s)"%(variable,units),fontsize=15)
-        plt.ylabel("NN Reconstruction %s (%s)"%(variable,units),fontsize=15)
-        cbar = plt.colorbar()
-        cbar.ax.set_ylabel('counts', rotation=90)
-        plt.set_cmap('viridis_r')
-        plt.suptitle("NN vs Truth for %s %s"%(variable,syst_set),fontsize=25)
-        if cutting:
-            plt.title("%s, plotted %i, overflow %i"%(name,len(truth),overflow),fontsize=15)
-        
-        if save == True:
-            plt.savefig("%sTruthReco%s_2DHist%s.png"%(savefolder,variable,syst_set))
+    plt.figure(figsize=(10,7))
+    cts,xbin,ybin,img = plt.hist2d(truth, nn_reco, bins=bins)
+    cbar = plt.colorbar()
+    cbar.ax.set_ylabel('counts', rotation=90)
+    plt.set_cmap('viridis_r')
+    plt.xlabel("True Neutrino %s (%s)"%(variable,units),fontsize=15)
+    plt.ylabel("NN Reconstruction %s (%s)"%(variable,units),fontsize=15)
+    plt.suptitle("NN vs Truth for %s %s"%(variable,syst_set),fontsize=25)
+    if cutting:
+        plt.title("%s, plotted %i, overflow %i"%(name,len(truth),overflow),fontsize=15)
     
-    if use_fraction:
-        fractional_error = abs(truth - nn_reco)/ truth
-        plt.figure(figsize=(10,7))
-        plt.suptitle("NN Fractional Error vs. %s %s"%(variable,syst_set),fontsize=25)
-        if cutting:
-            plt.title("%s, plotted %i, overflow %i"%(name, len(truth), overflow),fontsize=15)
-        plt.hist2d(truth, fractional_error,bins=60);
-        plt.xlabel("True %s (%s)"%(variable,units),fontsize=15)
-        plt.ylabel("Fractional Error",fontsize=15)
-        cbar = plt.colorbar()
-        cbar.ax.set_ylabel('counts', rotation=90)
-        if save == True:
-            plt.savefig("%sTruthRecoFrac%s_2DHist%s.png"%(savefolder,variable,syst_set))
+    #Cut axis
+    if axis_square:
+        plt.xlim(minval,maxval)
+        plt.ylim(minval,maxval)
+    else:
+        plt.xlim(min(truth),max(truth))
+        plt.ylim(min(nn_reco),max(nn_reco))
+        
+    #Plot 1:1 line
+    if cutting == True:
+        plt.plot([minval,maxval],[minval,maxval],'k:',label="1:1")
+    else:
+        plt.plot([minplotline,maxplotline],[minplotline,maxplotline],'k:',label="1:1")
+    
+    x, y, y_l, y_u = find_contours_2D(truth,nn_reco,xbin)
+    
+    plt.plot(x,y,color='r',label='Median')
+    plt.plot(x,y_l,color='r',label='68% band',linestyle='dashed')
+    plt.plot(x,y_u,color='r',linestyle='dashed')
+    plt.legend(fontsize=12)
+    
+    if cutting:
+        nocut_name = ""
+    else:
+        nocut_name ="_nolim"    
+    if save:
+        plt.savefig("%sTruthReco%s_2DHist%s%s.png"%(savefolder,variable,syst_set,nocut_name))
+
+def plot_2D_prediction_fraction(truth, nn_reco, \
+                            save=False,savefolder=None,syst_set="",\
+                            bins=60,minval=None,maxval=None,\
+                            cut_truth = False, axis_square =False,
+                            variable="Energy", units = "GeV"):
+    """
+    Plot testing set reconstruction vs truth
+    Recieves:
+        truth = array, Y_test truth
+        nn_reco = array, neural network prediction output
+        save = optional, bool to save plot
+        savefolder = optional, output folder to save to, if not in current dir
+        syst_set = string, name of the systematic set (for title and saving)
+        bins = int, number of bins plot (will use for both the x and y direction)
+        minval = float, minimum value to cut (truth - nn_reco)/truth fractional results
+        maxval = float, maximum value to cut (truth - nn_reco)/truth fractional results
+        cut_truth = bool, true if you want to make the value cut on truth rather than nn results
+        variable = string, name of the variable you are plotting
+        units = string, units for the variable you are plotting
+    Returns:
+        2D plot of True vs (True - Reco)/True
+    """
+
+    fractional_error = abs(truth - nn_reco)/ truth
+    
+    if cut_truth:
+        if not minval:
+            minval = min(truth)
+        if not maxval:
+            maxval= max(truth)
+        mask = numpy.logical_and(truth >= minval, truth <= maxval)
+        name = "True %s [%.2f, %.2f]"%(variable,minval,maxval)
+
+    else:
+        if not minval:
+            minval = min(fractional_error)
+        if not maxval:
+            maxval= max(fractional_error)
+        mask = numpy.logical_and(fractional_error >= minval, fractional_error <= maxval)
+        name = "NN %s in Fractional Error [%.2f, %.2f]"%(variable,minval,maxval)
+
+    #Check if cutting
+    cutting = False
+    if sum(mask)!= len(truth):
+        overflow = len(nn_reco)-sum(mask)
+        print("Making a cut for plotting, removing %i events"%(overflow))
+        cutting = True
+    maxplotline = min([max(nn_reco),max(truth)])
+    minplotline = max([min(nn_reco),min(truth)])
+    
+    truth = truth[mask]
+    fractional_error = fractional_error[mask]
+    
+    plt.figure(figsize=(10,7))
+
+    cts,xbin,ybin,img = plt.hist2d(truth, fractional_error, bins=bins)
+    cbar = plt.colorbar()
+    cbar.ax.set_ylabel('counts', rotation=90)
+    plt.set_cmap('viridis_r')
+    #plt.xlim(min(truth),max(truth))
+    #plt.ylim(min(fractional_truth),max(fractional_truth))
+    
+    plt.xlabel("True Neutrino %s (%s)"%(variable,units),fontsize=15)
+    plt.ylabel("Fractional Error",fontsize=15)
+    plt.suptitle("NN Fractional Error vs. True %s %s"%(variable,syst_set),fontsize=25)
+    if cutting:
+        plt.title("%s, plotted %i, overflow %i"%(name,len(truth),overflow),fontsize=15)
+        
+    #Plot 1:1 line
+    #if cutting == True:
+    #    plt.plot([minval,maxval],[minval,maxval],'k:',label="1:1")
+    #else:
+    #    plt.plot([minplotline,maxplotline],[minplotline,maxplotline],'k:',label="1:1")
+    
+    x, y, y_l, y_u = find_contours_2D(truth,fractional_error,xbin)
+    plt.plot(x,y,color='r',label='Median')
+    plt.plot(x,y_l,color='r',label='68% band',linestyle='dashed')
+    plt.plot(x,y_u,color='r',linestyle='dashed')
+    plt.legend(fontsize=12)
+    
+    if cutting:
+        nocut_name = ""
+    else:
+        nocut_name ="_nolim"
+    if save:
+        plt.savefig("%sTruthRecoFrac%s_2DHist%s%s.png"%(savefolder,variable,syst_set,nocut_name))
 
 def plot_resolution_CCNC(truth_all_labels,truth,reco,save=False,savefolder=None,variable="Energy", units = "GeV"):
     """
