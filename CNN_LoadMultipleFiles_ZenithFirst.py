@@ -34,6 +34,8 @@ parser.add_argument("--variables", type=int,default=2,
                     dest="train_variables", help="1 for [zenith], 2 for [zenith, energy], 3 for [zenith, energy, track]")
 parser.add_argument("--model",default=None,
                     dest="model",help="Name of file with model weights to load--will start from here if file given")
+parser.add_argument("--no_test",type=str,default=False,
+                    dest="no_test",help="Don't do any testing")
 parser.add_argument("--energy_loss", type=float,default=1,
                     dest="energy_loss", help="factor to divide energy loss by")
 args = parser.parse_args()
@@ -57,6 +59,10 @@ start_epoch = args.start_epoch
 energy_loss_factor = args.energy_loss
 
 old_model_given = args.model
+if args.no_test == "true" or args.no_test =="True":
+    no_test = True
+else:
+    no_test = False
 
 save = True
 save_folder_name = "%s/output_plots/%s/"%(args.output_dir,filename)
@@ -115,6 +121,24 @@ def ZenithLoss(y_truth,y_predicted):
 
 def TrackLoss(y_truth,y_predicted):
     return mean_squared_error(y_truth[:,2],y_predicted[:,2])
+
+if train_variables == 3:
+    def CustomLoss(y_truth,y_predicted):
+        energy_loss = EnergyLoss(y_truth,y_predicted)
+        zenith_loss = ZenithLoss(y_truth,y_predicted)
+        track_loss = TrackLoss(y_truth,y_predicted)
+        return energy_loss + zenith_loss + track_loss
+
+elif train_variables == 2:
+    def CustomLoss(y_truth,y_predicted):
+        energy_loss = EnergyLoss(y_truth,y_predicted)
+        zenith_loss = ZenithLoss(y_truth,y_predicted)
+        return energy_loss + zenith_loss
+    
+else:
+    def CustomLoss(y_truth,y_predicted):
+        zenith_loss = ZenithLoss(y_truth,y_predicted)
+        return zenith_loss
 
 # Run neural network and record time ##
 loss = []
@@ -222,15 +246,13 @@ for epoch in range(start_epoch,end_epoch):
             afile.write("]\n")
         afile.close()
 
-		#Refresh the model (to speed up and prevent memory leaks hopefully)
-		del model_DC
-    	model_DC = make_network(X_train_DC,X_train_IC,train_variables,DC_drop_value,IC_drop_value,connected_drop_value)        
-
     current_epoch +=1
     
 t1 = time.time()
 print("This took me %f minutes"%((t1-t0)/60.))
 
+if no_test:
+    sys.exit()
 
 # Put all the test sets together
 Y_test_use = None
