@@ -113,11 +113,11 @@ from keras.losses import mean_absolute_percentage_error
 def EnergyLoss(y_truth,y_predicted):
     #return mean_squared_logarithmic_error(y_truth[:,0],y_predicted[:,0]) #/120.
     #return mean_squared_error(y_truth[:,0],y_predicted[:,0])
-    return mean_absolute_percentage_error(y_truth[:,1],y_predicted[:,1])
+    return mean_absolute_percentage_error(y_truth[:,0],y_predicted[:,1])
 
 def ZenithLoss(y_truth,y_predicted):
     #return logcosh(y_truth[:,1],y_predicted[:,1])
-    return mean_squared_error(y_truth[:,0],y_predicted[:,0])
+    return mean_squared_error(y_truth[:,1],y_predicted[:,0])
 
 def TrackLoss(y_truth,y_predicted):
     return mean_squared_error(y_truth[:,2],y_predicted[:,2])
