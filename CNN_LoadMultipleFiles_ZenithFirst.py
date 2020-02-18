@@ -83,9 +83,11 @@ print("Starting at epoch: %s \nTraining until: %s epochs \nTraining on %s variab
 
 
 if train_variables == 2:
-    print("\nASSUMING ORDER OF OUTPUT VARIABLES ARE ENERGY[0] and COS ZENITH[1] \n") 
+    print("\nBROKEN!!!! ASSUMING ORDER OF OUTPUT VARIABLES ARE ENERGY[0] and COS ZENITH[1] \n") 
+    sys.exit()
 if train_variables == 3:
-    print("\nASSUMING ORDER OF OUTPUT VARIABLES ARE ENERGY[0], COS ZENITH[1], TRACK[2]\n") 
+    print("\nBROKEN ASSUMING ORDER OF OUTPUT VARIABLES ARE ENERGY[0], COS ZENITH[1], TRACK[2]\n") 
+    sys.exit()
 
 afile = file_names[0]
 f = h5py.File(afile, 'r')
@@ -113,11 +115,11 @@ from keras.losses import mean_absolute_percentage_error
 def EnergyLoss(y_truth,y_predicted):
     #return mean_squared_logarithmic_error(y_truth[:,0],y_predicted[:,0]) #/120.
     #return mean_squared_error(y_truth[:,0],y_predicted[:,0])
-    return mean_absolute_percentage_error(y_truth[:,0],y_predicted[:,1])
+    return mean_absolute_percentage_error(y_truth[:,1],y_predicted[:,1])
 
 def ZenithLoss(y_truth,y_predicted):
     #return logcosh(y_truth[:,1],y_predicted[:,1])
-    return mean_squared_error(y_truth[:,1],y_predicted[:,0])
+    return mean_squared_error(y_truth[:,0],y_predicted[:,0])
 
 def TrackLoss(y_truth,y_predicted):
     return mean_squared_error(y_truth[:,2],y_predicted[:,2])
@@ -170,9 +172,10 @@ for epoch in range(start_epoch,end_epoch):
     Y_validate = f['Y_validate'][:]
     f.close()
     del f
-    
-    Y_train_use = Y_train[:,:train_variables]
-    Y_val_use = Y_validate[:,:train_variables]
+   
+    # NEED TO FIX TO TAKE MORE THAN ONE VARIABLE !!!!!!!!!!!!!!!!!!! 
+    Y_train_use = Y_train[:,1]
+    Y_val_use = Y_validate[:,1]
 
     
     # Compile model
@@ -276,6 +279,8 @@ for file in file_names:
         X_test_DC_use = numpy.concatenate((X_test_DC_use, X_test_DC))
         X_test_IC_use = numpy.concatenate((X_test_IC_use, X_test_IC))
 print(Y_test_use.shape)
+
+Y_test_use = Y_test_use[:,1]
 
 # Score network
 score = model_DC.evaluate([X_test_DC_use,X_test_IC_use], Y_test_use, batch_size=256)
