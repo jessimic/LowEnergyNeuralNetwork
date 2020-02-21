@@ -726,147 +726,52 @@ def plot_systematic_slices(truth_dict, nn_reco_dict,\
     if save == True:
         plt.savefig("%s%s.png"%(savefolder,savename))
 
-def plot_energy_slices(truth, nn_reco, \
-                       use_fraction = False, use_old_reco = False, old_reco=None,\
-                       bins=10,min_val=0.,max_val=60.,\
-                       save=False,savefolder=None,\
-                       variable="Energy",units="GeV"):
-    """Plots different energy slices vs each other (systematic set arrays)
-    Receives:
-        truth= array with truth labels
-                (contents = [energy], shape = number of events)
-        nn_reco = array that has NN predicted reco results
-                    (contents = [energy], shape = number of events)
-        use_fraction = bool, use fractional resolution instead of absolute, where (reco - truth)/truth
-        use_old_reco = bool, True if you want to compare to another reconstruction (like pegleg)
-        old_reco = optional, array of pegleg labels
-                (contents = [energy], shape = number of events)
-        bins = integer number of data points you want (range/bins = width)
-        min_val = minimum value for variable to start cut at (default = 0.)
-        max_val = maximum value for variable to end cut at (default = 60.)
-    Returns:
-        Scatter plot with energy values on x axis (median of bin width)
-        y axis has median of resolution with error bars containing 68% of resolution
-    """
-    if use_fraction:
-        resolution = ((nn_reco-truth)/truth) # in fraction
-    else:
-        resolution = (nn_reco-truth)
-
-    percentile_in_peak = 68.27
-
-    left_tail_percentile  = (100.-percentile_in_peak)/2
-    right_tail_percentile = 100.-left_tail_percentile
-
-    variable_ranges  = numpy.linspace(min_val,max_val, num=bins)
-    variable_centers = (variable_ranges[1:] + variable_ranges[:-1])/2.
-
-    medians  = numpy.zeros(len(variable_centers))
-    err_from = numpy.zeros(len(variable_centers))
-    err_to   = numpy.zeros(len(variable_centers))
-
-    if use_old_reco:
-        if use_fraction:
-            resolution_reco = ((old_reco-truth)/truth)
-        else:
-            resolution_reco = (old_reco-truth)
-        medians_reco  = numpy.zeros(len(variable_centers))
-        err_from_reco = numpy.zeros(len(variable_centers))
-        err_to_reco   = numpy.zeros(len(variable_centers))
-
-    for i in range(len(variable_ranges)-1):
-        var_from = variable_ranges[i]
-        var_to   = variable_ranges[i+1]
-
-        cut = (truth >= var_from) & (truth < var_to)
-
-        lower_lim = numpy.percentile(resolution[cut], left_tail_percentile)
-        upper_lim = numpy.percentile(resolution[cut], right_tail_percentile)
-        median = numpy.percentile(resolution[cut], 50.)
-
-        medians[i] = median
-        err_from[i] = lower_lim
-        err_to[i] = upper_lim
-        
-        if use_old_reco:
-            lower_lim_reco = numpy.percentile(resolution_reco[cut], left_tail_percentile)
-            upper_lim_reco = numpy.percentile(resolution_reco[cut], right_tail_percentile)
-            median_reco = numpy.percentile(resolution_reco[cut], 50.)
-            
-            medians_reco[i] = median_reco
-            err_from_reco[i] = lower_lim_reco
-            err_to_reco[i] = upper_lim_reco
-
-    plt.figure(figsize=(10,7))
-    plt.errorbar(variable_centers, medians, yerr=[medians-err_from, err_to-medians], xerr=[ variable_centers-variable_ranges[:-1], variable_ranges[1:]-variable_centers ], capsize=5.0, fmt='o',label="NN Reco")
-    if use_old_reco:
-        plt.errorbar(variable_centers, medians_reco, yerr=[medians_reco-err_from_reco, err_to_reco-medians_reco], xerr=[ variable_centers-variable_ranges[:-1], variable_ranges[1:]-variable_centers ], capsize=5.0, fmt='o',label="Pegleg Reco")
-        plt.legend(loc="upper center")
-    plt.plot([min_val,max_val], [0,0], color='k')
-    plt.xlim(min_val,max_val)
-    if variable=="Energy":
-        plt.ylim(-1.,1.3)
-    if variable=="CosZenith":
-        plt.ylim(-1.,.7)
-    plt.xlabel("%s Range (%s)"%(variable,units))
-    if use_fraction:
-        plt.ylabel("Fractional Resolution: \n (reconstruction - truth)/truth")
-    else:
-         plt.ylabel("Resolution: \n reconstruction - truth (%s)"%units)
-    plt.title("Resolution %s Dependence"%variable)
-
-    savename = "%sResolutionSlices"%variable
-    if use_fraction:
-        savename += "Frac"
-    if use_old_reco:
-        savename += "_CompareOldReco"
-    if save == True:
-        plt.savefig("%s%s.png"%(savefolder,savename))
-
-def plot_bin_slices(truth, nn_reco, \
-                       use_fraction = False, use_old_reco = False, old_reco=None,\
-                       bins=10,min_val=0.,max_val=60.,\
+def plot_bin_slices(truth, nn_reco, energy_truth=None, \
+                       use_fraction = False, old_reco=None,\
+                       bins=10,min_val=0.,max_val=60., ylim = None,\
                        save=False,savefolder=None,\
                        variable="Energy",units="GeV"):
     """Plots different variable slices vs each other (systematic set arrays)
     Receives:
-        truth= array with truth labels
-                (contents = [energy], shape = number of events)
-        nn_reco = array that has NN predicted reco results
-                    (contents = [energy], shape = number of events)
+        truth= array with truth labels for this one variable
+        nn_reco = array that has NN predicted reco results for one variable (same size of truth)
+        energy_truth = optional (will use if given), array that has true energy information (same size of truth)
         use_fraction = bool, use fractional resolution instead of absolute, where (reco - truth)/truth
-        use_old_reco = bool, True if you want to compare to another reconstruction (like pegleg)
-        old_reco = optional, array of pegleg labels
-                (contents = [energy], shape = number of events)
+        old_reco = optional (will use if given), array of pegleg labels for one variable
         bins = integer number of data points you want (range/bins = width)
         min_val = minimum value for variable to start cut at (default = 0.)
         max_val = maximum value for variable to end cut at (default = 60.)
+        ylim = List with two entries of ymin and ymax for plot [min, max], leave as None for no ylim applied
     Returns:
         Scatter plot with energy values on x axis (median of bin width)
         y axis has median of resolution with error bars containing 68% of resolution
     """
+    nn_reco = numpy.array(nn_reco)
+    truth = numpy.array(truth)
+    
     if use_fraction:
         resolution = ((nn_reco-truth)/truth) # in fraction
     else:
         resolution = (nn_reco-truth)
-
+    resolution = numpy.array(resolution)
     percentile_in_peak = 68.27
 
     left_tail_percentile  = (100.-percentile_in_peak)/2
     right_tail_percentile = 100.-left_tail_percentile
 
-    variable_ranges  = numpy.linspace(min_val,max_val, num=bins)
+    variable_ranges  = numpy.linspace(min_val,max_val, num=bins+1)
     variable_centers = (variable_ranges[1:] + variable_ranges[:-1])/2.
 
     medians  = numpy.zeros(len(variable_centers))
     err_from = numpy.zeros(len(variable_centers))
     err_to   = numpy.zeros(len(variable_centers))
 
-    if use_old_reco:
+    if old_reco is not None:
         if use_fraction:
             resolution_reco = ((old_reco-truth)/truth)
         else:
             resolution_reco = (old_reco-truth)
+        resolution_reco = numpy.array(resolution_reco)
         medians_reco  = numpy.zeros(len(variable_centers))
         err_from_reco = numpy.zeros(len(variable_centers))
         err_to_reco   = numpy.zeros(len(variable_centers))
@@ -874,8 +779,14 @@ def plot_bin_slices(truth, nn_reco, \
     for i in range(len(variable_ranges)-1):
         var_from = variable_ranges[i]
         var_to   = variable_ranges[i+1]
-
-        cut = (truth >= var_from) & (truth < var_to)
+            
+        if energy_truth is None:
+            cut = (truth >= var_from) & (truth < var_to)
+        else:
+            "Using energy for x-axis. Make sure your min_val and max_val are in terms of energy!"
+            energy_truth = numpy.array(energy_truth)
+            cut = (energy_truth >= var_from) & (energy_truth < var_to) 
+        print(cut)
 
         lower_lim = numpy.percentile(resolution[cut], left_tail_percentile)
         upper_lim = numpy.percentile(resolution[cut], right_tail_percentile)
@@ -884,8 +795,8 @@ def plot_bin_slices(truth, nn_reco, \
         medians[i] = median
         err_from[i] = lower_lim
         err_to[i] = upper_lim
-        
-        if use_old_reco:
+
+        if old_reco is not None:
             lower_lim_reco = numpy.percentile(resolution_reco[cut], left_tail_percentile)
             upper_lim_reco = numpy.percentile(resolution_reco[cut], right_tail_percentile)
             median_reco = numpy.percentile(resolution_reco[cut], 50.)
@@ -896,26 +807,29 @@ def plot_bin_slices(truth, nn_reco, \
 
     plt.figure(figsize=(10,7))
     plt.errorbar(variable_centers, medians, yerr=[medians-err_from, err_to-medians], xerr=[ variable_centers-variable_ranges[:-1], variable_ranges[1:]-variable_centers ], capsize=5.0, fmt='o',label="NN Reco")
-    if use_old_reco:
+    if old_reco is not None:
         plt.errorbar(variable_centers, medians_reco, yerr=[medians_reco-err_from_reco, err_to_reco-medians_reco], xerr=[ variable_centers-variable_ranges[:-1], variable_ranges[1:]-variable_centers ], capsize=5.0, fmt='o',label="Pegleg Reco")
         plt.legend(loc="upper center")
     plt.plot([min_val,max_val], [0,0], color='k')
     plt.xlim(min_val,max_val)
-    if variable=="Energy":
-        plt.ylim(-1.,1.3)
-    if variable=="CosZenith":
-        plt.ylim(-1.,.7)
-    plt.xlabel("%s Range (%s)"%(variable,units))
+    if type(energy_truth) is not None:
+        plt.ylim(ylim)
+    plt.xlabel("True %s (%s)"%(variable,units),fontsize=15)
     if use_fraction:
-        plt.ylabel("Fractional Resolution: \n (reconstruction - truth)/truth")
+        plt.ylabel("Fractional Resolution: \n (reconstruction - truth)/truth",fontsize=15)
     else:
-         plt.ylabel("Resolution: \n reconstruction - truth (%s)"%units)
-    plt.title("Resolution %s Dependence"%variable)
+         plt.ylabel("Resolution: \n reconstruction - truth (%s)"%units,fontsize=15)
+    plt.title("Resolution %s Dependence"%variable,fontsize=25)
 
     savename = "%sResolutionSlices"%variable
     if use_fraction:
         savename += "Frac"
-    if use_old_reco:
+    if energy_truth is not None:
+        savename += "_EnergyBinned"
+        plt.xlabel("True Energy (GeV)",fontsize=15)
+    if old_reco is not None:
         savename += "_CompareOldReco"
     if save == True:
         plt.savefig("%s%s.png"%(savefolder,savename))
+    print(savename)
+
