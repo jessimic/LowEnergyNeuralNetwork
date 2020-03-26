@@ -10,21 +10,22 @@ OUTDIR="/home/users/jmicallef/LowEnergyNeuralNetwork"
 NUMVAR=1
 
 START=0
-END=21
-STEP=7
+END=3
+STEP=1
 for ((EPOCH=$START;EPOCH<=$END;EPOCH+=$STEP));
 do
-    MODELNAME="$OUTDIR/output_plots/$OUTNAME/$OUTNAME_${EPOCH}epochs_model.hdf5"
-    
+    MODELNAME="$OUTDIR/output_plots/${OUTNAME}/${OUTNAME}_${EPOCH}epochs_model.hdf5"
+    echo $MODELNAME
+ 
     case $EPOCH in
     0)
-        python /home/users/jmicallef/LowEnergyNeuralNetwork/CNN_LoadMultipleFiles.py --input_files $INPUT --path $INDIR --output_dir $OUTDIR --name $OUTNAME -e 7 --start $EPOCH --variables $NUMVAR --no_test True
+        python /home/users/jmicallef/LowEnergyNeuralNetwork/CNN_LoadMultipleFiles.py --input_files $INPUT --path $INDIR --output_dir $OUTDIR --name $OUTNAME -e $STEP --start $EPOCH --variables $NUMVAR --no_test True
     ;;
     $END)
-        python /home/users/jmicallef/LowEnergyNeuralNetwork/CNN_LoadMultipleFiles.py --input_files $INPUT --path $INDIR --output_dir $OUTDIR --name $OUTNAME -e 7 --start $EPOCH --variables $NUMVAR --model $MODELNAME --no_test False
+        python /home/users/jmicallef/LowEnergyNeuralNetwork/CNN_LoadMultipleFiles.py --input_files $INPUT --path $INDIR --output_dir $OUTDIR --name $OUTNAME -e $STEP --start $EPOCH --variables $NUMVAR --model $MODELNAME --no_test False
     ;;
     *)
-        python /home/users/jmicallef/LowEnergyNeuralNetwork/CNN_LoadMultipleFiles.py --input_files $INPUT --path $INDIR --output_dir $OUTDIR --name $OUTNAME -e 7 --start $EPOCH --variables $NUMVAR --model $MODELNAME --no_test True
+        python /home/users/jmicallef/LowEnergyNeuralNetwork/CNN_LoadMultipleFiles.py --input_files $INPUT --path $INDIR --output_dir $OUTDIR --name $OUTNAME -e $STEP --start $EPOCH --variables $NUMVAR --model $MODELNAME --no_test True
     ;;
     esac
 done
