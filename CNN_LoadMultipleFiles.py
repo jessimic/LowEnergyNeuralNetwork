@@ -40,6 +40,8 @@ parser.add_argument("--no_test",type=str,default=False,
 #                    dest="network",help="Name of python file that has make_network to setup network configuration")
 parser.add_argument("--energy_loss", type=float,default=1,
                     dest="energy_loss", help="factor to divide energy loss by")
+parser.add_argument("--first_variable", type=str,default="energy",
+                    dest="first_variable", help = "name for first variable (energy, zenith only two supported)")
 args = parser.parse_args()
 
 # Settings from args
@@ -68,6 +70,21 @@ if args.no_test == "true" or args.no_test =="True":
 else:
     no_test = False
 
+if args.first_variable == "Zenith" or args.first_variable == "zenith" or args.first_variable == "Z" or args.first_variable == "z":
+    first_var = "zenith"
+    first_var_index = 1
+    print("Assuming Zenith is the only variable to train for")
+    assert train_variables==1,"DOES NOT SUPPORT ZENITH FIRST + additional variables"
+elif args.first_variable == "energy" or args.first_variable == "energy" or args.first_variable == "e" or args.first_variable == "E":
+    first_var = "energy"
+    first_var_index = 0
+    print("training with energy as the first index")
+else:
+    first_var = "energy"
+    first_var_index = 0
+    print("only supports energy and zenith right now! Please choose one of those. Defaulting to energy")
+    print("training with energy as the first index")
+
 save = True
 save_folder_name = "%s/output_plots/%s/"%(args.output_dir,filename)
 if save==True:
@@ -85,12 +102,6 @@ print("\nNetwork Parameters \nbatch_size: %i \ndropout: %f \nlearning rate: %f \
 
 #print("Starting at epoch: %s \nTraining until: %s epochs \nTraining on %s variables \nUsing Network Config in %s"%(start_epoch,start_epoch+num_epochs,train_variables,network))
 print("Starting at epoch: %s \nTraining until: %s epochs \nTraining on %s variables"%(start_epoch,start_epoch+num_epochs,train_variables))
-
-
-if train_variables == 2:
-    print("\nASSUMING ORDER OF OUTPUT VARIABLES ARE ENERGY[0] and COS ZENITH[1] \n") 
-if train_variables == 3:
-    print("\nASSUMING ORDER OF OUTPUT VARIABLES ARE ENERGY[0], COS ZENITH[1], TRACK[2]\n") 
 
 afile = file_names[0]
 f = h5py.File(afile, 'r')
@@ -115,14 +126,16 @@ from keras.losses import mean_squared_logarithmic_error
 from keras.losses import logcosh
 from keras.losses import mean_absolute_percentage_error
 
-def EnergyLoss(y_truth,y_predicted):
-    #return mean_squared_logarithmic_error(y_truth[:,0],y_predicted[:,0]) #/120.
-    #return mean_squared_error(y_truth[:,0],y_predicted[:,0])
-    return mean_absolute_percentage_error(y_truth[:,0],y_predicted[:,0])
+if first_var == "energy":
+    def EnergyLoss(y_truth,y_predicted):
+        return mean_absolute_percentage_error(y_truth[:,0],y_predicted[:,0])
 
-def ZenithLoss(y_truth,y_predicted):
-    #return logcosh(y_truth[:,1],y_predicted[:,1])
-    return mean_squared_error(y_truth[:,1],y_predicted[:,1])
+    def ZenithLoss(y_truth,y_predicted):
+        return mean_squared_error(y_truth[:,1],y_predicted[:,1])
+
+if first_var == "zenith":
+    def ZenithLoss(y_truth,y_predicted):
+        return mean_squared_error(y_truth[:,0],y_predicted[:,0])
 
 def TrackLoss(y_truth,y_predicted):
     return mean_squared_error(y_truth[:,2],y_predicted[:,2])
@@ -141,28 +154,24 @@ elif train_variables == 2:
         return energy_loss + zenith_loss
     
 else:
-    def CustomLoss(y_truth,y_predicted):
-        energy_loss = EnergyLoss(y_truth,y_predicted)
-        return energy_loss
+    if first_var == "energy":
+        def CustomLoss(y_truth,y_predicted):
+            energy_loss = EnergyLoss(y_truth,y_predicted)
+            return energy_loss
+    if first_var == "zenith":
+        def CustomLoss(y_truth,y_predicted):
+            zenith_loss = ZenithLoss(y_truth,y_predicted)
+            return zenith_loss
+
 
 # Run neural network and record time ##
-loss = []
-val_loss = []
-energy_loss = []
-zenith_loss = []
-track_loss = []
-val_energy_loss = []
-val_zenith_loss = []
-val_track_loss = []
-
 end_epoch = start_epoch + num_epochs
-current_epoch = start_epoch
 t0 = time.time()
 for epoch in range(start_epoch,end_epoch):
-    
+        
     ## NEED TO HAVE OUTPUT DATA ALREADY TRANSFORMED!!! ##
     #print("True Epoch %i/%i"%(epoch+1,num_epochs))
-    
+    t0_loading = time.time()
     # Get new dataset
     input_file = file_names[epoch%len(file_names)]
     print("Now using file %s"%input_file)
@@ -175,26 +184,32 @@ for epoch in range(start_epoch,end_epoch):
     Y_validate = f['Y_validate'][:]
     f.close()
     del f
-    
-    Y_train_use = Y_train[:,:train_variables]
-    Y_val_use = Y_validate[:,:train_variables]
+   
+    if first_var =="zenith":
+        Y_train_use = Y_train[:,first_var_index]
+    Y_val_use = Y_validate[:,first_var_index] 
+    if first_var == "energy":
+        Y_train_use = Y_train[:,:train_variables]
+        Y_val_use = Y_validate[:,:train_variables]
 
     # Compile model
     if train_variables == 1:
-        model_DC.compile(loss=CustomLoss,
-              optimizer=Adam(lr=learning_rate),
-              metrics=[EnergyLoss])
-        losses_names = ['loss', 'val_loss','energy_loss', 'val_energy_loss']
+        if first_var == "energy":
+            model_DC.compile(loss=CustomLoss,
+                optimizer=Adam(lr=learning_rate),
+                metrics=[EnergyLoss])
+        if first_var == "zenith":
+            model_DC.compile(loss=CustomLoss,
+                optimizer=Adam(lr=learning_rate),
+                metrics=[ZenithLoss])
     elif train_variables == 2:
         model_DC.compile(loss=CustomLoss,
               optimizer=Adam(lr=learning_rate),
               metrics=[EnergyLoss,ZenithLoss])
-        losses_names = ['loss', 'val_loss','energy_loss', 'val_energy_loss', 'zenith_loss', 'val_zenith_loss']
     elif train_variables == 3:
         model_DC.compile(loss=CustomLoss,
               optimizer=Adam(lr=learning_rate),
               metrics=[EnergyLoss,ZenithLoss,TrackLoss])
-        losses_names = ['loss', 'val_loss','energy_loss', 'val_energy_loss', 'zenith_loss', 'val_zenith_loss', 'track_loss', 'val_track_loss']
     else:
         print("Only supports 1, 2, or 3 labels (energy, zenith, track). Not compiling. This will fail")
     
@@ -208,52 +223,44 @@ for epoch in range(start_epoch,end_epoch):
         old_model_given = None
     else:
         print("Training set: %i, Validation set: %i"%(len(Y_train_use),len(Y_val_use)))
-        print(current_epoch,end_epoch)
+        print(epoch,end_epoch)
     
     #Run one epoch with dataset
+    t0_epoch = time.time()
     network_history = model_DC.fit([X_train_DC, X_train_IC], Y_train_use,
                             validation_data= ([X_validate_DC, X_validate_IC], Y_val_use),
                             batch_size=batch_size,
-                            initial_epoch= current_epoch,
-                            epochs=current_epoch+1, #goes from intial to epochs, so need it to be greater than initial
+                            initial_epoch= epoch,
+                            epochs=epoch+1, #goes from intial to epochs, so need it to be greater than initial
                             callbacks = [ModelCheckpoint('%scurrent_model_while_running.hdf5'%save_folder_name)],
                             verbose=1)
+    t1_epoch = time.time()
+    t1_loading = time.time()
+    dt_epoch = (t1_epoch - t0_epoch)/60.
+    dt_loading = (t1_loading - t0_loading)/60.
     
-    # Save loss
-    loss = loss + network_history.history['loss']
-    val_loss = val_loss + network_history.history['val_loss']
-    energy_loss = energy_loss + network_history.history['EnergyLoss']
-    val_energy_loss = val_energy_loss + network_history.history['val_EnergyLoss']
-    losses = [loss, val_loss, energy_loss, val_energy_loss]
-    
-    if train_variables > 1:
-        zenith_loss = zenith_loss + network_history.history['ZenithLoss']
-        val_zenith_loss = val_zenith_loss + network_history.history['val_ZenithLoss']
-        losses.append(zenith_loss)
-        losses.append(val_zenith_loss)
-    if train_variables > 2:
-        track_loss = track_loss + network_history.history['TrackLoss']
-        val_track_loss = val_track_loss + network_history.history['val_TrackLoss']
-        losses.append(track_loss)
-        losses.append(val_track_loss)
-	
-    #SAVE EVERY FULL PASS THROUGH DATA
-    if epoch%len(file_names) == (len(file_names)-1):
-        model_DC.save("%s%s_%iepochs_model.hdf5"%(save_folder_name,filename,current_epoch+1))
-        afile = open("%ssaveloss_%iepochs.txt"%(save_folder_name,current_epoch+1),"w")
-        
-        losslen = len(losses_names)
-        for a_list in range(0,losslen): 
-            afile.write("%s = ["%losses_names[a_list])
-            for a_loss in losses[a_list]:
-                afile.write("%s, " %a_loss)
-            afile.write("]\n")
+    #Set up file that saves losses once
+    if epoch == start_epoch:
+        afile = open("%ssaveloss_currentepoch.txt"%(save_folder_name),"a")
+        afile.write("Epoch" + '\t' + "Time Epoch" + '\t' + "Time Train" + '\t')
+        for key in network_history.history.keys():
+            afile.write(str(key) + '\t')
+        afile.write('\n')
         afile.close()
 
-    current_epoch +=1
+    # Save loss
+    afile = open("%ssaveloss_currentepoch.txt"%(save_folder_name),"a")
+    afile.write(str(epoch+1) + '\t' + str(dt_loading) + '\t' + str(dt_epoch) + '\t')
+    for key in network_history.history.keys():
+        afile.write(str(network_history.history[key][0]) + '\t')
+    afile.write('\n')    
+    afile.close()
+    
     
 t1 = time.time()
 print("This took me %f minutes"%((t1-t0)/60.))
+
+model_DC.save("%s%s_model_final.hdf5"%(save_folder_name,filename))
 
 if no_test:
     sys.exit()
@@ -284,36 +291,22 @@ print(Y_test_use.shape)
 # Score network
 score = model_DC.evaluate([X_test_DC_use,X_test_IC_use], Y_test_use, batch_size=256)
 print("final score on test data: loss: {:.4f} / accuracy: {:.4f}".format(score[0], score[1]))
-
-
-model_DC.save("%s%s_model_final.hdf5"%(save_folder_name,filename))
-
-
-# Predict with test data
-t0 = time.time()
-Y_test_predicted = model_DC.predict([X_test_DC_use,X_test_IC_use])
-t1 = time.time()
-print("This took me %f seconds for %i events"%(((t1-t0)),Y_test_predicted.shape[0]))
-
 ### SAVE OUTPUT TO FILE ##
 if save==True:
     file = open("%sfinaloutput.txt"%save_folder_name,"w")
     file.write("training on {} samples, testing on {} samples".format(len(Y_train),len(Y_test)))
     file.write("final score on test data: loss: {:.4f} / accuracy: {:.4f}\n".format(score[0], score[1]))
     file.write("This took %f minutes\n"%((t1-t0)/60.))
-    if train_variables > 1:
-        losses = [loss, energy_loss, zenith_loss, val_loss, val_energy_loss, val_zenith_loss]
-        losses_names = ['loss', 'energy_loss', 'zenith_loss', 'val_loss', 'val_energy_loss', 'val_zenith_loss']
-    else:
-        losses = [loss, energy_loss, val_loss, val_energy_loss]
-        losses_names = ['loss', 'energy_loss', 'val_loss', 'val_energy_loss']
-    losslen = len(losses_names)
-    for a_list in range(0,losslen):
-        file.write("%s = ["%losses_names[a_list])
-        for a_loss in losses[a_list]:
-            file.write("%s, " %a_loss)
-        file.write("]\n")
     file.close()
+
+
+
+# Predict with test data
+t0 = time.time()
+Y_test_predicted = model_DC.predict([X_test_DC_use,X_test_IC_use])
+t1 = time.time()
+print("This took me %f seconds for %i testing events"%(((t1-t0)),Y_test_predicted.shape[0]))
+
 
 ### MAKE THE PLOTS ###
 from PlottingFunctions import plot_single_resolution
@@ -329,56 +322,62 @@ plot_history_from_list(loss,val_loss,save,save_folder_name,logscale=True)
 if train_variables > 1:
     plot_history_from_list_split(energy_loss,val_energy_loss,zenith_loss,val_zenith_loss,save=save,savefolder=save_folder_name,logscale=True)
 
-
-plots_names = ["Energy", "CosZenith", "Track"]
-plots_units = ["GeV", "", "m"]
-maxabs_factors = [100., 1., 200.]
+if first_var == "energy":
+    plots_names = ["Energy", "CosZenith", "Track"]
+    plots_units = ["GeV", "", "m"]
+    maxabs_factors = [100., 1., 200.]
+    maxvals = [max_energy, 1., 0.]
+    minvals = [min_energy, -1., 0.]
+    use_fractions = [True, False, True]
+    bins_array = [95,100,100]
 if train_variables == 3: 
     maxvals = [max_energy, 1., max(Y_test_use[:,2])*maxabs_factor[2]]
-else:
-    maxvals = [max_energy, 1., 0.]
-minvals = [min_energy, -1., 0.]
-use_fractions = [True, False, True]
-bins_array = [95,100,100]
+
 for num in range(0,train_variables):
 
-    plot_num = num
-    plot_name = plots_names[num]
-    plot_units = plots_units[num]
-    maxabs_factor = maxabs_factors[num]
-    maxval = maxvals[num]
-    minval = minvals[num]
-    use_frac = use_fractions[num]
-    bins = bins_array[num]
-    print("Plotting %s at position %i in test output"%(plot_name, num))
+    NN_index = num
+    if first_var == "energy":
+        true_index = num
+        name_index = num
+    if first_var == "zenith":
+        true_index = first_var_index
+        name_index = first_var_index
+    plot_name = plots_names[name_index]
+    plot_units = plots_units[name_index]
+    maxabs_factor = maxabs_factors[name_index]
+    maxval = maxvals[name_index]
+    minval = minvals[name_index]
+    use_frac = use_fractions[name_index]
+    bins = bins_array[name_index]
+    print("Plotting %s at position %i in true test output and %i in NN test output"%(plot_name, true_index,NN_index))
     
-    plot_2D_prediction(Y_test_use[:,plot_num]*maxabs_factor, Y_test_predicted[:,plot_num]*maxabs_factor,\
+    plot_2D_prediction(Y_test_use[:,true_index]*maxabs_factor, Y_test_predicted[:,NN_index]*maxabs_factor,\
                         save,save_folder_name,bins=bins,\
                         minval=minval,maxval=maxval,\
                         variable=plot_name,units=plot_units)
-    plot_2D_prediction(Y_test_use[:,plot_num]*maxabs_factor, Y_test_predicted[:,plot_num]*maxabs_factor,\
+    plot_2D_prediction(Y_test_use[:,true_index]*maxabs_factor, Y_test_predicted[:,NN_index]*maxabs_factor,\
                         save,save_folder_name,bins=bins,\
                         minval=None,maxval=None,\
                         variable=plot_name,units=plot_units)
     if num ==0:
-        plot_2D_prediction_fraction(Y_test_use[:,plot_num]*maxabs_factor, Y_test_predicted[:,plot_num]*maxabs_factor,\
+        plot_2D_prediction_fraction(Y_test_use[:,true_index]*maxabs_factor, Y_test_predicted[:,NN_index]*maxabs_factor,\
                         save,save_folder_name,bins=bins,\
                         minval=0,maxval=2,\
                         variable=plot_name,units=plot_units)
-    plot_single_resolution(Y_test_use[:,plot_num]*maxabs_factor, Y_test_predicted[:,plot_num]*maxabs_factor,\
+        plot_single_resolution(Y_test_use[:,true_index]*maxabs_factor, Y_test_predicted[:,NN_index]*maxabs_factor,\
                        minaxis=-2*maxval,maxaxis=maxval*2,
                        save=save,savefolder=save_folder_name,\
                        variable=plot_name,units=plot_units)
-    plot_distributions(Y_test_use[:,plot_num]*maxabs_factor, Y_test_predicted[:,plot_num]*maxabs_factor,\
+        plot_distributions(Y_test_use[:,true_index]*maxabs_factor, Y_test_predicted[:,NN_index]*maxabs_factor,\
                         save,save_folder_name,\
                         variable=plot_name,units=plot_units)
-    plot_bin_slices(Y_test_use[:,plot_num]*maxabs_factor, Y_test_predicted[:,plot_num]*maxabs_factor,\
+        plot_bin_slices(Y_test_use[:,true_index]*maxabs_factor, Y_test_predicted[:,NN_index]*maxabs_factor,\
                         use_fraction = use_frac,\
                         bins=10,min_val=minval,max_val=maxval,\
                        save=True,savefolder=save_folder_name,\
                        variable=plot_name,units=plot_units)
-    if num > 0:
-        plot_bin_slices(Y_test_use[:,num], Y_test_predicted[:,num], \
+    if num > 0 or first_var == "zenith":
+        plot_bin_slices(Y_test_use[:,true_index], Y_test_predicted[:,NN_index], \
                        min_energy = min_energy, max_energy=max_energy, true_energy=Y_test_use[:,0]*max_energy, \
                        use_fraction = False, \
                        bins=10,min_val=minval,max_val=maxval,\
