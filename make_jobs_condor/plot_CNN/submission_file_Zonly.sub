@@ -1,0 +1,14 @@
+Log = job_logs/log/plt_CNN_$(Cluster)_$(Process).log
+Output = job_logs/output/plot_CNN_$(Cluster)_$(Process).out
+Error = job_logs/error/plot_CNN_$(Cluster)_$(Process).error
+
+Universe  = vanilla
+request_gpus = 1
++NATIVE_OS = true
+Requirements = (OpSysMajorVer =?= 7)
+Request_memory = 27GB
+Notification = NEVER
+
+Executable = /home/users/jmicallef/LowEnergyNeuralNetwork/make_jobs_condor/plot_CNN/plot_oscnext_epochs_zenith.sh
+
+Queue
