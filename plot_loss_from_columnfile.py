@@ -25,8 +25,12 @@ args = parser.parse_args()
 plot_folder = args.input_folder
 outplots_dir = args.outplots_dir
 epoch = args.epoch
+if epoch:
+    epoch = int(epoch)
 ymin = args.ymin
 ymax = args.ymax
+num_files = 7
+start = 49 #start epoch for plotting
 if ymin:
     ymin = float(ymin)
 if ymax:
@@ -53,13 +57,17 @@ for variable in range(0,len(header)):
 print(data.keys())
 
 # Timing stats
-plt.figure()
+plt.figure(figsize=(10,7))
 plt.plot(data[header[0]],data[header[1]],label="load + train")
 plt.plot(data[header[0]],data[header[2]],label="train")
-plt.xlabel("epoch")
-plt.ylabel("times (minutes)")
-plt.legend() 
-plt.savefig("%sTrainingTimePerEpoch.png"%full_path)
+plt.xlabel("epoch",fontsize=15)
+plt.ylabel("times (minutes)",fontsize=15)
+plt.title("Time To Train & Load",fontsize=25)
+plt.legend()
+savename = "TrainingTimePerEpoch"
+if epoch:
+    savename += "_%iEpochs"%epoch
+plt.savefig("%s%s.png"%(full_path,savename))
 
 # Loss Plots
 plot_history_from_list(data['loss'],data['val_loss'],save=True,savefolder=full_path,logscale=True,ymin=ymin,ymax=ymax)
@@ -72,43 +80,69 @@ def average_epochs(loss_list,start=None,end=None,file_num=7):
     save = 0
     avg_loss = []
     avg_epoch = []
+    avg_range = []
     if not start:
         start = 1
     if not end:
         end = len(loss_list)+1
     
     for i in range(start,end):
+        if save == 0:
+            min_loss = loss_list[i-1]
+            max_loss = loss_list[i-1]
+        else:
+            if min_loss > loss_list[i-1]:
+                min_loss = loss_list[i-1]
+            if max_loss < loss_list[i-1]:
+                max_loss = loss_list[i-1]
         save += loss_list[i-1]
         if i%file_num == 0:
             avg_loss.append(save/file_num)
             avg_epoch.append(i)
+            avg_range.append(max_loss-min_loss)
             save = 0
     
     min_full_pass = avg_loss.index(min(avg_loss))+1
     best_model = min_full_pass*file_num
     best_loss = min(avg_loss)
     print("Best loss at %i with value of %f"%(best_model,best_loss))
-    return avg_loss, avg_epoch, best_model, best_loss
+    return avg_loss, avg_epoch, best_model, best_loss, avg_range
 
-avg_val_loss, avg_epoch,best_model,best_loss = average_epochs(data['val_loss'])
+avg_val_loss, avg_epoch,best_model,best_loss, avg_range = average_epochs(data['val_loss'],file_num=num_files)
 name = header[-1][:-4]
-ymin=min(min(data['loss']),min(data['val_loss']))
-ymax=max(max(data['loss']),max(data['val_loss']))
+avg_start = int(start/num_files)
+if ymin is None:
+    ymin=min(min(data['loss'][start:]),min(data['val_loss'][start:]))
+if ymax is None:
+    ymax=max(max(data['loss'][start:]),max(data['val_loss'][start:]))
+
+#Plot Avg Loss
 plt.figure(figsize=(10,7))
 plt.plot([best_model,best_model],[ymin,ymax],linewidth=4,color='lime')
-plt.plot(data["Epoch"],data['loss'],'b',label="%s Training"%name)
-plt.plot(data["Epoch"],data['val_loss'],'c',label="%s Validation"%name)
-plt.plot(avg_epoch,avg_val_loss,'r',label="Avg %s Validation"%name)
-plt.yscale('log')
+plt.plot(data["Epoch"][start:],data['loss'][start:],'b',label="%s Training"%name)
+plt.plot(data["Epoch"][start:],data['val_loss'][start:],'c',label="%s Validation"%name)
+plt.plot(avg_epoch[avg_start:],avg_val_loss[avg_start:],'r',label="Avg %s Validation"%name)
+#plt.yscale('log')
 plt.title("Training and Validation Loss after %s Epochs"%len(data['loss']),fontsize=25)
 plt.xlabel('Epochs',fontsize=15)
 plt.ylabel('Loss',fontsize=15)
 plt.legend(loc="upper right",fontsize=15)
 textstr = "Best Avg Model: %i \n Best Avg Loss: %.3f"%(best_model,best_loss)
 props = dict(boxstyle='round', facecolor='blue', alpha=0.3)
-plt.text(0.7, 0.5, textstr, fontsize=20,
-        verticalalignment='top', horizontalalignment='left',bbox=props)
-plt.savefig("%sAvgLossVsEpoch.png"%full_path)
+plt.text(start+2,ymax-0.05*ymax, textstr, ha="left", va="center", fontsize=20,bbox=props)
+savename = "AvgLossVsEpoch"
+if epoch:
+    savename += "_%iEpochs"%epoch
+plt.savefig("%s%s.png"%(full_path,savename))
 
-# Loss Plots Again
-#plot_history_from_list(data['loss'][:best_model],data['val_loss'][:best_model],save=True,savefolder=full_path,logscale=True,ymin=ymin,ymax=ymax)
+#Plot Range
+plt.figure(figsize=(10,7))
+plt.plot(avg_epoch[avg_start:],avg_range[avg_start:],'r.-')
+#plt.yscale('log')
+plt.xlabel('Epochs',fontsize=15)
+plt.ylabel('Range of Loss per %i Epochs'%num_files,fontsize=15)
+plt.title("Validation Loss Spread per Full Pass",fontsize=25)
+savename = "AvgRangeVsEpoch"
+if epoch:
+    savename += "_%iEpochs"%epoch
+plt.savefig("%s%s.png"%(full_path,savename))
