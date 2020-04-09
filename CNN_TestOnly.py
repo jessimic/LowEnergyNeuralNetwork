@@ -95,14 +95,14 @@ print(X_test_DC_use.shape,X_test_IC_use.shape)
 if test_type == "dragon":
     mask_energy_train = numpy.logical_and(Y_test_use[:,0]>min_energy/max_energy,Y_test_use[:,0]<1.0)
 
-    Y_test_cut = Y_test_use[mask_energy_train]
+    Y_test_use = Y_test_use[mask_energy_train]
     X_test_DC_use = X_test_DC_use[mask_energy_train]
     X_test_IC_use = X_test_IC_use[mask_energy_train]
 
     if compare_reco:
         reco_test_use = reco_test_use[mask_energy_train]
-        reco_test_use[:,0] = reco_test_use[:,0]/max_energy
-        reco_test_use[:,1] = numpy.cos(reco_test_use[:,1])
+        #reco_test_use[:,0] = reco_test_use[:,0]/max_energy
+        #reco_test_use[:,1] = numpy.cos(reco_test_use[:,1])
 
 
 #Make network and load model
@@ -180,6 +180,7 @@ t0 = time.time()
 Y_test_predicted = model_DC.predict([X_test_DC_use,X_test_IC_use])
 t1 = time.time()
 print("This took me %f seconds for %i events"%(((t1-t0)),Y_test_predicted.shape[0]))
+#print(X_test_DC_use.shape,X_test_IC_use.shape,Y_test_predicted.shape,Y_test_use.shape)
 
 ### MAKE THE PLOTS ###
 from PlottingFunctions import plot_single_resolution
@@ -220,16 +221,16 @@ for num in range(0,output_variables):
                         Y_test_predicted[:,NN_index]*maxabs_factor,\
                         save,save_folder_name,bins=bins,\
                         minval=minval,maxval=maxval,\
-                        variable=plot_name,units=plot_units)
+                        variable=plot_name,units=plot_units, epochs=epoch)
     plot_2D_prediction(Y_test_use[:,true_index]*maxabs_factor, Y_test_predicted[:,NN_index]*maxabs_factor,\
                         save,save_folder_name,bins=bins,\
                         minval=None,maxval=None,\
-                        variable=plot_name,units=plot_units)
+                        variable=plot_name,units=plot_units, epochs = epoch)
     plot_single_resolution(Y_test_use[:,true_index]*maxabs_factor,\
                     Y_test_predicted[:,NN_index]*maxabs_factor,\
                    minaxis=-2*maxval,maxaxis=maxval*2,
                    save=save,savefolder=save_folder_name,\
-                   variable=plot_name,units=plot_units)
+                   variable=plot_name,units=plot_units, epochs = epoch)
     plot_distributions(Y_test_use[:,true_index]*maxabs_factor, Y_test_predicted[:,NN_index]*maxabs_factor,\
                     save,save_folder_name,\
                     variable=plot_name,units=plot_units)
@@ -237,20 +238,20 @@ for num in range(0,output_variables):
                     use_fraction = use_frac,\
                     bins=10,min_val=minval,max_val=maxval,\
                     save=True,savefolder=save_folder_name,\
-                    variable=plot_name,units=plot_units)
+                    variable=plot_name,units=plot_units, epochs = epoch)
     if compare_reco:
         plot_single_resolution(Y_test_use[:,true_index]*maxabs_factor,\
                    Y_test_predicted[:,NN_index]*maxabs_factor,\
-                   use_old_reco = True, old_reco = reco_test_use[:,true_num]*maxabs_factor,\
+                   use_old_reco = True, old_reco = reco_test_use[:,true_index]*maxabs_factor,\
                    minaxis=-2*maxval,maxaxis=maxval*2,
                    save=save,savefolder=save_folder_name,\
-                   variable=plot_name,units=plot_units)
+                   variable=plot_name,units=plot_units, epochs = epoch)
         plot_bin_slices(Y_test_use[:,true_index]*maxabs_factor, Y_test_predicted[:,NN_index]*maxabs_factor,\
-                    old_reco = reco_test_use[:,true_num]*maxabs_factor,\
+                    old_reco = reco_test_use[:,true_index]*maxabs_factor,\
                     use_fraction = use_frac,\
                     bins=10,min_val=minval,max_val=maxval,\
                     save=True,savefolder=save_folder_name,\
-                    variable=plot_name,units=plot_units)
+                    variable=plot_name,units=plot_units, epochs = epoch)
     if first_var == "energy" and num ==0:
         plot_2D_prediction_fraction(Y_test_use[:,true_index]*maxabs_factor,\
                         Y_test_predicted[:,NN_index]*maxabs_factor,\
@@ -263,12 +264,12 @@ for num in range(0,output_variables):
                        use_fraction = False, \
                        bins=10,min_val=min_energy,max_val=max_energy,\
                        save=True,savefolder=save_folder_name,\
-                       variable=plot_name,units=plot_units)
+                       variable=plot_name,units=plot_units, epochs=epoch)
         if compare_reco:
             plot_bin_slices(Y_test_use[:,true_index], Y_test_predicted[:,NN_index], \
                        energy_truth=Y_test_use[:,0]*max_energy, \
-                       old_reco = reco_test_use[:,true_num]*maxabs_factor,\
+                       old_reco = reco_test_use[:,true_index]*maxabs_factor,\
                        use_fraction = False, \
                        bins=10,min_val=min_energy,max_val=max_energy,\
                        save=True,savefolder=save_folder_name,\
-                       variable=plot_name,units=plot_units)
+                       variable=plot_name,units=plot_units, epochs = epoch)

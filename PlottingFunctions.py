@@ -95,6 +95,8 @@ def find_contours_2D(x_values,y_values,xbins,c1=16,c2=84):
     
     return x, y_median, y_lower, y_upper
 
+
+
 def plot_history(network_history,save=False,savefolder=None,use_logscale=False):
     """
     Plot history of neural network's loss vs. epoch
@@ -239,9 +241,9 @@ def plot_distributions(truth,reco,save=False,savefolder=None,variable="Energy",u
 
 def plot_2D_prediction(truth, nn_reco, \
                         save=False,savefolder=None,syst_set="",\
-                        bins=60,minval=None,maxval=None,\
-                        cut_truth = False, axis_square =False,
-                        variable="Energy", units = "GeV"):
+                        bins=60,minval=None,maxval=None,ylim=None,\
+                        cut_truth = False, axis_square =False, zmax=None,
+                        variable="Energy", units = "GeV", epochs=None):
     """
     Plot testing set reconstruction vs truth
     Recieves:
@@ -291,13 +293,16 @@ def plot_2D_prediction(truth, nn_reco, \
     nn_reco = nn_reco[mask]
     
     plt.figure(figsize=(10,7))
-    cts,xbin,ybin,img = plt.hist2d(truth, nn_reco, bins=bins)
+    cts,xbin,ybin,img = plt.hist2d(truth, nn_reco, bins=bins, cmax=zmax)
     cbar = plt.colorbar()
     cbar.ax.set_ylabel('counts', rotation=90)
     plt.set_cmap('viridis_r')
     plt.xlabel("True Neutrino %s (%s)"%(variable,units),fontsize=15)
     plt.ylabel("NN Reconstruction %s (%s)"%(variable,units),fontsize=15)
-    plt.suptitle("NN vs Truth for %s %s"%(variable,syst_set),fontsize=25)
+    title = "CNN vs Truth for %s %s"%(variable,syst_set)
+    if epochs:
+        title += " at %i Epochs"%epochs
+    plt.suptitle(title,fontsize=25)
     if cutting:
         plt.title("%s, plotted %i, overflow %i"%(name,len(truth),overflow),fontsize=15)
     
@@ -308,6 +313,9 @@ def plot_2D_prediction(truth, nn_reco, \
     else:
         plt.xlim(min(truth),max(truth))
         plt.ylim(min(nn_reco),max(nn_reco))
+
+    if type(ylim) is not None:
+        plt.ylim(ylim)
         
     #Plot 1:1 line
     if cutting == True:
@@ -325,7 +333,9 @@ def plot_2D_prediction(truth, nn_reco, \
     if cutting:
         nocut_name = ""
     else:
-        nocut_name ="_nolim"    
+        nocut_name ="_nolim"
+    if zmax:
+        nocut_name += "_zmax%i"%zmax    
     if save:
         plt.savefig("%sTruthReco%s_2DHist%s%s.png"%(savefolder,variable,syst_set,nocut_name))
 
@@ -463,7 +473,7 @@ def plot_single_resolution(truth,nn_reco,\
                            mintrue=None,maxtrue=None,\
                            minaxis=None,maxaxis=None,\
                            save=False,savefolder=None,
-                           variable="Energy", units = "GeV"):
+                           variable="Energy", units = "GeV", epochs=None):
     """Plots resolution for dict of inputs, one of which will be a second reco
     Recieves:
         truth = array of truth or Y_test labels
@@ -495,33 +505,49 @@ def plot_single_resolution(truth,nn_reco,\
             old_reco_resolution = old_reco - truth
         title = "%s Resolution"%variable
         xlabel = "reconstruction - truth (%s)"%units
+    if epochs:
+        title += " at %i Epochs"%epochs
     original_size = len(nn_resolution)
     
     # Cut on true values
+    #print(mintrue,maxtrue)
+    if mintrue or maxtrue:
+         truth_cut=True
+    else:
+         truth_cut=False
     if not mintrue:
-        mintrue = min(truth)
+        mintrue = int(min(truth))
     if not maxtrue:
-        maxtrue = max(truth)
-    true_mask = numpy.logical_and(truth >= mintrue, truth <= maxtrue)
-    if sum(true_mask) != len(truth):
-        title += " (true %s [%.2f, %.2f])"%(variable,mintrue,maxtrue)
-    true_cut_size = sum(true_mask)
-    nn_resolution = nn_resolution[true_mask]
+        maxtrue = int(max(truth))+1
+    #print(mintrue,maxtrue,truth_cut)
+    if truth_cut:
+        true_mask = numpy.logical_and(truth >= mintrue, truth <= maxtrue)
+        title += "\n(true %s [%.2f, %.2f])"%(variable,mintrue,maxtrue)
+        nn_resolution = nn_resolution[true_mask]
+        if use_old_reco:
+            old_reco_resolution = old_reco_resolution[truth_mask]
+    true_cut_size=len(nn_resolution)
     
     # Cut for plot axis
+    #print(minaxis,maxaxis)
+    if minaxis or maxaxis:
+        axis_cut=True
+    else:
+        axis_cut=False
     if not minaxis:
+        axis_cut=True
         minaxis = min(nn_resolution)
     if not maxaxis:
+        axis_cut=True
         maxaxis = max(nn_resolution)
-    axis_mask = numpy.logical_and(nn_resolution >= minaxis, nn_resolution <= maxaxis)
-    true_axis_cut_size = sum(axis_mask)
-      
-    
-    nn_resolution = nn_resolution[axis_mask]
-    
-    if use_old_reco:
-        old_reco_resolution = old_reco_resolution[mask]
-    
+    if axis_cut:
+        axis_mask = numpy.logical_and(nn_resolution >= minaxis, nn_resolution <= maxaxis)
+        nn_resolution = nn_resolution[axis_mask]
+        if use_old_reco:
+            old_reco_resolution = old_reco_resolution[axis_mask]
+    true_axis_cut_size=len(nn_resolution)
+    #print(minaxis,maxaxis,axis_cut)
+ 
     ax.hist(nn_resolution, bins=bins, alpha=0.5, label="neural net");
     
     #Statistics
@@ -551,17 +577,21 @@ def plot_single_resolution(truth,nn_reco,\
         props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
         ax.text(0.2, 0.95, textstr, transform=ax.transAxes, fontsize=20,
             verticalalignment='top', bbox=props)
-    
+   
+    #if axis_cut:
+    ax.set_xlim(minaxis,maxaxis)
     ax.set_xlabel(xlabel,fontsize=15)
     ax.set_title(title,fontsize=25)
     
     savename = "%sResolution"%variable
     if use_fraction:
         savename += "Frac"
-    if sum(true_mask) != len(truth):
+    if truth_cut:
         savename = "_Range%.2f_%.2f"%(mintrue,maxtrue)
     if use_old_reco:
         savename += "_CompareOldReco"
+    if axis_cut:
+        savename += "_xlim"
     if save == True:
         plt.savefig("%s%s.png"%(savefolder,savename))
 
@@ -730,7 +760,7 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, \
                        use_fraction = False, old_reco=None,\
                        bins=10,min_val=0.,max_val=60., ylim = None,\
                        save=False,savefolder=None,\
-                       variable="Energy",units="GeV"):
+                       variable="Energy",units="GeV",epochs=None):
     """Plots different variable slices vs each other (systematic set arrays)
     Receives:
         truth= array with truth labels for this one variable
@@ -786,7 +816,6 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, \
             "Using energy for x-axis. Make sure your min_val and max_val are in terms of energy!"
             energy_truth = numpy.array(energy_truth)
             cut = (energy_truth >= var_from) & (energy_truth < var_to) 
-        print(cut)
 
         lower_lim = numpy.percentile(resolution[cut], left_tail_percentile)
         upper_lim = numpy.percentile(resolution[cut], right_tail_percentile)
@@ -812,14 +841,20 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, \
         plt.legend(loc="upper center")
     plt.plot([min_val,max_val], [0,0], color='k')
     plt.xlim(min_val,max_val)
-    if type(energy_truth) is not None:
+    if type(ylim) is not None:
         plt.ylim(ylim)
     plt.xlabel("True %s (%s)"%(variable,units),fontsize=15)
     if use_fraction:
         plt.ylabel("Fractional Resolution: \n (reconstruction - truth)/truth",fontsize=15)
     else:
          plt.ylabel("Resolution: \n reconstruction - truth (%s)"%units,fontsize=15)
-    plt.title("Resolution %s Dependence"%variable,fontsize=25)
+    if energy_truth is None:
+        title = "%s Resolution, %s Dependence"%(variable,variable)
+    else:
+        title = "%s Resolution, Energy Dependence"%(variable)
+    if epochs:
+        title += " at %i Epochs"%epochs
+    plt.title(title,fontsize=25)
 
     savename = "%sResolutionSlices"%variable
     if use_fraction:
@@ -829,7 +864,7 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, \
         plt.xlabel("True Energy (GeV)",fontsize=15)
     if old_reco is not None:
         savename += "_CompareOldReco"
+    if type(ylim) is not None:
+        savename += "_ylim"
     if save == True:
         plt.savefig("%s%s.png"%(savefolder,savename))
-    print(savename)
-
