@@ -47,6 +47,8 @@ parser.add_argument("--shuffle",type=str, default=True,
                     dest="shuffle", help="True if you want to shuffle")
 parser.add_argument("-c", "--cuts",type=str, default="all",
                     dest="cuts", help="Type of events to keep (all, cascade, track, CC, NC, etc.)")
+parser.add_argument("--num_out",type=int,default=1,
+                    dest="num_out",help="number of output files you want to split the output into")
 args = parser.parse_args()
 input_files = args.input_files
 #print("CURRENTLY MANUALLY PUT IN FILENAMES NO MATTER WHAT YOU TYPE AS ARG")
@@ -58,6 +60,7 @@ add_file = args.add_file
 emax = args.emax
 emin = args.emin
 cut_name = args.cuts
+num_outputs = args.num_out
 print("Keeping %s event types"%cut_name)
 if args.reco == 'True' or args.reco == 'true':
     use_old_reco = True
@@ -84,11 +87,16 @@ if add_file:
     print("Adding this file %s"%add_file)
     event_file_names.insert(0,path + add_file)
 assert event_file_names,"No files loaded, please check path."
+print("MANUALLY ADDING TWO FILES!!!!")
+
 
 full_features_DC = None
 full_features_IC = None
 full_labels = None
 full_reco = None
+full_stats = None
+full_pulses_per_dom = None
+full_trig_times = None
 
 bins = int((emax-emin)/float(bin_size))
 if emax%bin_size !=0:
@@ -102,6 +110,12 @@ for a_file in event_file_names:
     file_features_DC = f["features_DC"][:]
     file_features_IC = f["features_IC"][:]
     file_labels = f["labels"][:]
+    file_stats = f["initial_stats"][:] 
+    file_pulses_per_dom = f["num_pulses_per_dom"][:]
+    try:
+        file_trig_times = f["trigger_times"][:]
+    except:
+        file_trig_times = None
     if use_old_reco:
         file_reco_labels = f["reco_labels"][:]
     f.close()
@@ -163,6 +177,22 @@ for a_file in event_file_names:
         full_labels = file_labels[keep_index]
     else:
         full_labels = np.concatenate((full_labels, file_labels[keep_index]))
+    
+    if full_stats is None:
+        full_stats = file_stats[keep_index]
+    else:
+        full_stats = np.concatenate((full_stats, file_stats[keep_index]))
+    
+    if full_pulses_per_dom is None:
+        full_pulses_per_dom = file_pulses_per_dom[keep_index]
+    else:
+        full_pulses_per_dom = np.concatenate((full_pulses_per_dom, file_pulses_per_dom[keep_index]))
+   
+    if file_trig_times is not None:
+        if full_trig_times is None:
+            full_trig_times = file_trig_times[keep_index]
+        else:
+            full_trig_times = np.concatenate((full_trig_times, file_trig_times[keep_index]))
 
     if use_old_reco:
         if full_reco is None:
@@ -181,7 +211,7 @@ for a_file in event_file_names:
         break
 
     if np.all(count_energy >= max_per_bin):
-        print(count_energy)
+        print("All bins filled, quitting...")
         break
     else:
         print(count_energy)
@@ -189,27 +219,41 @@ for a_file in event_file_names:
 if shuffle == True:
     print("Finished concatonating all the files. Now I will shuffle..")
     from handle_data import Shuffler
-    shuffled_features_DC, shuffled_features_IC, shuffled_labels, \
-    shuffled_reco, shuffled_initial_stats, shuffled_num_pulses = \
+    full_features_DC, full_features_IC, full_labels, \
+    full_reco, full_stats, full_pulses_per_dom, full_trig_times = \
     Shuffler(full_features_DC,full_features_IC,full_labels, \
-    full_reco, use_old_reco_flag=use_old_reco)
-
-    full_features_DC = shuffled_features_DC
-    full_features_IC = shuffled_features_IC
-    full_labels      = shuffled_labels
-    if use_old_reco:
-        full_reco    = shuffled_reco
-
-
+    full_reco=full_reco, full_inital_stats=full_stats, \
+    full_num_pulses=full_pulses_per_dom, full_trig_times=full_trig_times, \
+    use_old_reco_flag=use_old_reco)
 
 #Save output to hdf5 file
 print(count_energy)
-output_name = path + output + "lt%03d_"%emax + "%s_"%cut_name + "flat_%sbins_%sevtperbin.hdf5"%(bins,max_events_per_bin)
-print(output_name)
-f = h5py.File(output_name, "w")
-f.create_dataset("features_DC", data=full_features_DC)
-f.create_dataset("features_IC", data=full_features_IC)
-f.create_dataset("labels", data=full_labels)
-if use_old_reco:
-    f.create_dataset("reco_labels", data=reco_labels)
-f.close()
+print("Total events saved: %i"%full_features_DC.shape[0])
+events_per_file = int(full_features_DC.shape[0]/num_outputs) + 1
+for sep_file in range(0,num_outputs):
+    start = events_per_file*sep_file
+    if sep_file < num_outputs-1:
+        end = events_per_file*(sep_file+1)
+    else:
+        end = full_features_DC.shape[0]
+
+    if num_outputs > 1:
+        filenum = "_file%02d.hdf5"%sep_file
+    else:
+        filenum = ""
+    output_name = output_name = path + output + "lt%03d_"%emax + "%s_"%cut_name + "flat_%sbins_%sevtperbin_"%(bins,max_events_per_bin) + filenum + ".hdf5"
+    print("I put evnts %i - %i into %s"%(start,end,output_name))
+
+    f = h5py.File(output_name, "w")
+    f.create_dataset("features_DC", data=full_features_DC[start:end])
+    f.create_dataset("features_IC", data=full_features_IC[start:end])
+    f.create_dataset("labels", data=full_labels[start:end])
+    if full_reco is not None:
+        f.create_dataset("reco_labels",data=full_reco[start:end])
+    if full_stats is not None:
+        f.create_dataset("initial_stats",data=full_stats[start:end])
+    if full_pulses_per_dom is not None:
+        f.create_dataset("num_pulses_per_dom",data=full_pulses_per_dom[start:end])
+    if full_trig_times is not None:
+        f.create_dataset("trigger_times",data=full_trig_times[start:end])
+    f.close()

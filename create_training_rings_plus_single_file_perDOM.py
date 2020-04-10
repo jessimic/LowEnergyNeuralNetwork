@@ -32,9 +32,7 @@ parser.add_argument("-n", "--name",type=str,default='Level5_IC86.2013_genie_numu
                     dest="output_name",help="name for output file (no path)")
 parser.add_argument("-r", "--reco",type=str,default="False",
                     dest="reco", help="True if using Level5p or have a pegleg reco")
-parser.add_argument("--reco_type",type=str,default="pegleg",
-                    dest="reco_type", help="Options are pegleg or retro")
-parser.add_argument("--emax",type=float,default=200.0,
+parser.add_argument("--emax",type=float,default=60.0,
                     dest="emax",help="Max energy to keep, cut anything above")
 parser.add_argument("--vertex",type=str, default="DC",
                     dest="vertex_name",help="Name of vertex cut to put on file")
@@ -42,16 +40,12 @@ parser.add_argument("--cleaned",type=str,default="False",
                     dest="cleaned", help="True if wanted to use SRTTWOfflinePulsesDC")
 parser.add_argument("--true_name",type=str,default=None,
                     dest="true_name", help="Name of key for true particle info if you want to check with I3MCTree[0]")
-parser.add_argument("--containment_cut", default=False,action='store_true',
-                        dest='containment_cut',help="use flag to turn on containment cut")
 args = parser.parse_args()
 input_file = args.input_file
 output_name = args.output_name
 emax = args.emax
 vertex_name = args.vertex_name
 true_name = args.true_name
-containment_cut = args.containment_cut
-reco_type = args.reco_type
 if args.reco == 'True' or args.reco == 'true':
     use_old_reco = True
     print("Expecting old reco values in files, pulling from pegleg frames")
@@ -82,6 +76,19 @@ def get_observable_features(frame,low_window=-500,high_window=4000):
     #IC_near_DC_strings = [17, 18, 19, 25, 26, 27, 28, 34, 35, 36, 37, 38, 44, 45, 46, 47, 54, 55, 56]
     IC_near_DC_strings = [26, 27, 35, 36, 37, 45, 46]
     ICstrings = len(IC_near_DC_strings)
+
+    # Adding outter rings to sum into single string
+    if num_rings > 0:
+        if ICstrings == 7:
+            ring_start = 2
+            assert num_rings<5, "Only 6 total rings (starting at ring 2 in this case), so rings are out of range" 
+        elif ICstrings == 19:
+            ring_start = 3 
+            assert num_rings<4, "Only 6 total rings (starting at ring 3 in this case), so rings are out of range" 
+        else:
+            assert False, "Only supports 7 of 19 IC strings to add a ring to"
+        rings = create_ring_dict()
+
     DC_strings = [79, 80, 81, 82, 83, 84, 85, 86]
 
     # Current Information: sum charges, time first pulse, Time of last pulse, Charge weighted mean time of pulses, Charge weighted standard deviation of pulse times
@@ -127,6 +134,7 @@ def get_observable_features(frame,low_window=-500,high_window=4000):
 
         DC_flag = False
         IC_near_DC_flag = False
+        IC_ring_flag = False
 
         
         for pulse in pulselist:
@@ -147,6 +155,14 @@ def get_observable_features(frame,low_window=-500,high_window=4000):
                 timelist.append(pulse.time)
                 chargelist.append(pulse.charge)
                 DC_flag = True
+
+            elif num_rings > 0:
+                for ring_check in range(ring_start,ring_start+num_rings):
+                    if ((string_val in ring[ring_check]) and dom_index<60):
+                        string_index = ICstrings+(ring_check-ring_start) #Put all pulses in ring into additional string, so ICstrings+1 for first additional ring, ICstrings +2 for second additional ring
+                        timelist.append(pulse.time)
+                        chargelist.append(pulse.charge)
+                        IC_ring_flag = True
 
 
             else:
@@ -268,7 +284,6 @@ def read_files(filename_list, drop_fraction_of_tracks=0.00, drop_fraction_of_cas
     output_trigger_times = []
     not_in_DC = 0
     isOther_count = 0
-    containment_cut_count =0
 
     for event_file_name in filename_list:
         print("reading file: {}".format(event_file_name))
@@ -290,7 +305,7 @@ def read_files(filename_list, drop_fraction_of_tracks=0.00, drop_fraction_of_cas
             except:
                 continue
 
-            # GET TRUTH LABELS
+            # some truth labels (we do *not* have these in real data and would like to figure out what they are)
             nu = frame["I3MCTree"][0]
             
             if true_name:
@@ -319,16 +334,9 @@ def read_files(filename_list, drop_fraction_of_tracks=0.00, drop_fraction_of_cas
             
             if use_old_reco:
 
-                if reco_type == "retro":
-                    if not frame.Has('retro_crs_prefit__median__neutrino'):
-                        continue
-                    reco_nu = frame['retro_crs_prefit__median__neutrino']
-                    reco_length = frame['retro_crs_prefit__median__track'].length
-                if reco_type == "pegleg":
-                    if not frame.Has('IC86_Dunkman_L6_PegLeg_MultiNest8D_NumuCC'):
-                        continue
-                    reco_nu = frame['IC86_Dunkman_L6_PegLeg_MultiNest8D_NumuCC']
-                    reco_length = frame["trueMuon"].length
+                if not frame.Has('IC86_Dunkman_L6_PegLeg_MultiNest8D_NumuCC'):
+                    continue
+                reco_nu = frame['IC86_Dunkman_L6_PegLeg_MultiNest8D_NumuCC']
                 reco_energy = reco_nu.energy
                 reco_time = reco_nu.time
                 reco_zenith = reco_nu.dir.zenith
@@ -336,7 +344,6 @@ def read_files(filename_list, drop_fraction_of_tracks=0.00, drop_fraction_of_cas
                 reco_x = reco_nu.pos.x
                 reco_y = reco_nu.pos.y
                 reco_z = reco_nu.pos.z
-
 
             # input file sanity check: this should not print anything since "isOther" should always be false
             if isOther:
@@ -397,8 +404,10 @@ def read_files(filename_list, drop_fraction_of_tracks=0.00, drop_fraction_of_cas
             
             # Cut to only use events with true vertex in DeepCore
             if vertex_name == "IC19":
+                #print("Using IC19 radius for cuts")
                 radius = 300
             if vertex_name == "DC":
+                #print("Using DC only for cuts")
                 radius = 90
             x_origin = 54
             y_origin = -36
@@ -410,30 +419,7 @@ def read_files(filename_list, drop_fraction_of_tracks=0.00, drop_fraction_of_cas
                 not_in_DC += 1
                 continue
 
-            # Only use events fully contained in subset of strings (DC + IC)
-            if containment_cut:
-                theta = nu_zenith
-                phi = nu_azimuth
-                n_x = numpy.sin(theta)*numpy.cos(phi)
-                n_y = numpy.sin(theta)*numpy.sin(phi)
-                n_z = numpy.cos(theta)
-                x_end = nu_x + track_length*n_x
-                y_end = nu_y + track_length*n_y
-                z_end = nu_z + track_length*n_z
-                if ICstrings == 7:
-                    contained_radius = 150
-                elif ICstrings == 19:
-                    contained_radius = 300
-                else:
-                    assert False, "only setup for IC7 and IC19"
-                if (z_end > 192 or z_end < -505):
-                    containment_cut_count +=1
-                    continue
-                end_position = numpy.squrt((x_end - x_origin)**2 + (y_end - y_origin)**2))
-                if end_position > contained_radius:
-                    containment_cut_count +=1
-                    continue
-
+            
             DC_array, IC_near_DC_array,initial_stats,num_pulses_per_dom, trig_time, extra_triggers, ICstrings  = get_observable_features(frame)
 
             # Check if there were multiple SMT3 triggers or no SMT3 triggers
@@ -447,7 +433,7 @@ def read_files(filename_list, drop_fraction_of_tracks=0.00, drop_fraction_of_cas
             output_labels.append( numpy.array([ float(nu_energy), float(nu_zenith), float(nu_azimuth), float(nu_time), float(nu_x), float(nu_y), float(nu_z), float(track_length), float(isTrack), float(neutrino_type), float(particle_type), float(isCC) ]) )
 
             if use_old_reco:
-                output_reco_labels.append( numpy.array([ float(reco_energy), float(reco_zenith), float(reco_azimuth), float(reco_time), float(reco_x), float(reco_y), float(reco_z), float(reco_length) ]) )
+                output_reco_labels.append( numpy.array([ float(reco_energy), float(reco_zenith), float(reco_azimuth), float(reco_time), float(reco_x), float(reco_y), float(reco_z) ]) )
 
             
             output_features_DC.append(DC_array)
@@ -457,8 +443,6 @@ def read_files(filename_list, drop_fraction_of_tracks=0.00, drop_fraction_of_cas
             output_trigger_times.append(trig_time)
     
         print("Got rid of %i events not in DC so far"%not_in_DC)
-        if containment_cut:
-            print("God rid of %i events not ending in subset of strings so far"%containment_cut_count)
         print("Got rid of %i events classified as other so far"%isOther_count)
 
 

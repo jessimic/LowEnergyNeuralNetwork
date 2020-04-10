@@ -16,7 +16,7 @@
 #   --emax:         max energy (MaxAbs) to transform output energy
 ###########################################
 
-import numpy
+import numpy as np
 import h5py
 import time
 import os, sys
@@ -46,8 +46,15 @@ parser.add_argument("--emax",type=float,default=None,
                     dest="emax", help="max energy to divide by for transforming output")
 parser.add_argument("--tmax",type=float,default=None,
                     dest="tmax", help="max track length to divide by for transforming output")
+parser.add_argument("--num_out",type=int,default=1,
+                    dest="num_out",help="number of output files you want to split the output into")
+parser.add_argument("-c", "--cuts", type=str, default="all",
+                    dest="cuts", help="name of cuts applied (see name options below)")
+# cut names: track, cascade, CC, NC, track CC, track NC, cascade CC, cascade NC 
 args = parser.parse_args()
 working_dir = args.path
+num_outputs = args.num_out
+assert num_outputs<100, "NEED TO CHANGE FILENAME TO ACCOMODATE THIS MANY NUMBERS"
 transform = args.scaler
 max_energy = args.emax
 max_track = args.tmax
@@ -93,16 +100,11 @@ if use_old_reco:
 else: 
     reco = None
 if read_statistics:
-    low_stat_DC = static_stats #f['low_stat_DC'][:]
-    high_stat_DC = static_stats #f['high_stat_DC'][:]
-    low_stat_IC = static_stats #f['low_stat_IC'][:]
-    high_stat_IC = static_stats #f['high_stat_IC'][:]
+    low_stat_DC = static_stats 
+    high_stat_DC = static_stats 
+    low_stat_IC = static_stats 
+    high_stat_IC = static_stats 
 
-    #low_stat_labels = f['low_stat_labels'][:]
-    #high_stat_labels = f['high_stat_labels'][:]
-    #if use_old_reco:
-    #    low_stat_reco = f['low_stat_reco'][:]
-    #    high_stat_reco = f['high_stat_reco'][:]
     print("USING STATISTICS FOUND IN FILE")
 else:
     low_stat_DC      = None
@@ -114,6 +116,7 @@ else:
 f.close()
 del f
 
+#Shuffle Option
 if shuffle:
     from handle_data import Shuffler
 
@@ -124,8 +127,26 @@ if shuffle:
 
     print("Finished shuffling...")
 
-from scaler_transformations import TransformData, new_transform
+#Cut Option
+if cut != "all" or emax < max(labels[0]):
+    from handle_data import CutMask
+    assert labels.shape[-1] == 12, "output labels not expected and CutMask could be cutting the wrong thing"
+
+    mask = CutMask(labels)
+    e_mask = np.array(labels[:,0])<emax
+    keep_index = np.logical_and(mask[cut_name],e_mask)
+    number_events = sum(keep_index)
+
+    features_DC = np.array(features_DC)[keep_index]
+    features_IC = np.array(features_IC)[keep_index]
+    labels = np.array(labels)[keep_index]
+    reco = np.array(reco)[keep_index]
+
+    print("Keeping %i events"%(number_events))
+    print(features_DC.shape)
+
 #Transform Input Data
+from scaler_transformations import TransformData, new_transform
 
 features_DC_partial_transform = new_transform(features_DC)
 features_DC_full_transform = TransformData(features_DC_partial_transform, low_stats=low_stat_DC, high_stats=high_stat_DC, scaler=transform)
@@ -148,10 +169,10 @@ if transform_output:
         print("Not given max track, finding it from the Y_test in the given file!!!")
         max_track = max(labels[:,7])
 
-    labels_full = numpy.copy(labels)
+    labels_full = np.copy(labels)
 
     labels_full[:,0] = labels[:,0]/float(max_energy) #energy
-    labels_full[:,1] = numpy.cos(labels[:,1]) #cos zenith
+    labels_full[:,1] = np.cos(labels[:,1]) #cos zenith
     labels_full[:,2] = labels[:,7]/float(max_track) #MAKE TRACK THIRD INPUT
     labels_full[:,7] = labels[:,2] #MOVE AZIMUTH TO WHERE TRACK WAS
 
@@ -172,27 +193,40 @@ fraction_test=0.1,fraction_validate=0.2)
 
 
 #Save output to hdf5 file
+cut_name_nospaces = cut_name.replace(" ","")
+cut_file_name = cut_name_nospaces + ".lt" + str(int(emax)) + '.'
 transform_name = "transformedinput"
 if read_statistics:
-    transform_name = transform_name + "given"
+    transform_name = transform_name + "static"
 if transform_output:
     transform_name = transform_name + "_transformed3output"
-output_file = input_file[:-4] + transform_name + ".hdf5"
-print("Output file: %s"%output_file)
-f = h5py.File(output_file, "w")
-f.create_dataset("Y_train", data=Y_train)
-f.create_dataset("Y_test", data=Y_test)
-f.create_dataset("X_train_DC", data=X_train_DC)
-f.create_dataset("X_test_DC", data=X_test_DC)
-f.create_dataset("X_train_IC", data=X_train_IC)
-f.create_dataset("X_test_IC", data=X_test_IC)
-if create_validation:
-    f.create_dataset("Y_validate", data=Y_validate)
-    f.create_dataset("X_validate_IC", data=X_validate_IC)
-    f.create_dataset("X_validate_DC", data=X_validate_DC)
-if use_old_reco:
-    f.create_dataset("reco_train",data=reco_train)
-    f.create_dataset("reco_test",data=reco_test)
+
+events_per_file = int(X_train_DC.shape[0]/num_outputs) + 1
+print("Saving %i events per %i file(s)"%(events_per_file,num_outputs))
+for sep_file in range(0,num_outputs):
+    output_file = input_file[:-4] + cut_file_name + transform_name + "_file%02d.hdf5"%sep_file
+    print("Output file: %s"%output_file)
+
+    start = events_per_file*sep_file
+    if sep_file < num_outputs-1:
+        end = events_per_file*(sep_file+1)
+    else:
+        end = X_train_DC.shape[0] 
+
+    f = h5py.File(output_file, "w")
+    f.create_dataset("Y_train", data=Y_train[start:end])
+    f.create_dataset("Y_test", data=Y_test[start:end])
+    f.create_dataset("X_train_DC", data=X_train_DC[start:end])
+    f.create_dataset("X_test_DC", data=X_test_DC[start:end])
+    f.create_dataset("X_train_IC", data=X_train_IC[start:end])
+    f.create_dataset("X_test_IC", data=X_test_IC[start:end])
     if create_validation:
-        f.create_dataset("reco_validate",data=reco_validate)
-f.close()
+        f.create_dataset("Y_validate", data=Y_validate[start:end])
+        f.create_dataset("X_validate_IC", data=X_validate_IC[start:end])
+        f.create_dataset("X_validate_DC", data=X_validate_DC[start:end])
+    if use_old_reco:
+        f.create_dataset("reco_train",data=reco_train[start:end])
+        f.create_dataset("reco_test",data=reco_test[start:end])
+        if create_validation:
+            f.create_dataset("reco_validate",data=reco_validate[start:end])
+    f.close()
