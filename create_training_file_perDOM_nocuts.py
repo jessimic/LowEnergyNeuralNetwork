@@ -84,10 +84,9 @@ def get_observable_features(frame,low_window=-500,high_window=4000):
     ICstrings = len(IC_near_DC_strings)
     DC_strings = [79, 80, 81, 82, 83, 84, 85, 86]
 
-    # Current Information: sum charges, time first pulse, Time of last pulse, Charge weighted mean time of pulses, Charge weighted standard deviation of pulse times
-    # Old information: sum charges, sum charge <500ns, sum charge <100ns, time first pulse, time when 20 % of charge, time when 50% charge, Time of last pulse, Charge weighted mean time of pulses, Charge weighted standard deviation of pulse times
-    array_DC = numpy.zeros([len(DC_strings),60,5]) #9 #take only DOMs in main region, not veto layer
-    array_IC_near_DC = numpy.zeros([len(IC_near_DC_strings),60,5]) #9
+    #Five summary variables: sum charges, time first pulse, Time of last pulse, Charge weighted mean time of pulses, Charge weighted standard deviation of pulse times
+    array_DC = numpy.zeros([len(DC_strings),60,5]) # [string, dom_index, charge & time summary]
+    array_IC_near_DC = numpy.zeros([len(IC_near_DC_strings),60,5]) # [string, dom_index, charge & time summary]
     initial_stats = numpy.zeros([4])
     num_pulses_per_dom = numpy.zeros([len(DC_strings),60,1])
     count_outside = 0
@@ -115,7 +114,7 @@ def get_observable_features(frame,low_window=-500,high_window=4000):
     else:
         shift_time_by = trigger_time
 
-    #Start by making all times negative shift time (distinguish null from 0)
+    #Start by making all times negative shift time (to distinguish null from 0)
     array_DC[...,1:] = -20000
     array_IC_near_DC[...,1:] = -20000
 
@@ -182,30 +181,14 @@ def get_observable_features(frame,low_window=-500,high_window=4000):
             count_inside += len(chargelist)
             charge_inside += sum(chargelist)
 
-            # Check that pulses are sorted
+            # Check that pulses are sorted in time
             for i_t,time in enumerate(time_array):
                 assert time == sorted(time_array)[i_t], "Pulses are not pre-sorted!"
 
-            # Find time when 20% and 50% of charge has hit DOM
-            sum_charge = numpy.cumsum(chargelist)
-            flag_20p = False
-            for sum_index,current_charge in enumerate(sum_charge):
-                if charge_array[-1] == 0:
-                    time_20p = 0
-                    time_50p = 0
-                    break
-                if current_charge/float(charge_array[-1]) > 0.2 and flag_20p == False:
-                    time_20p = sum_index
-                    flag_20p = True
-                if current_charge/float(charge_array[-1]) > 0.5:
-                    time_50p = sum_index
-                    break            
-            
             # Charge weighted mean and stdev
             weighted_avg_time = numpy.average(time_array,weights=charge_array)
             weighted_std_time = numpy.sqrt( numpy.average((time_array - weighted_avg_time)**2, weights=charge_array) )
 
-            #print(dom_index,string_val,string_index,DC_flag,IC_near_DC_flag,len(chargelist),sum(chargelist), time_array[0],time_array[-1],weighted_avg_time,weighted_std_time)
 
         if DC_flag == True:
             array_DC[string_index,dom_index,0] = sum(chargelist)
@@ -213,10 +196,7 @@ def get_observable_features(frame,low_window=-500,high_window=4000):
             array_DC[string_index,dom_index,2] = time_array[-1]
             array_DC[string_index,dom_index,3] = weighted_avg_time
             array_DC[string_index,dom_index,4] = weighted_std_time
-            #array_DC[string_index,dom_index,1] = sum(charge_array[mask_500])
-            #array_DC[string_index,dom_index,2] = sum(charge_array[mask_100])
-            #array_DC[string_index,dom_index,4] = time_array[time_20p]
-            #array_DC[string_index,dom_index,5] = time_array[time_50p]
+            
             num_pulses_per_dom[string_index,dom_index,0] = len(chargelist)
         
         if IC_near_DC_flag == True:
@@ -225,12 +205,7 @@ def get_observable_features(frame,low_window=-500,high_window=4000):
             array_IC_near_DC[string_index,dom_index,2] = time_array[-1]
             array_IC_near_DC[string_index,dom_index,3] = weighted_avg_time
             array_IC_near_DC[string_index,dom_index,4] = weighted_std_time
-            #array_IC_near_DC[string_index,dom_index,1] = sum(charge_array[mask_500])
-            #array_IC_near_DC[string_index,dom_index,2] = sum(charge_array[mask_100])
-            #array_IC_near_DC[string_index,dom_index,4] = time_array[time_20p]
-            #array_IC_near_DC[string_index,dom_index,5] = time_array[time_50p]
 
-    #print(count_outside, charge_outside, charge_outside/(sum(array_DC[:,:,0].flatten())+charge_outside))
 
     initial_stats[0] = count_outside
     initial_stats[1] = charge_outside
@@ -239,14 +214,11 @@ def get_observable_features(frame,low_window=-500,high_window=4000):
 
     return array_DC, array_IC_near_DC, initial_stats, num_pulses_per_dom, trigger_time, num_extra_DC_triggers, ICstrings
 
-def read_files(filename_list, drop_fraction_of_tracks=0.00, drop_fraction_of_cascades=0.00):
+def read_files(filename_list):
     """
     Read list of files, make sure they pass L5 cuts, create truth labels
     Receives:
         filename_list = list of strings, filenames to read data from
-        drop_fraction_of_tracks = how many track events to drop
-        drop_fraction_of_cascades = how many cascade events to drop
-                                --> track & cascade not evenly simulated
     Returns:
         output_features_DC = dict with input observable features from the DC strings
         output_features_IC = dict with input observable features from the IC strings
@@ -382,72 +354,11 @@ def read_files(filename_list, drop_fraction_of_tracks=0.00, drop_fraction_of_cas
                 print("Do not know first particle type in MCTree, should be neutrino, skipping this event")
                 continue
             
-            # Decide how many track events to keep
-            if isTrack and random.random() < drop_fraction_of_tracks:
-                continue
-
-            # Decide how many cascade events to kep
-            if isCascade and random.random() < drop_fraction_of_cascades:
-                continue
-
             # Only look at "low energy" events for now
             if nu_energy > emax:
                 continue
             
-            # String 36: x = 46.290000915527344, y= -34.880001068115234
-            x_origin = 54 #46.290000915527344 #old 54
-            y_origin = -36 #-34.880001068115234 #old -36
-            
-            # Cut to only use events with true vertex in DeepCore
-            DC_boundary = 50
-            # DOM Positions DeepCore (string83 = -505.41, string85 = -156.41) NOT including veto layer
-            z_min_start = -505 #- DC_boundary #old -505
-            z_max_start = 192 #-155 + DC_boundary #old 192
-            if vertex_name == "IC19":
-                radius = 260 #300
-            if vertex_name == "DC":
-                # String 82 is the furthest DC string away from 36 (in r = 86.71045920985)
-                radius = 90
-            if vertex_name == "IC7":
-                #String 37 furthest IC7 string away from 36 (r = 148.1029464677088)
-                radius = 150
-            shift_x = nu_x - x_origin
-            shift_y = nu_y - y_origin
-            z_val = nu_z
-            radius_calculation = numpy.sqrt(shift_x**2+shift_y**2)
-            if( radius_calculation > radius or z_val > z_max_start or z_val < z_min_start ):
-                not_in_DC += 1
-                continue
-            
             DC_array, IC_near_DC_array,initial_stats,num_pulses_per_dom, trig_time, extra_triggers, ICstrings  = get_observable_features(frame)
-
-            # Only use events fully contained in subset of strings (DC + IC)
-            if containment_cut:
-                end_boundary = 50
-                z_min_end = -505 - end_boundary
-                z_max_end = 505 + end_boundary
-                theta = nu_zenith
-                phi = nu_azimuth
-                n_x = numpy.sin(theta)*numpy.cos(phi)
-                n_y = numpy.sin(theta)*numpy.sin(phi)
-                n_z = numpy.cos(theta)
-                x_end = nu_x + track_length*n_x
-                y_end = nu_y + track_length*n_y
-                z_end = nu_z + track_length*n_z
-                if ICstrings == 7:
-                    contained_radius = 150
-                elif ICstrings == 19:
-                    contained_radius = 260
-                else:
-                    assert False, "only setup for IC7 and IC19"
-                if (z_end > z_max_end or z_end < z_min_end):
-                    containment_cut_count +=1
-                    continue
-                end_position = numpy.sqrt((x_end - x_origin)**2 + (y_end - y_origin)**2)
-                if end_position > contained_radius:
-                    containment_cut_count +=1
-                    continue
-
 
             # Check if there were multiple SMT3 triggers or no SMT3 triggers
             # Skip event if so
@@ -460,7 +371,6 @@ def read_files(filename_list, drop_fraction_of_tracks=0.00, drop_fraction_of_cas
 
             if use_old_reco:
                 output_reco_labels.append( numpy.array([ float(reco_energy), float(reco_zenith), float(reco_azimuth), float(reco_time), float(reco_x), float(reco_y), float(reco_z), float(reco_length) ]) )
-
             
             output_features_DC.append(DC_array)
             output_features_IC.append(IC_near_DC_array)
@@ -469,10 +379,7 @@ def read_files(filename_list, drop_fraction_of_tracks=0.00, drop_fraction_of_cas
             output_trigger_times.append(trig_time)
     
         print("Got rid of %i events not in DC so far"%not_in_DC)
-        if containment_cut:
-            print("God rid of %i events not ending in subset of strings so far"%containment_cut_count)
         print("Got rid of %i events classified as other so far"%isOther_count)
-
 
         # close the input file once we are done
         del event_file
@@ -500,7 +407,7 @@ assert event_file_names,"No files loaded, please check path."
 
 #Call function to read and label files
 #Currently set to ONLY get track events, no cascades!!! #
-features_DC, features_IC, labels, reco_labels, initial_stats, num_pulses_per_dom, output_trigger_times, ICstrings = read_files(event_file_names, drop_fraction_of_tracks=0.0,drop_fraction_of_cascades=0.0)
+features_DC, features_IC, labels, reco_labels, initial_stats, num_pulses_per_dom, output_trigger_times, ICstrings = read_files(event_file_names)
 
 print(features_DC.shape)
 

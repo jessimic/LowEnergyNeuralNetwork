@@ -6,6 +6,7 @@
 #############################
 
 import numpy as np
+import math
 
 def CutMask(set_labels):
     """Creates dictionary full of possible cut masks
@@ -38,7 +39,53 @@ def CutMask(set_labels):
     
     return mask
 
-def Shuffler(full_features_DC,full_features_IC,full_labels, full_reco=None, full_initial_stats=None, full_num_pulses=None,use_old_reco_flag=False):
+def VertexCut(set_labels,azimuth_index=2,track_index=7,max_track=1.0):
+
+    # Position of String 36 for origin
+    x_origin = 46.290000915527344
+    y_origin = -34.880001068115234
+
+    # Load true labels
+    theta = np.arccos(set_labels[:,1]) #zenith
+    phi = set_labels[:,azimuth_index] #azimuth
+    x_start = set_labels[:,4]
+    y_start = set_labels[:,5]
+    z_start = set_labels[:,6]
+    track_length = set_labels[:,track_index]*max_track
+    n_x = np.sin(theta)*np.cos(phi)
+    n_y = np.sin(theta)*np.sin(phi)
+    n_z = np.cos(theta)
+    x_end = x_start + track_length*n_x
+    y_end = y_start + track_length*n_y
+    z_end = z_start + track_length*n_z
+
+    # Set up Boundary conditions
+    start_boundary = 50
+    z_min_start = -505 - start_boundary
+    z_max_start = -155 + start_boundary
+    end_boundary = 50
+    z_min_end = -505 - end_boundary
+    z_max_end = 505 + end_boundary
+    radius_IC7 = 150
+    radius_DC = 90
+    radius_IC19 = 260
+
+    z_mask_start = np.logical_and(z_start > z_min_start, z_start < z_max_start)
+    r_start = np.sqrt( (x_start - x_origin)**2 + (y_start - y_origin)**2 )
+    z_mask_end = np.logical_and(z_end > z_min_end, z_end < z_max_end)
+    r_end = np.sqrt((x_end - x_origin)**2 + (y_end - y_origin)**2)
+
+    vertex_mask = {}
+    vertex_mask["start_DC"] = np.logical_and(z_mask_end, r_start < radius_DC)
+    vertex_mask["start_IC7"] = np.logical_and(z_mask_end, r_start < radius_IC7)
+    vertex_mask["start_IC19"] = np.logical_and(z_mask_end, r_start < radius_IC19)
+    vertex_mask["end_IC7"] = np.logical_and(z_mask_end, r_end < radius_IC7)
+    vertex_mask["end_IC19"] = np.logical_and(z_mask_end, r_end < radius_IC19)
+
+    return vertex_mask
+
+
+def Shuffler(full_features_DC, full_features_IC, full_labels, full_reco=None, full_initial_stats=None, full_num_pulses=None,full_trig_times=None, use_old_reco_flag=False):
     """Shuffle the contents of the arrays
         Receives:
         full_features_DC = fully concatenated DC array
@@ -52,26 +99,39 @@ def Shuffler(full_features_DC,full_features_IC,full_labels, full_reco=None, full
     shuffled_features_DC = np.zeros_like(full_features_DC)
     shuffled_features_IC = np.zeros_like(full_features_IC)
     shuffled_labels = np.zeros_like(full_labels)
-    if use_old_reco_flag:
+    if full_reco is not None:
         shuffled_reco = np.zeros_like(full_reco)
-        shuffled_initial_stats = np.zeros_like(full_initial_stats)
-        shuffled_num_pulses = np.zeros_like(full_num_pulses)
     else:
         shuffled_reco = None
+    if full_initial_stats is not None:
+        shuffled_initial_stats = np.zeros_like(full_initial_stats)
+    else:
         shuffled_initial_stats = None
+    if full_num_pulses is not None:
+        shuffled_num_pulses = np.zeros_like(full_num_pulses)
+    else:
         shuffled_num_pulses = None
+    if full_trig_times is not None:
+        shuffled_trig_times = np.zeros_like(full_trig_times)
+    else:
+        shuffled_trig_times = None
+    
     random_order = np.arange(0,full_features_DC.shape[0])
     np.random.shuffle(random_order)
     for evt_num in range(0,len(random_order)):
         shuffled_features_DC[evt_num] = full_features_DC[random_order[evt_num]]
         shuffled_features_IC[evt_num] = full_features_IC[random_order[evt_num]]
         shuffled_labels[evt_num] = full_labels[random_order[evt_num]]
-        if use_old_reco_flag:
+        if full_reco is not None:
             shuffled_reco[evt_num] = full_reco[random_order[evt_num]]
+        if full_initial_stats is not None:
             shuffled_initial_stats[evt_num] = full_initial_stats[random_order[evt_num]]
+        if full_num_pulses is not None:
             shuffled_num_pulses[evt_num] = full_num_pulses[random_order[evt_num]]
+        if full_trig_times is not None:
+            shuffled_trig_times[evt_num] = full_trig_times[random_order[evt_num]]
 
-    return shuffled_features_DC, shuffled_features_IC, shuffled_labels, shuffled_reco, shuffled_initial_stats, shuffled_num_pulses
+    return shuffled_features_DC, shuffled_features_IC, shuffled_labels, shuffled_reco, shuffled_initial_stats, shuffled_num_pulses, shuffled_trig_times
 
 def SplitTrainTest(features_DC,features_IC,labels,reco=None,use_old_reco=False,create_validation=True,fraction_test=0.1,fraction_validate=0.2):
     """

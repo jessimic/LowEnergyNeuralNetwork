@@ -5,6 +5,8 @@ import os, sys
 import random
 from collections import OrderedDict
 import itertools
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import argparse
 
@@ -13,7 +15,7 @@ parser.add_argument("-i", "--input_file",type=str,default=None,
                     dest="input_file", help="names for test only input file")
 parser.add_argument("-d", "--path",type=str,default='/data/icecube/jmicallef/processed_CNN_files/',
                     dest="path", help="path to input files")
-parser.add_argument("-o", "--output_dir",type=str,default='/mnt/home/micall12/DNN_LE/',
+parser.add_argument("-o", "--output_dir",type=str,default='/mnt/home/micall12/LowEnergyNeuralNetwork/',
                     dest="output_dir", help="path to output_plots directory, do not end in /")
 parser.add_argument("-n", "--name",type=str,default=None,
                     dest="name", help="name for output directory and where model file located")
@@ -26,7 +28,7 @@ parser.add_argument("--first_variable", type=str,default="energy",
 parser.add_argument("--compare_reco", default=False,action='store_true',
                         dest='compare_reco',help="use flag to compare to old reco vs. NN")
 parser.add_argument("-t","--test", type=str,default="oscnext",
-                        dest='test',help="test type, currently oscnext or dragon")
+                        dest='test',help="name of reco")
 args = parser.parse_args()
 
 test_file = args.path + args.input_file
@@ -67,16 +69,8 @@ else:
     print("only supports energy and zenith right now! Please choose one of those. Defaulting to energy")
     print("testing with energy as the first index")
 
-if args.test == "oscnext" or args.test == "OscNext" or args.test == "osc" or args.test == "Oscnext":
-    test_type = "oscnext"
-    print("Doing the oscnext test!")
-elif args.test == "dragon" or args.test == "Dragon" or args.test == "DRAGON":
-    test_type = "dragon"
-    print("Doing dragon test!")
-else:
-    print("only supports oscnext and dragon right now! Defaulting to dragon")
-    print("Doing dragon test!")
-save_folder_name += "/%s_%sepochs/"%(test_type,epoch)
+reco_name = args.test
+save_folder_name += "/%s_%sepochs/"%(reco_name,epoch)
 if os.path.isdir(save_folder_name) != True:
     os.mkdir(save_folder_name)
     
@@ -92,17 +86,12 @@ f.close
 del f
 print(X_test_DC_use.shape,X_test_IC_use.shape)
 
-if test_type == "dragon":
-    mask_energy_train = numpy.logical_and(Y_test_use[:,0]>min_energy/max_energy,Y_test_use[:,0]<1.0)
-
-    Y_test_use = Y_test_use[mask_energy_train]
-    X_test_DC_use = X_test_DC_use[mask_energy_train]
-    X_test_IC_use = X_test_IC_use[mask_energy_train]
-
-    if compare_reco:
-        reco_test_use = reco_test_use[mask_energy_train]
-        #reco_test_use[:,0] = reco_test_use[:,0]/max_energy
-        #reco_test_use[:,1] = numpy.cos(reco_test_use[:,1])
+#mask_energy_train = numpy.logical_and(numpy.array(Y_test_use[:,0])>min_energy/max_energy,numpy.array(Y_test_use[:,0])<1.0)
+#Y_test_use = numpy.array(Y_test_use)[mask_energy_train]
+#X_test_DC_use = numpy.array(X_test_DC_use)[mask_energy_train]
+#X_test_IC_use = numpy.array(X_test_IC_use)[mask_energy_train]
+#if compare_reco:
+#    reco_test_use = numpy.array(reco_test_use)[mask_energy_train]
 
 
 #Make network and load model
@@ -242,16 +231,16 @@ for num in range(0,output_variables):
     if compare_reco:
         plot_single_resolution(Y_test_use[:,true_index]*maxabs_factor,\
                    Y_test_predicted[:,NN_index]*maxabs_factor,\
-                   use_old_reco = True, old_reco = reco_test_use[:,true_index]*maxabs_factor,\
+                   use_old_reco = True, old_reco = reco_test_use[:,true_index],\
                    minaxis=-2*maxval,maxaxis=maxval*2,
                    save=save,savefolder=save_folder_name,\
-                   variable=plot_name,units=plot_units, epochs = epoch)
+                   variable=plot_name,units=plot_units, epochs = epoch,reco_name=reco_name)
         plot_bin_slices(Y_test_use[:,true_index]*maxabs_factor, Y_test_predicted[:,NN_index]*maxabs_factor,\
-                    old_reco = reco_test_use[:,true_index]*maxabs_factor,\
+                    old_reco = reco_test_use[:,true_index],\
                     use_fraction = use_frac,\
                     bins=10,min_val=minval,max_val=maxval,\
                     save=True,savefolder=save_folder_name,\
-                    variable=plot_name,units=plot_units, epochs = epoch)
+                    variable=plot_name,units=plot_units, epochs = epoch,reco_name=reco_name)
     if first_var == "energy" and num ==0:
         plot_2D_prediction_fraction(Y_test_use[:,true_index]*maxabs_factor,\
                         Y_test_predicted[:,NN_index]*maxabs_factor,\
@@ -268,8 +257,8 @@ for num in range(0,output_variables):
         if compare_reco:
             plot_bin_slices(Y_test_use[:,true_index], Y_test_predicted[:,NN_index], \
                        energy_truth=Y_test_use[:,0]*max_energy, \
-                       old_reco = reco_test_use[:,true_index]*maxabs_factor,\
+                       old_reco = reco_test_use[:,true_index],\
                        use_fraction = False, \
                        bins=10,min_val=min_energy,max_val=max_energy,\
                        save=True,savefolder=save_folder_name,\
-                       variable=plot_name,units=plot_units, epochs = epoch)
+                       variable=plot_name,units=plot_units, epochs = epoch,reco_name=reco_name)
