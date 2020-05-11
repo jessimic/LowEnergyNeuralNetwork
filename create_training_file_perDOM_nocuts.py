@@ -36,21 +36,15 @@ parser.add_argument("--reco_type",type=str,default="pegleg",
                     dest="reco_type", help="Options are pegleg or retro")
 parser.add_argument("--emax",type=float,default=200.0,
                     dest="emax",help="Max energy to keep, cut anything above")
-parser.add_argument("--vertex",type=str, default="IC7",
-                    dest="vertex_name",help="Name of vertex cut to put on file")
 parser.add_argument("--cleaned",type=str,default="False",
                     dest="cleaned", help="True if wanted to use SRTTWOfflinePulsesDC")
 parser.add_argument("--true_name",type=str,default=None,
                     dest="true_name", help="Name of key for true particle info if you want to check with I3MCTree[0]")
-parser.add_argument("--containment_cut", default=False,action='store_true',
-                        dest='containment_cut',help="use flag to turn on containment cut")
 args = parser.parse_args()
 input_file = args.input_file
 output_name = args.output_name
 emax = args.emax
-vertex_name = args.vertex_name
 true_name = args.true_name
-containment_cut = args.containment_cut
 reco_type = args.reco_type
 if args.reco == 'True' or args.reco == 'true':
     use_old_reco = True
@@ -412,7 +406,7 @@ features_DC, features_IC, labels, reco_labels, initial_stats, num_pulses_per_dom
 print(features_DC.shape)
 
 #Save output to hdf5 file
-output_path = "/mnt/scratch/micall12/training_files/" + output_name + "_lt" + str(int(emax)) + "_vertex" + vertex_name + "_IC" + str(ICstrings) + ".hdf5"
+output_path = "/mnt/scratch/micall12/training_files/" + output_name + "_lt" + str(int(emax)) + "_NOvertex_IC" + str(ICstrings) + ".hdf5"
 f = h5py.File(output_path, "w")
 f.create_dataset("features_DC", data=features_DC)
 f.create_dataset("features_IC", data=features_IC)
