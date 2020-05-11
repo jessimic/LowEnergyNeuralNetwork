@@ -9,6 +9,7 @@
 import numpy
 import h5py
 import time
+import math
 import os, sys
 import argparse
 import glob
@@ -42,6 +43,13 @@ parser.add_argument("--energy_loss", type=float,default=1,
                     dest="energy_loss", help="factor to divide energy loss by")
 parser.add_argument("--first_variable", type=str,default="energy",
                     dest="first_variable", help = "name for first variable (energy, zenith only two supported)")
+parser.add_argument("--lr", type=float,default=0.001,
+                    dest="learning_rate",help="learning rate as a FLOAT")
+parser.add_argument("--lr_drop", type=float,default=0.1,
+                    dest="lr_drop",help="factor to drop learning rate by each lr_epoch")
+parser.add_argument("--lr_epoch", type=int,default=None,
+                    dest="lr_epoch",help="step size for number of epochs LR changes")
+
 args = parser.parse_args()
 
 # Settings from args
@@ -50,10 +58,22 @@ path = args.path
 num_epochs = args.epochs
 filename = args.name
 
+epochs_step_drop = args.lr_epoch
+if epochs_step_drop is None or epochs_step_drop==0:
+    no_change = 0
+    lr_drop = 1
+    epochs_step_drop = 1
+    # set up so pow(lr_drop,(epoch+1)/epochs_step_drop*nochange) = 1
+    print("YOU DIDN'T GIVE A STEP SIZE TO DROP LR, WILL NOT CHANGE LR")
+else:
+    no_change = 1
+    lr_drop = args.lr_drop
+
+initial_lr = args.learning_rate
+
 train_variables = args.train_variables
 batch_size = 256
 dropout = 0.2
-learning_rate = 1e-3
 DC_drop_value = dropout
 IC_drop_value =dropout
 connected_drop_value = dropout
@@ -90,6 +110,10 @@ save_folder_name = "%s/output_plots/%s/"%(args.output_dir,filename)
 if save==True:
     if os.path.isdir(save_folder_name) != True:
         os.mkdir(save_folder_name)
+make_header_saveloss = False
+if os.path.isfile("%ssaveloss_currentepoch.txt"%(save_folder_name)) != True:
+    make_header_saveloss = True
+    
         
 use_old_reco = False
 
@@ -98,10 +122,10 @@ file_names = sorted(glob.glob(files_with_paths))
 
 print("\nFiles Used \nTraining %i files that look like %s \nStarting with model: %s \nSaving output to: %s"%(len(file_names),file_names[0],old_model_given,save_folder_name))
 
-print("\nNetwork Parameters \nbatch_size: %i \ndropout: %f \nlearning rate: %f \nenergy range for plotting: %f - %f"%(batch_size,dropout,learning_rate,min_energy,max_energy))
+print("\nNetwork Parameters \nbatch_size: %i \ndropout: %f \nstarting learning rate: %f \nenergy range for plotting: %f - %f"%(batch_size,dropout,initial_lr,min_energy,max_energy))
 
 #print("Starting at epoch: %s \nTraining until: %s epochs \nTraining on %s variables \nUsing Network Config in %s"%(start_epoch,start_epoch+num_epochs,train_variables,network))
-print("Starting at epoch: %s \nTraining until: %s epochs \nTraining on %s variables"%(start_epoch,start_epoch+num_epochs,train_variables))
+print("Starting at epoch: %s \nTraining until: %s epochs \nTraining on %s variables with %s first"%(start_epoch,start_epoch+num_epochs,train_variables, first_var))
 
 afile = file_names[0]
 f = h5py.File(afile, 'r')
@@ -135,7 +159,7 @@ if first_var == "energy":
 
 if first_var == "zenith":
     def ZenithLoss(y_truth,y_predicted):
-        return mean_squared_error(y_truth[:,0],y_predicted[:,0])
+        return mean_squared_error(y_truth[:,1],y_predicted[:,0])
 
 def TrackLoss(y_truth,y_predicted):
     return mean_squared_error(y_truth[:,2],y_predicted[:,2])
@@ -163,18 +187,20 @@ else:
             zenith_loss = ZenithLoss(y_truth,y_predicted)
             return zenith_loss
 
-
 # Run neural network and record time ##
 end_epoch = start_epoch + num_epochs
 t0 = time.time()
 for epoch in range(start_epoch,end_epoch):
+   
+    learning_rate = initial_lr * math.pow(lr_drop, math.floor((1+epoch)/epochs_step_drop)*no_change) 
+    
         
     ## NEED TO HAVE OUTPUT DATA ALREADY TRANSFORMED!!! ##
     #print("True Epoch %i/%i"%(epoch+1,num_epochs))
     t0_loading = time.time()
     # Get new dataset
     input_file = file_names[epoch%len(file_names)]
-    print("Now using file %s"%input_file)
+    print("Now using file %s with lr %.1E"%(input_file,learning_rate))
     f = h5py.File(input_file, 'r')
     Y_train = f['Y_train'][:]
     X_train_DC = f['X_train_DC'][:]
@@ -185,12 +211,12 @@ for epoch in range(start_epoch,end_epoch):
     f.close()
     del f
    
-    if first_var =="zenith":
-        Y_train_use = Y_train[:,first_var_index]
-    Y_val_use = Y_validate[:,first_var_index] 
-    if first_var == "energy":
-        Y_train_use = Y_train[:,:train_variables]
-        Y_val_use = Y_validate[:,:train_variables]
+    #if first_var =="zenith":
+    #    Y_train_use = Y_train[:,first_var_index]
+    #    Y_val_use = Y_validate[:,first_var_index] 
+    #if first_var == "energy":
+    #    Y_train_use = Y_train[:,:train_variables]
+    #    Y_val_use = Y_validate[:,:train_variables]
 
     # Compile model
     if train_variables == 1:
@@ -222,13 +248,13 @@ for epoch in range(start_epoch,end_epoch):
         model_DC.load_weights(old_model_given)
         old_model_given = None
     else:
-        print("Training set: %i, Validation set: %i"%(len(Y_train_use),len(Y_val_use)))
+        print("Training set: %i, Validation set: %i"%(len(Y_train),len(Y_validate)))
         print(epoch,end_epoch)
     
     #Run one epoch with dataset
     t0_epoch = time.time()
-    network_history = model_DC.fit([X_train_DC, X_train_IC], Y_train_use,
-                            validation_data= ([X_validate_DC, X_validate_IC], Y_val_use),
+    network_history = model_DC.fit([X_train_DC, X_train_IC], Y_train,
+                            validation_data= ([X_validate_DC, X_validate_IC], Y_validate),
                             batch_size=batch_size,
                             initial_epoch= epoch,
                             epochs=epoch+1, #goes from intial to epochs, so need it to be greater than initial
@@ -240,7 +266,7 @@ for epoch in range(start_epoch,end_epoch):
     dt_loading = (t1_loading - t0_loading)/60.
     
     #Set up file that saves losses once
-    if epoch == start_epoch:
+    if make_header_saveloss and epoch==0:
         afile = open("%ssaveloss_currentepoch.txt"%(save_folder_name),"a")
         afile.write("Epoch" + '\t' + "Time Epoch" + '\t' + "Time Train" + '\t')
         for key in network_history.history.keys():
@@ -255,6 +281,12 @@ for epoch in range(start_epoch,end_epoch):
         afile.write(str(network_history.history[key][0]) + '\t')
     afile.write('\n')    
     afile.close()
+
+    print(epoch,len(file_names),epoch%len(file_names),len(file_names)-1)
+    if epoch%len(file_names) == (len(file_names)-1):
+        model_save_name = "%s%s_%iepochs_model.hdf5"%(save_folder_name,filename,epoch+1)
+        model_DC.save(model_save_name)
+        print("Saved model to %s"%model_save_name)
     
     
 t1 = time.time()
@@ -286,10 +318,15 @@ for file in file_names:
         Y_test_use = numpy.concatenate((Y_test_use, Y_test))
         X_test_DC_use = numpy.concatenate((X_test_DC_use, X_test_DC))
         X_test_IC_use = numpy.concatenate((X_test_IC_use, X_test_IC))
+
 print(Y_test_use.shape)
 
 # Score network
-score = model_DC.evaluate([X_test_DC_use,X_test_IC_use], Y_test_use, batch_size=256)
+if train_variables > 1:
+    score = model_DC.evaluate([X_test_DC_use,X_test_IC_use], Y_test_use[:,:train_variables], batch_size=256)
+else:
+    score = model_DC.evaluate([X_test_DC_use,X_test_IC_use], Y_test_use[:,first_var_index], batch_size=256)
+
 print("final score on test data: loss: {:.4f} / accuracy: {:.4f}".format(score[0], score[1]))
 ### SAVE OUTPUT TO FILE ##
 if save==True:
@@ -318,18 +355,17 @@ from PlottingFunctions import plot_history_from_list
 from PlottingFunctions import plot_history_from_list_split
 from PlottingFunctions import plot_distributions
 
-plot_history_from_list(loss,val_loss,save,save_folder_name,logscale=True)
-if train_variables > 1:
-    plot_history_from_list_split(energy_loss,val_energy_loss,zenith_loss,val_zenith_loss,save=save,savefolder=save_folder_name,logscale=True)
+#plot_history_from_list(loss,val_loss,save,save_folder_name,logscale=True)
+#if train_variables > 1:
+#    plot_history_from_list_split(energy_loss,val_energy_loss,zenith_loss,val_zenith_loss,save=save,savefolder=save_folder_name,logscale=True)
 
-if first_var == "energy":
-    plots_names = ["Energy", "CosZenith", "Track"]
-    plots_units = ["GeV", "", "m"]
-    maxabs_factors = [100., 1., 200.]
-    maxvals = [max_energy, 1., 0.]
-    minvals = [min_energy, -1., 0.]
-    use_fractions = [True, False, True]
-    bins_array = [95,100,100]
+plots_names = ["Energy", "CosZenith", "Track"]
+plots_units = ["GeV", "", "m"]
+maxabs_factors = [100., 1., 200.]
+maxvals = [max_energy, 1., 0.]
+minvals = [min_energy, -1., 0.]
+use_fractions = [True, False, True]
+bins_array = [95,100,100]
 if train_variables == 3: 
     maxvals = [max_energy, 1., max(Y_test_use[:,2])*maxabs_factor[2]]
 
@@ -351,7 +387,8 @@ for num in range(0,train_variables):
     bins = bins_array[name_index]
     print("Plotting %s at position %i in true test output and %i in NN test output"%(plot_name, true_index,NN_index))
     
-    plot_2D_prediction(Y_test_use[:,true_index]*maxabs_factor, Y_test_predicted[:,NN_index]*maxabs_factor,\
+    plot_2D_prediction(Y_test_use[:,true_index]*maxabs_factor,\
+                        Y_test_predicted[:,NN_index]*maxabs_factor,\
                         save,save_folder_name,bins=bins,\
                         minval=minval,maxval=maxval,\
                         variable=plot_name,units=plot_units)
@@ -359,23 +396,25 @@ for num in range(0,train_variables):
                         save,save_folder_name,bins=bins,\
                         minval=None,maxval=None,\
                         variable=plot_name,units=plot_units)
-    if num ==0:
-        plot_2D_prediction_fraction(Y_test_use[:,true_index]*maxabs_factor, Y_test_predicted[:,NN_index]*maxabs_factor,\
+    plot_single_resolution(Y_test_use[:,true_index]*maxabs_factor,\
+                    Y_test_predicted[:,NN_index]*maxabs_factor,\
+                   minaxis=-2*maxval,maxaxis=maxval*2,
+                   save=save,savefolder=save_folder_name,\
+                   variable=plot_name,units=plot_units)
+    plot_distributions(Y_test_use[:,true_index]*maxabs_factor, Y_test_predicted[:,NN_index]*maxabs_factor,\
+                    save,save_folder_name,\
+                    variable=plot_name,units=plot_units)
+    plot_bin_slices(Y_test_use[:,true_index]*maxabs_factor, Y_test_predicted[:,NN_index]*maxabs_factor,\
+                    use_fraction = use_frac,\
+                    bins=10,min_val=minval,max_val=maxval,\
+                   save=True,savefolder=save_folder_name,\
+                   variable=plot_name,units=plot_units)
+    if first_var == "energy" and num ==0:
+        plot_2D_prediction_fraction(Y_test_use[:,true_index]*maxabs_factor,\
+                        Y_test_predicted[:,NN_index]*maxabs_factor,\
                         save,save_folder_name,bins=bins,\
                         minval=0,maxval=2,\
                         variable=plot_name,units=plot_units)
-        plot_single_resolution(Y_test_use[:,true_index]*maxabs_factor, Y_test_predicted[:,NN_index]*maxabs_factor,\
-                       minaxis=-2*maxval,maxaxis=maxval*2,
-                       save=save,savefolder=save_folder_name,\
-                       variable=plot_name,units=plot_units)
-        plot_distributions(Y_test_use[:,true_index]*maxabs_factor, Y_test_predicted[:,NN_index]*maxabs_factor,\
-                        save,save_folder_name,\
-                        variable=plot_name,units=plot_units)
-        plot_bin_slices(Y_test_use[:,true_index]*maxabs_factor, Y_test_predicted[:,NN_index]*maxabs_factor,\
-                        use_fraction = use_frac,\
-                        bins=10,min_val=minval,max_val=maxval,\
-                       save=True,savefolder=save_folder_name,\
-                       variable=plot_name,units=plot_units)
     if num > 0 or first_var == "zenith":
         plot_bin_slices(Y_test_use[:,true_index], Y_test_predicted[:,NN_index], \
                        min_energy = min_energy, max_energy=max_energy, true_energy=Y_test_use[:,0]*max_energy, \
