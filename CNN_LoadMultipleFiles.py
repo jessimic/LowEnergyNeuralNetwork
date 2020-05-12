@@ -1,9 +1,23 @@
 #########################
-# Version of CNN on 8 Nov 2019
+# Version of CNN on 12 May 2020
 # 
 # Runs net and plots
 # Takes in multiple files to train on (large dataset)
-# Runs Energy and Zenith only (must do both atm)
+# Runs Energy, Zenith, Track length (1 variable energy or zenith, 2 = energy then zenith, 3 = EZT)
+#   Inputs:
+#       -i input files: name of file (can use * and ?)
+#       -d path:        path to input files
+#       -o ouput_dir:   path to output_plots directory
+#       -n name:        name for folder (will create it) to store models in output_plots
+#       -e epochs:      number of epochs to train for (be aware of tensorflow mem leak over time)
+#       --start:        Epoch number to start at
+#       --model:        Name of model to load weights from, if not starting at 1
+#       --variables:    Number of variables to train for (1 = energy or zenith, 2 = EZ, 3 = EZT)
+#       --first_variable: Which variable to train for, energy or zenith (for num_var = 1 only)
+#       --no_test:      Don't evaluate model or make any testing plots
+#       --lr:           Learning rate (intial value) as a FLOAT
+#       --lr_drop:      factor to drop learning rate by each lr_epoch
+#       --lr_epoch:     step size for number of epochs LR changes
 ####################################
 
 import numpy
@@ -37,10 +51,6 @@ parser.add_argument("--model",default=None,
                     dest="model",help="Name of file with model weights to load--will start from here if file given")
 parser.add_argument("--no_test",type=str,default=False,
                     dest="no_test",help="Don't do any testing")
-#parser.add_argument("--network",type=str,default="cnn_model",
-#                    dest="network",help="Name of python file that has make_network to setup network configuration")
-parser.add_argument("--energy_loss", type=float,default=1,
-                    dest="energy_loss", help="factor to divide energy loss by")
 parser.add_argument("--first_variable", type=str,default="energy",
                     dest="first_variable", help = "name for first variable (energy, zenith only two supported)")
 parser.add_argument("--lr", type=float,default=0.001,
@@ -49,7 +59,6 @@ parser.add_argument("--lr_drop", type=float,default=0.1,
                     dest="lr_drop",help="factor to drop learning rate by each lr_epoch")
 parser.add_argument("--lr_epoch", type=int,default=None,
                     dest="lr_epoch",help="step size for number of epochs LR changes")
-
 args = parser.parse_args()
 
 # Settings from args
@@ -124,7 +133,6 @@ print("\nFiles Used \nTraining %i files that look like %s \nStarting with model:
 
 print("\nNetwork Parameters \nbatch_size: %i \ndropout: %f \nstarting learning rate: %f \nenergy range for plotting: %f - %f"%(batch_size,dropout,initial_lr,min_energy,max_energy))
 
-#print("Starting at epoch: %s \nTraining until: %s epochs \nTraining on %s variables \nUsing Network Config in %s"%(start_epoch,start_epoch+num_epochs,train_variables,network))
 print("Starting at epoch: %s \nTraining until: %s epochs \nTraining on %s variables with %s first"%(start_epoch,start_epoch+num_epochs,train_variables, first_var))
 
 afile = file_names[0]
@@ -211,12 +219,6 @@ for epoch in range(start_epoch,end_epoch):
     f.close()
     del f
    
-    #if first_var =="zenith":
-    #    Y_train_use = Y_train[:,first_var_index]
-    #    Y_val_use = Y_validate[:,first_var_index] 
-    #if first_var == "energy":
-    #    Y_train_use = Y_train[:,:train_variables]
-    #    Y_val_use = Y_validate[:,:train_variables]
 
     # Compile model
     if train_variables == 1:
@@ -351,13 +353,7 @@ from PlottingFunctions import plot_2D_prediction
 from PlottingFunctions import plot_2D_prediction_fraction
 from PlottingFunctions import plot_history
 from PlottingFunctions import plot_bin_slices
-from PlottingFunctions import plot_history_from_list
-from PlottingFunctions import plot_history_from_list_split
 from PlottingFunctions import plot_distributions
-
-#plot_history_from_list(loss,val_loss,save,save_folder_name,logscale=True)
-#if train_variables > 1:
-#    plot_history_from_list_split(energy_loss,val_energy_loss,zenith_loss,val_zenith_loss,save=save,savefolder=save_folder_name,logscale=True)
 
 plots_names = ["Energy", "CosZenith", "Track"]
 plots_units = ["GeV", "", "m"]

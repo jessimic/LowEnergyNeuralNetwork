@@ -1,3 +1,21 @@
+#########################
+# Version of CNN on 12 May 2020
+# 
+# Evaluates net for given model and plots
+# Takes in ONE file to Test on, can compare to old reco
+# Runs Energy, Zenith, Track length (1 variable energy or zenith, 2 = energy then zenith, 3 = EZT)
+#   Inputs:
+#       -i input_file:  name of ONE file 
+#       -d path:        path to input files
+#       -o ouput_dir:   path to output_plots directory
+#       -n name:        name for folder in output_plots that has the model you want to load
+#       -e epochs:      epoch number of the model you want to load
+#       --variables:    Number of variables to train for (1 = energy or zenith, 2 = EZ, 3 = EZT)
+#       --first_variable: Which variable to train for, energy or zenith (for num_var = 1 only)
+#       --compare_reco: boolean flag, true means you want to compare to a old reco (pegleg, retro, etc.)
+#       -t test:        Name of reco to compare against, with "oscnext" used for no reco to compare with
+####################################
+
 import numpy
 import h5py
 import time
