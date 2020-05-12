@@ -23,8 +23,18 @@ parser.add_argument("--emax",type=float,default=100.0,
                     dest="emax",help="Cut anything greater than this energy (in GeV)")
 parser.add_argument("--emin",type=float,default=5.0,
                     dest="emin",help="Cut anything less than this energy (in GeV)")
+parser.add_argument("--tmax",type=float,default=200.0,
+                    dest="tmax",help="Multiplication factor for track, only used if transformed")
 parser.add_argument("-c", "--cuts",type=str, default="CC",
                     dest="cuts", help="Type of events to keep (all, cascade, track, CC, NC, etc.)")
+parser.add_argument("--labels",type=str,default="labels",
+                    dest="labels", help="name of truth array to read in from input files")
+parser.add_argument("--transformed",default=False,action='store_true',
+                    dest="transformed", help="add flag if labels truth input is already transformed")
+parser.add_argument("-s", "--start",type=str, default="all_start",
+                    dest="start_cut", help="Vertex start cut (all_start, old_start_DC, start_DC, start_IC, start_IC19)")
+parser.add_argument("-e", "--end",type=str, default="all_end",
+                    dest="end_cut", help="End position cut (end_start, end_IC7, end_IC19)")
 args = parser.parse_args()
 
 input_files = args.input_files
@@ -36,6 +46,12 @@ emin = args.emin
 bin_size = args.bin_size
 cut_name = args.cuts
 energy_bin_array = np.arange(emin,emax,bin_size)
+truth_name = args.labels
+start_cut = args.start_cut
+end_cut = args.end_cut
+
+azimuth_index = 2
+track_index = 7
     
 if args.name is "None":
     file_name = event_file_names[0].split("/")
@@ -57,17 +73,24 @@ for a_file in event_file_names:
     
     ### Import Files ###
     f = h5py.File(a_file, 'r')
-    file_labels = f['labels'][:]
-    #file_labels = f['Y_test'][:]
+    file_labels = f[truth_name][:]
     f.close()
     del f
-    #file_labels[:,0] = file_labels[:,0]*emax
+    if transformed:
+        azimuth_indx = 7
+        track_index = 2
+        track_max = args.tmax
+        file_labels[:,0] = file_labels[:,0]*emax
+        file_labels[:,1] = np.arccos(file_labels[:,1])
 
     if file_labels.shape[0] == 0:
         print("Empty file...skipping...")
         continue
     
-    mask = CutMask(file_labels)
+    type_mask = CutMask(file_labels)
+    vertex_mask = VertexMask(file_labels,azimuth_index=azimuth_index,track_index=track_index,max_track=track_max)
+    vertex_cut = np.logical_and(vertex_mask[start_cut], vertex_mask[end_cut])
+    mask = np.logical_and(type_mask, vertex_cut)
 
     # Make cuts for event type and energy
     energy = np.array(file_labels[:,0])

@@ -18,11 +18,7 @@ def CutMask(set_labels):
     Outputs:
         mask: dict with all masks possible
     """
-
-    #energy = set_labels[:,0]
-    #zenith = set_labels[:,1]
-    #flavor = set_labels[:,9]
-    #number_events = len(energy)
+azimuth_index=2,track_index=7,max_track=1.0
     isTrack = np.array(set_labels[:,8])
     isCC = np.array(set_labels[:,11])
 
@@ -46,7 +42,7 @@ def VertexCut(set_labels,azimuth_index=2,track_index=7,max_track=1.0):
     y_origin = -34.880001068115234
 
     # Load true labels
-    theta = np.arccos(set_labels[:,1]) #zenith
+    theta = set_labels[:,1] #zenith
     phi = set_labels[:,azimuth_index] #azimuth
     x_start = set_labels[:,4]
     y_start = set_labels[:,5]
@@ -70,15 +66,19 @@ def VertexCut(set_labels,azimuth_index=2,track_index=7,max_track=1.0):
     radius_DC = 90
     radius_IC19 = 260
 
+    old_z_mask_start = np.logical_and(z_start > -505, z_start < 192)
     z_mask_start = np.logical_and(z_start > z_min_start, z_start < z_max_start)
     r_start = np.sqrt( (x_start - x_origin)**2 + (y_start - y_origin)**2 )
     z_mask_end = np.logical_and(z_end > z_min_end, z_end < z_max_end)
     r_end = np.sqrt((x_end - x_origin)**2 + (y_end - y_origin)**2)
 
     vertex_mask = {}
-    vertex_mask["start_DC"] = np.logical_and(z_mask_end, r_start < radius_DC)
-    vertex_mask["start_IC7"] = np.logical_and(z_mask_end, r_start < radius_IC7)
-    vertex_mask["start_IC19"] = np.logical_and(z_mask_end, r_start < radius_IC19)
+    vertex_mask["all_start"] = np.ones((len(theta)),dtype=bool)
+    vertex_mask["old_start_DC"] = np.logical_and(z_mask_start, r_start < radius_DC)
+    vertex_mask["start_DC"] = np.logical_and(z_mask_start, r_start < radius_DC)
+    vertex_mask["start_IC7"] = np.logical_and(z_mask_start, r_start < radius_IC7)
+    vertex_mask["start_IC19"] = np.logical_and(z_mask_start, r_start < radius_IC19)
+    vertex_mask["all_end"] = np.ones((len(theta)),dtype=bool)
     vertex_mask["end_IC7"] = np.logical_and(z_mask_end, r_end < radius_IC7)
     vertex_mask["end_IC19"] = np.logical_and(z_mask_end, r_end < radius_IC19)
 
