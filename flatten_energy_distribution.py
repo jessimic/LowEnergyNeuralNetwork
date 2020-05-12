@@ -4,6 +4,7 @@
 # Handles any size bins, suggested 1-2 GeV
 #   Inputs:
 #       -i input files: name of file (can use * and ?)
+#       --add_file:     option to add ONE file of different pattern
 #       -d path:        path to input files
 #       -o ouput:       name of output file, placed in path directory
 #       -r reco:        True if file has old reco (Pegleg) array
@@ -11,8 +12,10 @@
 #       --max_per_bin:  number of events per bin you want
 #       --emax:         maximum energy to cut at (keeps everything below)
 #       --emin:         minimum energy to cut at (keeps everything above)
-#       --cutDC:        True will apply cut so only events with vertex in DeepCore are kept
+#       --start:        Name of vertex start cut
+#       --end:          Name of ending position cut
 #       --shuffle:      True will shuffle events before saving
+#       --num_out:      number of output files to split output into (default = 1, i.e. no split)
 #################################
 
 import numpy as np
@@ -21,6 +24,7 @@ import h5py
 import argparse
 import matplotlib.pyplot as plt
 from handle_data import CutMask
+from handle_data import VertexMask
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input_files",default=None,
@@ -41,26 +45,33 @@ parser.add_argument("--emax",type=float,default=200.0,
                     dest="emax",help="Cut anything greater than this energy (in GeV)")
 parser.add_argument("--emin",type=float,default=0.0,
                     dest="emin",help="Cut anything less than this energy (in GeV)")
-parser.add_argument("--cutDC",type=str,default=False,
-                    dest="cutDC",help="Do you want to save only vertex in DC events")
 parser.add_argument("--shuffle",type=str, default=True,
                     dest="shuffle", help="True if you want to shuffle")
 parser.add_argument("-c", "--cuts",type=str, default="all",
                     dest="cuts", help="Type of events to keep (all, cascade, track, CC, NC, etc.)")
+parser.add_argument("-s", "--start",type=str, default="all_start",
+                    dest="start_cut", help="Vertex start cut (all_start, old_start_DC, start_DC, start_IC, start_IC19)")
+parser.add_argument("-e", "--end",type=str, default="all_end",
+                    dest="end_cut", help="End position cut (end_start, end_IC7, end_IC19)")
 parser.add_argument("--num_out",type=int,default=1,
                     dest="num_out",help="number of output files you want to split the output into")
 args = parser.parse_args()
+
 input_files = args.input_files
-#print("CURRENTLY MANUALLY PUT IN FILENAMES NO MATTER WHAT YOU TYPE AS ARG")
 path = args.path
 output = args.output
+add_file = args.add_file
+num_outputs = args.num_out
+
 bin_size = args.bin_size
 max_events_per_bin = args.max_evt_per_bin
-add_file = args.add_file
+
 emax = args.emax
 emin = args.emin
 cut_name = args.cuts
-num_outputs = args.num_out
+start_cut = args.start_cut
+end_cut = args.end_cut
+
 print("Keeping %s event types"%cut_name)
 if args.reco == 'True' or args.reco == 'true':
     use_old_reco = True
@@ -73,21 +84,18 @@ else:
     cut_DC = False
 if args.shuffle == "False" or args.shuffle == "false":
     shuffle = False
+    assert num_out==1, "MUST SHUFFLE IF NUMBER OUTPUT FILES > 1!"
 else:
     shuffle = True
 
-print("Saving PEGLEG info: %s \nBin size: %f GeV \nMax Count Per Bin: %i events \nEnergy Range: %f - %f \nCut so vertex in DC: %s \nShuffling: %s \nKeeping event types: %s"%(use_old_reco,bin_size,max_events_per_bin,emin,emax,cut_DC,shuffle,cut_name)) 
+print("Saving PEGLEG info: %s \nBin size: %f GeV \nMax Count Per Bin: %i events \nEnergy Range: %f - %f \nStarting cut: %s \nEnding cut: %s \nShuffling: %s \nKeeping event types: %s"%(use_old_reco,bin_size,max_events_per_bin,emin,emax,start_cut,end_cut,shuffle,cut_name)) 
 
-#event_file_names = ['/mnt/scratch/micall12/training_files/NuMu_140000_all_level2_uncleaned_cleanedpulsesonly_LEall.lt200_vertexDC_file00.hdf5', \
-#'/mnt/scratch/micall12/training_files/NuMu_140000_all_level2.zst_uncleaned_cleanedpulsesonly_all.lt200_vertexDC_file00.hdf5', \
-#'/mnt/scratch/micall12/training_files/NuMu_140000_all_level2.zst_uncleaned_cleanedpulsesonly_sim3_all.lt200_vertexDC_file00.hdf5'] #sorted(glob.glob(file_names))
 file_names = path + input_files
 event_file_names = sorted(glob.glob(file_names))
 if add_file:
     print("Adding this file %s"%add_file)
     event_file_names.insert(0,path + add_file)
 assert event_file_names,"No files loaded, please check path."
-print("MANUALLY ADDING TWO FILES!!!!")
 
 
 full_features_DC = None
@@ -124,15 +132,12 @@ for a_file in event_file_names:
     if file_labels.shape[0] == 0:
         print("Empty file...skipping...")
         continue
-    mask = CutMask(file_labels)
-
-    if cut_DC == True:
-        nu_x = file_labels[:,4]
-        nu_y = file_labels[:,5]
-        nu_z = file_labels[:,6]
-        radius = 90
-        x_origin = 54
-        y_origin = -36
+    
+    # Applying cuts
+    type_mask = CutMask(file_labels)
+    vertex_mask = VertexMask(file_labels,azimuth_index=azimuth_index,track_index=track_index,max_track=track_max)
+    vertex_cut = np.logical_and(vertex_mask[start_cut], vertex_mask[end_cut])
+    mask = np.logical_and(type_mask, vertex_cut)
 
     energy = file_labels[:,0]
     keep_index = [False]*len(energy)
@@ -144,16 +149,8 @@ for a_file in event_file_names:
             continue
         if e < emin:
             continue
-        
-        if cut_DC == True:
-            shift_x = nu_x[index] - x_origin
-            shift_y = nu_y[index] - y_origin
-            z_val = nu_z[index]
-            radius_calculation = np.sqrt(shift_x**2+shift_y**2)
-            if( radius_calculation > radius or z_val > 192 or z_val < -505 ):
-                continue
 
-        if mask[cut_name][index] == False:
+        if mask[index] == False:
             continue
 
         e_bin = int((e-emin)/float(bin_size))
@@ -222,7 +219,7 @@ if shuffle == True:
     full_features_DC, full_features_IC, full_labels, \
     full_reco, full_stats, full_pulses_per_dom, full_trig_times = \
     Shuffler(full_features_DC,full_features_IC,full_labels, \
-    full_reco=full_reco, full_inital_stats=full_stats, \
+    full_reco=full_reco, full_initial_stats=full_stats, \
     full_num_pulses=full_pulses_per_dom, full_trig_times=full_trig_times, \
     use_old_reco_flag=use_old_reco)
 

@@ -1,3 +1,24 @@
+#################################
+# Plots input and output features for ONE file
+#   Inputs:
+#       -i input file:  name of ONE file
+#       -d  path:       path to input files
+#       -o  outdir:     path to output_plots directory or where final dir will be created
+#       -n  name:       Name of directory to create in outdir (associated to filenames)
+#       -c  cuts:       name of cuts you want to apply (i.e. track only = track)
+#       --emax:         Energy max cut, keep all events below value
+#       --emin:         Energy min cut, keep all events above value
+#       --tmax:         Track factor to multiply, only used IF TRANFORMED IS TRUE
+#       --transformed:  use flag if file has already been transformed
+#       --labels:       name of truth array to load (labels, Y_test, Y_train, etc.)
+#       --bin_size:     Size (in GeV) for bins to distribute energy into
+#       --start:        Name of vertex start cut
+#       --end:          Name of ending position cut
+#   Outputs:
+#       File with count in each bin
+#       Histogram plot with counts in each bin
+#################################
+
 import numpy as np
 import h5py
 import os, sys
@@ -42,7 +63,7 @@ energy_max = args.emax
 track_max = args.tmax
 cut_name = args.cuts
 
-do_output = False
+do_output = True
 do_input = True
 
 f = h5py.File(input_file, 'r')
@@ -59,8 +80,8 @@ X_validate_DC = f['X_validate_DC'][:]
 X_validate_IC = f['X_validate_IC'][:]
 
 try:
-    reco_test = f['reco_validate'][:]
-    reco_train = f['reco_validate'][:]
+    reco_test = f['reco_test'][:]
+    reco_train = f['reco_train'][:]
     reco_validate = f['reco_validate'][:]
 except:
     reco_test = None
@@ -80,12 +101,18 @@ if reco_test is not None:
 
 # Apply Cuts
 from handle_data import CutMask
-mask = CutMask(Y_labels)
+from handle_data import VertexMask
+type_mask = CutMask(file_labels)
+vertex_mask = VertexMask(file_labels,azimuth_index=azimuth_index,track_index=track_index,max_track=track_max)
+vertex_cut = np.logical_and(vertex_mask[start_cut], vertex_mask[end_cut])
+mask = np.logical_and(type_mask, vertex_cut)
 cut_energy = np.logical_and(Y_labels[:,0] > energy_min, Y_labels[:,0] <energy_max)
-all_cuts = np.logical_and(mask[cut_name], cut_energy)
+all_cuts = np.logical_and(mask, cut_energy)
 Y_labels = Y_labels[all_cuts]
 X_DC = X_DC[all_cuts]
 X_IC = X_IC[all_cuts]
+if reco_test is not None:
+    reco_labels = reco_labels[all_cuts]
 
 
 def plot_output(Y_values,outdir,filenumber=None):
