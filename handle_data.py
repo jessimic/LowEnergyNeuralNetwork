@@ -18,7 +18,6 @@ def CutMask(set_labels):
     Outputs:
         mask: dict with all masks possible
     """
-azimuth_index=2,track_index=7,max_track=1.0
     isTrack = np.array(set_labels[:,8])
     isCC = np.array(set_labels[:,11])
 
@@ -35,7 +34,7 @@ azimuth_index=2,track_index=7,max_track=1.0
     
     return mask
 
-def VertexCut(set_labels,azimuth_index=2,track_index=7,max_track=1.0):
+def VertexMask(set_labels,azimuth_index=2,track_index=7,max_track=1.0):
 
     # Position of String 36 for origin
     x_origin = 46.290000915527344

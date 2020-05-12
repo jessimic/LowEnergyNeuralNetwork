@@ -69,8 +69,13 @@ max_events_per_bin = args.max_evt_per_bin
 emax = args.emax
 emin = args.emin
 cut_name = args.cuts
+
+# Vertex Cuts (no transformation done yet)
 start_cut = args.start_cut
 end_cut = args.end_cut
+azimuth_index = 2
+track_index = 7
+track_max = 1.0
 
 print("Keeping %s event types"%cut_name)
 if args.reco == 'True' or args.reco == 'true':
@@ -78,13 +83,9 @@ if args.reco == 'True' or args.reco == 'true':
     print("Expecting old reco values in files, pulling from pegleg frames")
 else:
     use_old_reco = False
-if args.cutDC == 'True' or args.cutDC == 'true':
-    cut_DC = True
-else:
-    cut_DC = False
 if args.shuffle == "False" or args.shuffle == "false":
     shuffle = False
-    assert num_out==1, "MUST SHUFFLE IF NUMBER OUTPUT FILES > 1!"
+    assert num_outputs==1, "MUST SHUFFLE IF NUMBER OUTPUT FILES > 1!"
 else:
     shuffle = True
 
@@ -138,6 +139,7 @@ for a_file in event_file_names:
     vertex_mask = VertexMask(file_labels,azimuth_index=azimuth_index,track_index=track_index,max_track=track_max)
     vertex_cut = np.logical_and(vertex_mask[start_cut], vertex_mask[end_cut])
     mask = np.logical_and(type_mask, vertex_cut)
+    mask = np.array(mask,dtype=bool)
 
     energy = file_labels[:,0]
     keep_index = [False]*len(energy)
@@ -238,7 +240,7 @@ for sep_file in range(0,num_outputs):
         filenum = "_file%02d.hdf5"%sep_file
     else:
         filenum = ""
-    output_name = output_name = path + output + "lt%03d_"%emax + "%s_"%cut_name + "flat_%sbins_%sevtperbin_"%(bins,max_events_per_bin) + filenum + ".hdf5"
+    output_name = output_name = path + output + "lt%03d_"%emax + "%s_"%cut_name + "%s_%s_"%(start_cut,end_cut) + "flat_%sbins_%sevtperbin"%(bins,max_events_per_bin) + filenum + ".hdf5"
     print("I put evnts %i - %i into %s"%(start,end,output_name))
 
     f = h5py.File(output_name, "w")

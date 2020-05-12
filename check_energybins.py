@@ -45,8 +45,8 @@ parser.add_argument("--emax",type=float,default=100.0,
                     dest="emax",help="Cut anything greater than this energy (in GeV)")
 parser.add_argument("--emin",type=float,default=5.0,
                     dest="emin",help="Cut anything less than this energy (in GeV)")
-parser.add_argument("--tmax",type=float,default=200.0,
-                    dest="tmax",help="Multiplication factor for track, only used if transformed")
+parser.add_argument("--tmax",type=float,default=1.0,
+                    dest="tmax",help="Multiplication factor for track")
 parser.add_argument("-c", "--cuts",type=str, default="CC",
                     dest="cuts", help="Type of events to keep (all, cascade, track, CC, NC, etc.)")
 parser.add_argument("--labels",type=str,default="labels",
@@ -65,12 +65,14 @@ event_file_names = sorted(glob.glob(files_with_paths))
 
 emax = args.emax
 emin = args.emin
+track_max = args.tmax
 bin_size = args.bin_size
 cut_name = args.cuts
 energy_bin_array = np.arange(emin,emax,bin_size)
 truth_name = args.labels
 start_cut = args.start_cut
 end_cut = args.end_cut
+transformed = args.transformed
 
 azimuth_index = 2
 track_index = 7
@@ -101,7 +103,6 @@ for a_file in event_file_names:
     if transformed:
         azimuth_indx = 7
         track_index = 2
-        track_max = args.tmax
         file_labels[:,0] = file_labels[:,0]*emax
         file_labels[:,1] = np.arccos(file_labels[:,1])
 
@@ -113,11 +114,12 @@ for a_file in event_file_names:
     vertex_mask = VertexMask(file_labels,azimuth_index=azimuth_index,track_index=track_index,max_track=track_max)
     vertex_cut = np.logical_and(vertex_mask[start_cut], vertex_mask[end_cut])
     mask = np.logical_and(type_mask, vertex_cut)
+    mask = np.array(mask,dtype=bool)
 
     # Make cuts for event type and energy
     energy = np.array(file_labels[:,0])
     total_events = len(energy)
-    energy = energy[mask[cut_name]]
+    energy = energy[mask]
     events_after_type_cut = len(energy)
     energy_mask = np.logical_and(energy > emin, energy < emax)
     energy = energy[energy_mask]
