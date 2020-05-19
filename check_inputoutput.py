@@ -5,15 +5,9 @@
 #       -d  path:       path to input files
 #       -o  outdir:     path to output_plots directory or where final dir will be created
 #       -n  name:       Name of directory to create in outdir (associated to filenames)
-#       -c  cuts:       name of cuts you want to apply (i.e. track only = track)
-#       --emax:         Energy max cut, keep all events below value
-#       --emin:         Energy min cut, keep all events above value
-#       --tmax:         Track factor to multiply, only used IF TRANFORMED IS TRUE
-#       --transformed:  use flag if file has already been transformed
-#       --labels:       name of truth array to load (labels, Y_test, Y_train, etc.)
-#       --bin_size:     Size (in GeV) for bins to distribute energy into
-#       --start:        Name of vertex start cut
-#       --end:          Name of ending position cut
+#       --emax:         Energy max cut, plot events below value, used for UN-TRANSFORM
+#       --emin:         Energy min cut, plot events above value
+#       --tmax:         Track factor to multiply, use for UN-TRANSFORM
 #   Outputs:
 #       File with count in each bin
 #       Histogram plot with counts in each bin
@@ -42,10 +36,8 @@ parser.add_argument("--emax",type=float,default=100.0,
                     dest="emax",help="Cut anything greater than this energy (in GeV)")
 parser.add_argument("--emin",type=float,default=5.0,
                     dest="emin",help="Cut anything less than this energy (in GeV)")
-parser.add_argument("--tmax",type=float,default=1.0,
+parser.add_argument("--tmax",type=float,default=200.0,
                     dest="tmax",help="Multiplication factor for track length")
-parser.add_argument("-c", "--cuts",type=str, default="CC",
-                    dest="cuts", help="Type of events to keep (all, cascade, track, CC, NC, etc.)")
 args = parser.parse_args()
 
 input_file = args.path + args.input_file
@@ -71,13 +63,22 @@ Y_test = f['Y_test'][:]
 X_test_DC = f['X_test_DC'][:]
 X_test_IC = f['X_test_IC'][:]
 
-Y_train = f['Y_train'][:]
-X_train_DC = f['X_train_DC'][:]
-X_train_IC = f['X_train_IC'][:]
+try:
+    Y_train = f['Y_train'][:]
+    X_train_DC = f['X_train_DC'][:]
+    X_train_IC = f['X_train_IC'][:]
 
-Y_validate = f['Y_validate'][:]
-X_validate_DC = f['X_validate_DC'][:]
-X_validate_IC = f['X_validate_IC'][:]
+    Y_validate = f['Y_validate'][:]
+    X_validate_DC = f['X_validate_DC'][:]
+    X_validate_IC = f['X_validate_IC'][:]
+except:    
+    Y_train = None
+    X_train_DC = None
+    X_train_IC = None
+
+    Y_validate = None
+    X_validate_DC = None
+    X_validate_IC = None
 
 try:
     reco_test = f['reco_test'][:]
@@ -91,28 +92,30 @@ except:
 f.close()
 del f
 
-Y_labels = np.concatenate((Y_test,Y_train,Y_validate))
-X_DC = np.concatenate((X_test_DC,X_train_DC,X_validate_DC))
-X_IC = np.concatenate((X_test_IC,X_train_IC,X_validate_IC))
+if Y_train is None: #Test only file
+    Y_labels = Y_test
+    X_DC = X_test_DC
+    X_IC = X_test_IC
+else:
+    Y_labels = np.concatenate((Y_test,Y_train,Y_validate))
+    X_DC = np.concatenate((X_test_DC,X_train_DC,X_validate_DC))
+    X_IC = np.concatenate((X_test_IC,X_train_IC,X_validate_IC))
+
+
+# Untransform so energy and track are in original range. NOTE: zenith still cos(zenith)
 Y_labels[:,0] = Y_labels[:,0]*energy_max
 Y_labels[:,2] = Y_labels[:,2]*track_max
+
 if reco_test is not None:
     reco_labels = np.concatenate((reco_test,reco_train,reco_validate))
 
 # Apply Cuts
-from handle_data import CutMask
-from handle_data import VertexMask
-type_mask = CutMask(file_labels)
-vertex_mask = VertexMask(file_labels,azimuth_index=azimuth_index,track_index=track_index,max_track=track_max)
-vertex_cut = np.logical_and(vertex_mask[start_cut], vertex_mask[end_cut])
-mask = np.logical_and(type_mask, vertex_cut)
 cut_energy = np.logical_and(Y_labels[:,0] > energy_min, Y_labels[:,0] <energy_max)
-all_cuts = np.logical_and(mask, cut_energy)
-Y_labels = Y_labels[all_cuts]
-X_DC = X_DC[all_cuts]
-X_IC = X_IC[all_cuts]
+Y_labels = Y_labels[cut_energy]
+X_DC = X_DC[cut_energy]
+X_IC = X_IC[cut_energy]
 if reco_test is not None:
-    reco_labels = reco_labels[all_cuts]
+    reco_labels = reco_labels[cut_energy]
 
 
 def plot_output(Y_values,outdir,filenumber=None):
