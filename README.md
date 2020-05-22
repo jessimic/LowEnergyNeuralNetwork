@@ -54,17 +54,12 @@
 ## Brief Description
 FLERCNN is optimized to reconstruct the energy and cosine zenith of events with energies mainly in the 10s of GeV. It uses DeepCore and the inner most IceCube strings to summarize the data per event with summary variables per DOM (charge and times of pulses). 
 
-## Order to run code
-1. Create hdf5 files from i3 files (`create_training_file_perDOM_nocut.py`)
-2. Flatten energy distribution (optional, for training) (`flatten_energy_distribution.py`)
-3. Cut, concatonate, and transform data for easier training (`cut_concat_transform_files.py`)
-4. Train the CNN (`CNN_LoadMultipleFiles.py`)
-5. Make testonly file (`make_test_file.py`)
-5. Test the CNN (`CNN_TestOnly.py`)
 
 ## Running on the HPCC
 
 ### Environments
+To create the processing scripts, you will need IceTry access in the IceCube software to convert the i3 formatted files. The rest of the components use hdf5 files, so only a python environment is needed for remaining parts of processing. To train the network, Keras with a Tensorflow backend is needed. Tensorflow suggests using anaconda to install, though anaconda does not play nice with the IceCube metaprojects. Since the processing steps are separated, you can load difference environment for different steps.
+
 - Create Training scripts (i3 --> hdf5)
 	- Need IceCube software!
 	- Option 1: cvmfs
@@ -101,8 +96,9 @@ FLERCNN is optimized to reconstruct the energy and cosine zenith of events with 
 	- Most efficient to run in parallel
 		- Can glob, but concat step takes a while
 		- Each file takes a few minutes only
-	- `create_job_files_single_training.sh` makes a sbatch job script for every file in the specified folder
-	- `job_template` should have all the flags/args you want for `create_training` code 
+	- `create_job_files_single_training.sh` makes a job script for every file in the specified folder
+	- `job_template...` should have all the flags/args you want for `create_training` code 
+	- You can submit all these as jobs or run them locally with bash
 - Run CNN: Training the CNN
 	- Use `singularity` container to run CNN
 	- Kill and recall tensorflow script every handful of epochs (memory leak that adds ~2min per epoch otherwise)
@@ -120,7 +116,25 @@ FLERCNN is optimized to reconstruct the energy and cosine zenith of events with 
 
 ## Description of major code components
 
+### Order to run code from creating new training data --> testing CNN
+1. Create hdf5 files from i3 files (`create_training_file_perDOM_nocut.py`)
+2. Flatten energy distribution (optional, for training) (`flatten_energy_distribution.py`)
+3. Cut, concatenate, and transform data for easier training (`cut_concat_transform_separate_files.py`)
+4. Train the CNN (`CNN_LoadMultipleFiles.py`)
+5. Make testonly file (`make_test_file.py`)
+5. Test the CNN (`CNN_TestOnly.py`)
+
+
 ### Training and Testing Scripts
+
+#### Typical CNN Training/Testing Procedure
+- Submit `CNN_LoadMultipleFiles.py` to train for many epochs (100s)
+- Check progress using `plot_loss_from_column.py` during training
+- Use `CNN_TestOnly.py` to check results at any time (using oscnext test)
+	- When to check results: if validation curve leveling off or want to check results at specific epoch
+	- Save PegLeg or Retro test once you have settled on final model
+
+#### Description of Scripts	
 - `CNN_LoadMultipleFiles.py` - used for training the CNN
 	- Takes in multiple training files (of certain file pattern), loads one and trains for an epoch before loading the next file for the next epoch
 		- Makes sure not too much data is stored at once (~30G)
@@ -144,6 +158,7 @@ FLERCNN is optimized to reconstruct the energy and cosine zenith of events with 
 			- Helps to kill and reload tensorflow to avoid memory leak
 		- Can plot "test", comparing to oscnext flat test sample
 	- Appends loss to `saveloss_currentepoch.txt` file in output directory
+	- Look at `make_jobs/run_CNN/` for slurm submission examples and `make_jobs_condor/run_CNN/` for HTCondor examples
 
 - `plot_loss_from_column.py` - plot loss from column sorted saveloss txt file
 	- `CNN_LoadMultipleFiles.py` output column sorted saveloss txt file
@@ -160,6 +175,7 @@ FLERCNN is optimized to reconstruct the energy and cosine zenith of events with 
 		- `loss_vs_epochs.png`
 		- `AvgLossVsEpoch.png`
 		- `AvgRangeVsEpoch.png`
+	- Look at `make_jobs/plot_CNN/` for slurm submission examples and `make_jobs_condor/plot_CNN/` for HTCondor examples
 
 -  `CNN_TestOnly.py` - used for testing the CNN
 	- Takes in one file
@@ -173,15 +189,61 @@ FLERCNN is optimized to reconstruct the energy and cosine zenith of events with 
 		- Give test name `--test PegLeg` or "Retro". Use "oscnext for no comparison
 	- Need to load in same model as training (`cnn_model.py`)
 	- Creates many plots and outputs to model directory, with subfolder that has the test name and epoch number (gives ability to perform multiple test types on multiple epoch stages)
+	- Look at `make_jobs/plot_CNN/` for slurm submission examples and `make_jobs_condor/plot_CNN/` for HTCondor examples
 
-#### Typical CNN Training/Testing Procedure
-- Submit `CNN_LoadMultipleFiles.py` to train for many epochs (100s) on HPCC
-- Check progress using `plot_loss_from_column.py` during training
-- Use `CNN_TestOnly.py` to check results at any time (using oscnext test)
-	- When to check results: if validation curve leveling off or want to check results at specific epoch
-	- Save PegLeg or Retro test once you have settled on final model
+
 
 ### Processing Scripts (Getting Data into Training/Testing Format)
+
+#### Example Processing Flat Training Sample
+- Generate hdf5 files with `create_training_file_perDOM_nocut.py`
+	- Best performance is running in parallel (give script one infile)
+	- Use setup in `/make_jobs/create_hdf5/` to generate many job scripts
+	- `create_job_files_single_training.sh` makes a job script for every file in the specified folder
+	- `job_template...` should have all the flags/args you want for `create_training` code 
+	- You can submit all these as jobs or run them locally with bash
+- To flatten energy distribution, use `flatten_energy_distribution.py`
+	- Use `check_energybins.py` to apply cuts and find optimal input for "max_per_bins" arg
+	- Concatenating is the time bottleneck, so suggest to run in segments
+	- Don't forget to cut! Beware of the defaults
+		- Energy max
+		- Energy min
+		- Event type (CC, NC, track, cascade, etc.)
+		- Vertex start position
+		- Containment cut (i.e. end position)
+	- MAKE SURE TO SHUFFLE BEFORE SEPARATING INTO VARIOUS OUTFILES
+	- Separating into outfiles will speed up the transform processing (next step), so it is suggested to do here (AFTER SHUFFLING)
+	- Example scripts in `/make_jobs/make_even/`
+	- Example for batches of submission scripts (one for each sim number): 
+```python $INDIR/flatten_energy_distribution.py -i NuMu_140000_000???_level2_sim2.zst_lt200_NOvertex_IC19.hdf5 -o NuMu_140000_level2_sim2_IC19 
+	--emax 100 --emin 5 --max_per_bin 36034 --cuts CC --shuffle False 
+	--num_out 1 --start "old_start_DC" --end "all_end"
+	```
+	- Example for final level submission script (put 7 intermediate files together):
+```python $INDIR/flatten_energy_distribution.py -i NuMu_140000_level2_sim?_IC19lt150_CC_start_IC7_all_end_flat_145bins_46240evtperbin.hdf5 -o NuMu_140000_level2_IC19_ 
+--emax 100 --emin 5 --max_per_bin 36034 --cuts CC --start old_start_DC --shuffle True 
+--num_out 7
+```
+	- Scripts for HPCC in `make_jobs/
+- Cut, concatenate, and transform data with `cut_concat_transform_separate_files.py`
+	- If you already cut and concatenated with the `flatten_energy_distribution`, then you won't need to use that functionality here
+	- You can use the cut and concat features if skipped flattening (like for a testing sample)
+	-  Don't forget to cut! Not as important if already cut during flatten, but beware of the defaults
+		- Energy max
+		- Energy min
+		- Event type (CC, NC, track, cascade, etc.)
+		- Vertex start position
+		- Containment cut (i.e. end position)
+	- MAKE SURE TO SHUFFLE BEFORE SEPARATING INTO VARIOUS OUTFILES
+		- You don't need to shuffle again, if you already did in the last step
+	- Example scripts in `/make_jobs/make_even/transform` and `/make_jobs/concat`
+	- Example for transforming one file
+```python $INDIR/cut_concat_transform_separate_files.py -i NuMu_140000_level2_IC19_lt150_CC_start_IC7_all_end_flat_145bins_46240evtperbin_file00.hdf5 
+	-o NuMu_140000_level2_IC19_lt150_CC_start_IC7_all_end_flat_145bins_46240evtperbin_file00
+	-c CC --emax 100 --emin 5 --shuffle False --trans_output True --tmax 200.0 --num_out 1```
+	
+
+#### Description of Scripts
 - `create_training_file_perDOM_nocut.py` - data from i3 to output hdf5
 	- Takes in one or many i3 files
 	- Extracts pulses, summarizes pulses per DOM, discards pulses not passing cuts
@@ -299,6 +361,11 @@ Can also put out a [evt # x 7] labels for old reco
 	- `SplitTrainTest`
 
 - `scaler_transformations.py` - Functions that apply specific transformations to prerpare data for quicker training
+
+- `apply_containment.py` - Cuts out events that don't end in the containment region, should be applied to a file already gone through final level processing
+	- Will make a "not flat" dataset
+	- Will reduce the number of events in dataset
+	- Can be applied to any final level dataset
 
 - `get_statistics.py` - Functions that find statistics (max, min, quartiles) to apply transformations on training data
 	- No longer used, typically use static near-maximum values now
