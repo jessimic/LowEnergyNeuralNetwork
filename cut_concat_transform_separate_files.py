@@ -18,7 +18,6 @@ import numpy as np
 import glob
 import h5py
 import argparse
-import psutil
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input_files",default=None,
@@ -121,7 +120,6 @@ full_trig_times = None
 
 # Labels: [ nu energy, nu zenith, nu azimuth, nu time, nu x, nu y, nu z, track length (0 for cascade), isTrack (track = 1, cascasde = 0), flavor, type (anti = 1), isCC (CC=1, NC = 0)]
 
-print(psutil.virtual_memory()[1] >> 30) 
 
 for a_file in event_file_names:
 
@@ -171,7 +169,6 @@ del file_features_IC
 del file_labels
 if use_old_reco:
     del file_reco
-print(psutil.virtual_memory()[1] >> 30) 
 
 if shuffle:
     print("Finished concatonating all the files. Now I will shuffle..")
@@ -182,7 +179,6 @@ if shuffle:
     Shuffler(full_features_DC,full_features_IC,full_labels,\
     full_reco=full_reco, full_initial_stats=full_initial_stats,\
     full_num_pulses=full_num_pulses,use_old_reco_flag=use_old_reco)
-print(psutil.virtual_memory()[1] >> 30)
 
 #Transform Input Data
 from scaler_transformations import TransformData, new_transform
@@ -190,12 +186,10 @@ from scaler_transformations import TransformData, new_transform
 full_features_DC = new_transform(full_features_DC)
 full_features_DC = TransformData(full_features_DC, low_stats=low_stat_DC, high_stats=high_stat_DC, scaler=transform)
 print("Finished DC")
-print(psutil.virtual_memory()[1] >> 30)
 
 full_features_IC = new_transform(full_features_IC)
 full_features_IC = TransformData(full_features_IC, low_stats=low_stat_IC, high_stats=high_stat_IC, scaler=transform)
 print("Finished IC")
-print(psutil.virtual_memory()[1] >> 30)
 
 print("Finished transforming the data using %s Scaler"%transform)
 
