@@ -50,10 +50,11 @@ print("Saving plots to %s"%outdir)
 
 if args.filenum:
     filenum = str(args.filenum)
+else:
+    filenum=args.filenum
 energy_min = args.emin
 energy_max = args.emax
 track_max = args.tmax
-cut_name = args.cuts
 
 do_output = True
 do_input = True
@@ -111,9 +112,9 @@ if reco_test is not None:
 
 # Apply Cuts
 cut_energy = np.logical_and(Y_labels[:,0] > energy_min, Y_labels[:,0] <energy_max)
-Y_labels = Y_labels[cut_energy]
-X_DC = X_DC[cut_energy]
-X_IC = X_IC[cut_energy]
+#Y_labels = Y_labels[cut_energy]
+#X_DC = X_DC[cut_energy]
+#X_IC = X_IC[cut_energy]
 if reco_test is not None:
     reco_labels = reco_labels[cut_energy]
 
@@ -128,7 +129,11 @@ def plot_output(Y_values,outdir,filenumber=None):
         plt.xlabel("%s %s"%(names[i],units[i]),fontsize=15)
         plt.xticks(fontsize=15)
         plt.yticks(fontsize=15)
-        plt.savefig("%s/Output_%s%s.png"%(outdir,names[i].replace(" ", ""),filenum))
+        if filenum:
+            filenum_name = "_%s"%filenum
+        else:
+            filenum_name = ""
+        plt.savefig("%s/Output_%s%s.png"%(outdir,names[i].replace(" ", ""),filenum_name))
     
     num_events = Y_values.shape[0]
     flavor = list(Y_values[:,9])
@@ -156,7 +161,11 @@ def plot_input(X_values_DC,X_values_IC,outdir,filenumber=None):
         plt.title(name[i],fontsize=25)
         plt.xlabel(name[i],fontsize=15)
         plt.legend(fontsize=15)
-        plt.savefig("%s/Input_Variable%i_%s.png"%(outdir,i,filenum))
+        if filenum:
+            filenum_name = "_%s"%filenum
+        else:
+            filenum_name = ""
+        plt.savefig("%s/Input_Variable%i%s.png"%(outdir,i,filenum_name))
 
 if do_output:
     plot_output(Y_labels,outdir,filenumber=filenum)
