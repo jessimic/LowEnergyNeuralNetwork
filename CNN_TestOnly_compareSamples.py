@@ -267,7 +267,7 @@ from keras.callbacks import EarlyStopping
 from keras.callbacks import ModelCheckpoint
 
 from cnn_model import make_network
-model_DC2 = make_network(X_test_DC_use,X_test_IC_use,output_variables,DC_drop_value,IC_drop_value,connected_drop_value)
+model_DC2 = make_network(X_test_DC_use2,X_test_IC_use2,output_variables,DC_drop_value,IC_drop_value,connected_drop_value)
 model_DC2.load_weights(load_model_name2)
 print("Loading model %s"%load_model_name2)
 
