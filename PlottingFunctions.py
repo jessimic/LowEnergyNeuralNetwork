@@ -469,7 +469,7 @@ def plot_resolution_CCNC(truth_all_labels,truth,reco,save=False,savefolder=None,
 
 def plot_single_resolution(truth,nn_reco,\
                            bins=100, use_fraction=False,\
-                           use_old_reco = False, old_reco=None,\
+                           use_old_reco = False, old_reco=None,old_reco_truth=None,\
                            mintrue=None,maxtrue=None,\
                            minaxis=None,maxaxis=None,\
                            save=False,savefolder=None,
@@ -493,16 +493,22 @@ def plot_single_resolution(truth,nn_reco,\
     
     fig, ax = plt.subplots(figsize=(10,7)) 
     
+    ## Assume old_reco truth is the same as test sample, option to set it otherwise
+    if old_reco_truth is None:
+        truth2 = truth
+    else:
+        truth2 = old_reco_truth
+
     if use_fraction:
         nn_resolution = (nn_reco - truth)/truth
         if use_old_reco:
-            old_reco_resolution = (old_reco - truth)/truth
+            old_reco_resolution = (old_reco - truth2)/truth2
         title = "Fractional %s Resolution"%variable
         xlabel = "(reconstruction - truth) / truth" 
     else:
         nn_resolution = nn_reco - truth
         if use_old_reco:
-            old_reco_resolution = old_reco - truth
+            old_reco_resolution = old_reco - truth2
         title = "%s Resolution"%variable
         xlabel = "reconstruction - truth (%s)"%units
     if epochs:
@@ -525,7 +531,8 @@ def plot_single_resolution(truth,nn_reco,\
         title += "\n(true %s [%.2f, %.2f])"%(variable,mintrue,maxtrue)
         nn_resolution = nn_resolution[true_mask]
         if use_old_reco:
-            old_reco_resolution = old_reco_resolution[truth_mask]
+            true2_mask = numpy.logical_and(truth2 >= mintrue, truth2 <= maxtrue)
+            old_reco_resolution = old_reco_resolution[true2_mask]
     true_cut_size=len(nn_resolution)
     
     # Cut for plot axis
@@ -550,7 +557,7 @@ def plot_single_resolution(truth,nn_reco,\
     true_axis_cut_size=len(nn_resolution)
     #print(minaxis,maxaxis,axis_cut)
  
-    ax.hist(nn_resolution, bins=bins, alpha=0.5, label="CNN");
+    ax.hist(nn_resolution, bins=bins, range=[minaxis,maxaxis], alpha=0.5, label="CNN");
     
     #Statistics
     rms_nn = get_RMS(nn_resolution)
@@ -567,7 +574,7 @@ def plot_single_resolution(truth,nn_reco,\
     
     if use_old_reco:
         rms_old_reco = get_RMS(old_reco_resolution)
-        ax.hist(old_reco_resolution, bins=bins, alpha=0.5, label="%s"%reco_name);
+        ax.hist(old_reco_resolution, bins=bins, range=[minaxis,maxaxis], alpha=0.5, label="%s"%reco_name);
         ax.legend(loc="upper left",fontsize=15)
     
         r1_old_reco, r2_old_reco = numpy.percentile(old_reco_resolution, [16,84])
@@ -760,7 +767,7 @@ def plot_systematic_slices(truth_dict, nn_reco_dict,\
         plt.savefig("%s%s.png"%(savefolder,savename))
 
 def plot_bin_slices(truth, nn_reco, energy_truth=None, \
-                       use_fraction = False, old_reco=None,\
+                       use_fraction = False, old_reco=None,old_reco_truth=None, reco_energy_truth=None,\
                        bins=10,min_val=0.,max_val=60., ylim = None,\
                        save=False,savefolder=None,\
                        variable="Energy",units="GeV",epochs=None,reco_name="PegLeg"):
@@ -781,7 +788,16 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, \
     """
     nn_reco = numpy.array(nn_reco)
     truth = numpy.array(truth)
-    
+     ## Assume old_reco truth is the same as test sample, option to set it otherwise
+    if old_reco_truth is None:
+        truth2 = numpy.array(truth)
+    else:
+        truth2 = numpy.array(old_reco_truth)
+    if reco_energy_truth is None:
+        energy_truth2 = numpy.array(truth)
+    else:
+         energy_truth2 = numpy.array(reco_energy_truth)    
+
     if use_fraction:
         resolution = ((nn_reco-truth)/truth) # in fraction
     else:
@@ -801,9 +817,9 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, \
 
     if old_reco is not None:
         if use_fraction:
-            resolution_reco = ((old_reco-truth)/truth)
+            resolution_reco = ((old_reco-truth2)/truth2)
         else:
-            resolution_reco = (old_reco-truth)
+            resolution_reco = (old_reco-truth2)
         resolution_reco = numpy.array(resolution_reco)
         medians_reco  = numpy.zeros(len(variable_centers))
         err_from_reco = numpy.zeros(len(variable_centers))
@@ -815,10 +831,12 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, \
             
         if energy_truth is None:
             cut = (truth >= var_from) & (truth < var_to)
+            cut2 = (truth2 >= var_from) & (truth2 < var_to)
         else:
             "Using energy for x-axis. Make sure your min_val and max_val are in terms of energy!"
             energy_truth = numpy.array(energy_truth)
             cut = (energy_truth >= var_from) & (energy_truth < var_to) 
+            cut2 = (energy_truth2 >= var_from) & (energy_truth2 < var_to) 
 
         lower_lim = numpy.percentile(resolution[cut], left_tail_percentile)
         upper_lim = numpy.percentile(resolution[cut], right_tail_percentile)
@@ -829,9 +847,10 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, \
         err_to[i] = upper_lim
 
         if old_reco is not None:
-            lower_lim_reco = numpy.percentile(resolution_reco[cut], left_tail_percentile)
-            upper_lim_reco = numpy.percentile(resolution_reco[cut], right_tail_percentile)
-            median_reco = numpy.percentile(resolution_reco[cut], 50.)
+            
+            lower_lim_reco = numpy.percentile(resolution_reco[cut2], left_tail_percentile)
+            upper_lim_reco = numpy.percentile(resolution_reco[cut2], right_tail_percentile)
+            median_reco = numpy.percentile(resolution_reco[cut2], 50.)
 
             medians_reco[i] = median_reco
             err_from_reco[i] = lower_lim_reco
@@ -871,3 +890,104 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, \
         savename += "_ylim"
     if save == True:
         plt.savefig("%s%s.png"%(savefolder,savename))
+
+def imshow_plot(array,name,emin,emax,tmin,tmax,zlabel,savename):
+    
+    afig = plt.figure(figsize=(10,7))
+    plt.imshow(array,origin='lower',extent=[emin,emax,tmin,tmax],aspect='auto')
+    cbar = plt.colorbar()
+    cbar.set_label(zlabel,rotation=90,fontsize=20)
+    plt.set_cmap('viridis_r')
+    cbar.ax.tick_params(labelsize=20) 
+    plt.xlabel("True Neutrino Energy (GeV)",fontsize=20)
+    plt.ylabel("True Track Length (m)",fontsize=20)
+    plt.title("%s for Track Length vs. Energy"%name,fontsize=25)
+    plt.xticks(fontsize=15)
+    plt.yticks(fontsize=15)
+    plt.savefig(savename)
+    return afig
+    
+def plot_length_energy(truth, nn_reco, track_index=2,tfactor=200.,\
+                        save=False,savefolder=None,use_fraction=False,\
+                        ebins=10,tbins=10,emin=5.,emax=100.,tmin=0.,tmax=430.,\
+                        cut_truth = False, axis_square =False, zmax=None,
+                        variable="Energy", units = "GeV", epochs=None,reco_name="CNN"):
+   
+
+    true_energy = truth[:,0]*emax
+    true_track =  truth[:,track_index]*tfactor
+    #nn_reco = nn_reco[:,0]*emax
+    
+    #print(true_energy.shape,nn_reco.shape)
+    if use_fraction:
+        resolution = (nn_reco - true_energy)/true_energy
+        title = "Fractional %s Resolution"%variable
+        zlabel = "(reco - truth) / truth" 
+    else:
+        resolution = nn_reco - true_energy
+        title = "%s Resolution"%variable
+        zlabel = "reconstruction - truth (GeV)"
+    #print(nn_reco[:10],true_energy[:10])    
+        
+    percentile_in_peak = 68.27
+    left_tail_percentile  = (100.-percentile_in_peak)/2
+    right_tail_percentile = 100.-left_tail_percentile
+    
+    
+    energy_ranges  = numpy.linspace(emin,emax, num=ebins+1)
+    energy_centers = (energy_ranges[1:] + energy_ranges[:-1])/2.
+    track_ranges  = numpy.linspace(tmin,tmax, num=tbins+1)
+    track_centers = (track_ranges[1:] + track_ranges[:-1])/2.
+
+    medians  = numpy.zeros((len(energy_centers),len(track_centers)))
+    err_from = numpy.zeros((len(energy_centers),len(track_centers)))
+    err_to   = numpy.zeros((len(energy_centers),len(track_centers)))
+    rms      = numpy.zeros((len(energy_centers),len(track_centers)))
+    
+    #print(energy_ranges,track_ranges)
+    for e in range(len(energy_ranges)-1):
+        e_from = energy_ranges[e]
+        e_to   = energy_ranges[e+1]
+        for t in range(len(track_ranges)-1):
+            t_from = track_ranges[t]
+            t_to   = track_ranges[t+1]
+            
+        
+            e_cut = (true_energy >= e_from) & (true_energy < e_to)
+            t_cut = (true_track >= t_from) & (true_track < t_to)
+            cut = e_cut & t_cut
+
+            subset = resolution[cut]
+            #print(subset)
+            #print(e_from,e_to,t_from,t_to,true_energy[cut],true_track[cut])
+            if sum(cut)==0:
+                lower_lim = numpy.nan
+                upper_lim = numpy.nan
+                median    = numpy.nan
+                one_rms   = numpy.nan
+            else:
+                lower_lim = numpy.percentile(subset, left_tail_percentile)
+                upper_lim = numpy.percentile(subset, right_tail_percentile)
+                median = numpy.percentile(subset, 50.)
+                mean_array = numpy.ones_like(subset)*numpy.mean(subset)
+                one_rms = numpy.sqrt( sum((mean_array - subset)**2)/len(subset) )
+            #Invert saving because imshow does (M,N) where M is rows and N is columns
+            medians[t,e] = median
+            err_from[t,e] = lower_lim
+            err_to[t,e] = upper_lim
+            rms[t,e] = one_rms
+    
+    stat=["Median", "Lower 1 sigma", "Upper 1 sigma", "RMS"]
+    z_name = [zlabel, "lower 1 sigma of " + zlabel, "upper 1 sigma of " + zlabel, "RMS of " + zlabel ]
+    
+    savename = "%sTrueEnergyTrackReco%s_2DHist_%s.png"%(savefolder,reco_name,stat[0])
+    imshow_plot(medians,stat[0],emin,emax,tmin,tmax,z_name[0],savename)
+    
+    savename="%sTrueEnergyTrackReco%s_2DHist_%s.png"%(savefolder,reco_name,"LowSigma")
+    imshow_plot(err_from,stat[1],emin,emax,tmin,tmax,z_name[1],savename)
+    
+    savename="%sTrueEnergyTrackReco%s_2DHist_%s.png"%(savefolder,reco_name,"HighSigma")
+    imshow_plot(err_to,stat[2],emin,emax,tmin,tmax,z_name[2],savename)
+    
+    savename="%sTrueEnergyTrackReco%s_2DHist_%s.png"%(savefolder,reco_name,stat[3])
+    imshow_plot(rms,stat[3],emin,emax,tmin,tmax,z_name[3],savename)
