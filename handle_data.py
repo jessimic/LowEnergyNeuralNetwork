@@ -172,7 +172,7 @@ def SplitTrainTest(features_DC,features_IC,labels,reco=None,use_old_reco=False,c
     features_IC_train = features_IC[num_validate:num_train]
     labels_train = labels[num_validate:num_train]
     if use_old_reco:
-        reco_train = labels[num_validate:num_train]
+        reco_train = reco[num_validate:num_train]
 
     features_DC_test = features_DC[num_train:]
     features_IC_test = features_IC[num_train:]
@@ -185,7 +185,7 @@ def SplitTrainTest(features_DC,features_IC,labels,reco=None,use_old_reco=False,c
         features_IC_validate = features_IC[:num_validate]
         labels_validate = labels[:num_validate]
         if use_old_reco:
-            reco_validate = labels[:num_validate]
+            reco_validate = reco[:num_validate]
 
     ### Specify type for training and testing ##
     (X_train_DC_raw, X_train_IC_raw, Y_train_raw) = (features_DC_train, features_IC_train, labels_train)
