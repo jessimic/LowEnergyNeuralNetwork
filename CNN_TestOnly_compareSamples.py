@@ -455,7 +455,7 @@ for num in range(0,output_variables):
             plot_bin_slices(Y_test_use[:,true_index], Y_test_predicted[:,NN_index], \
                        energy_truth=Y_test_use[:,0]*max_energy, \
                        old_reco = reco_test_use[:,true_index],\
-                       old_reco_truth=Y_test_use2[:,true_index],\
+                       old_reco_truth=Y_test_use2[:,NN_index],\
                        reco_energy_truth=Y_test_use2[:,0],\
                        use_fraction = False, \
                        bins=10,min_val=min_energy,max_val=max_energy,\

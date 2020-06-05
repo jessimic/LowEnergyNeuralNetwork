@@ -16,7 +16,7 @@
 #       -t test:        Name of reco to compare against, with "oscnext" used for no reco to compare with
 ####################################
 
-import numpy
+import numpy as np
 import h5py
 import time
 import os, sys
@@ -33,7 +33,7 @@ parser.add_argument("-i", "--input_file",type=str,default=None,
                     dest="input_file", help="names for test only input file")
 parser.add_argument("-d", "--path",type=str,default='/data/icecube/jmicallef/processed_CNN_files/',
                     dest="path", help="path to input files")
-parser.add_argument("-o", "--output_dir",type=str,default='/mnt/home/micall12/LowEnergyNeuralNetwork/',
+parser.add_argument("-o", "--output_dir",type=str,default='/home/users/jmicallef/LowEnergyNeuralNetwork/',
                     dest="output_dir", help="path to output_plots directory, do not end in /")
 parser.add_argument("-n", "--name",type=str,default=None,
                     dest="name", help="name for output directory and where model file located")
@@ -47,6 +47,14 @@ parser.add_argument("--compare_reco", default=False,action='store_true',
                         dest='compare_reco',help="use flag to compare to old reco vs. NN")
 parser.add_argument("-t","--test", type=str,default="oscnext",
                         dest='test',help="name of reco")
+parser.add_argument("--mask_zenith", default=False,action='store_true',
+                        dest='mask_zenith',help="mask zenith for up and down going")
+parser.add_argument("--z_values", type=str,default=None,
+                        dest='z_values',help="Options are gt0 or lt0")
+parser.add_argument("--emax",type=float,default=100.,
+                        dest='emax',help="Factor to multiply energy by")
+parser.add_argument("--efactor",type=float,default=100.,
+                        dest='efactor',help="ENERGY TO MULTIPLY BY!")
 args = parser.parse_args()
 
 test_file = args.path + args.input_file
@@ -62,7 +70,11 @@ DC_drop_value = dropout
 IC_drop_value =dropout
 connected_drop_value = dropout
 min_energy = 5
-max_energy = 100.
+max_energy = args.emax
+energy_factor = args.efactor
+
+mask_zenith = args.mask_zenith
+z_values = args.z_values
 
 save = True
 save_folder_name = "%soutput_plots/%s/"%(args.output_dir,filename)
@@ -88,7 +100,7 @@ else:
     print("testing with energy as the first index")
 
 reco_name = args.test
-save_folder_name += "/%s_%sepochs/"%(reco_name,epoch)
+save_folder_name += "/%s_%sepochs/"%(reco_name.replace(" ",""),epoch)
 if os.path.isdir(save_folder_name) != True:
     os.mkdir(save_folder_name)
     
@@ -102,15 +114,32 @@ if compare_reco:
     reco_test_use = f['reco_test'][:]
 f.close
 del f
-print(X_test_DC_use.shape,X_test_IC_use.shape)
+print(X_test_DC_use.shape,X_test_IC_use.shape,Y_test_use.shape)
 
-#mask_energy_train = numpy.logical_and(numpy.array(Y_test_use[:,0])>min_energy/max_energy,numpy.array(Y_test_use[:,0])<1.0)
-#Y_test_use = numpy.array(Y_test_use)[mask_energy_train]
-#X_test_DC_use = numpy.array(X_test_DC_use)[mask_energy_train]
-#X_test_IC_use = numpy.array(X_test_IC_use)[mask_energy_train]
+#mask_energy_train = np.logical_and(np.array(Y_test_use[:,0])>min_energy/max_energy,np.array(Y_test_use[:,0])<1.0)
+#Y_test_use = np.array(Y_test_use)[mask_energy_train]
+#X_test_DC_use = np.array(X_test_DC_use)[mask_energy_train]
+#X_test_IC_use = np.array(X_test_IC_use)[mask_energy_train]
 #if compare_reco:
-#    reco_test_use = numpy.array(reco_test_use)[mask_energy_train]
-
+#    reco_test_use = np.array(reco_test_use)[mask_energy_train]
+if compare_reco:
+    print("TRANSFORMING ZENITH TO COS(ZENITH)")
+    reco_test_use[:,1] = np.cos(reco_test_use[:,1])
+if mask_zenith:
+    print("MANUALLY GETTING RID OF HALF THE EVENTS (UPGOING/DOWNGOING ONLY)")
+    if z_values == "gt0":
+        maxvals = [max_energy, 1., 0.]
+        minvals = [min_energy, 0., 0.]
+        mask_zenith = np.array(Y_test_use[:,1])>0.0
+    if z_values == "lt0":
+        maxvals = [max_energy, 0., 0.]
+        minvals = [min_energy, -1., 0.]
+        mask_zenith = np.array(Y_test_use[:,1])<0.0
+    Y_test_use = Y_test_use[mask_zenith]
+    X_test_DC_use = X_test_DC_use[mask_zenith]
+    X_test_IC_use = X_test_IC_use[mask_zenith]
+    if compare_reco:
+        reco_test_use = reco_test_use[mask_zenith]
 
 #Make network and load model
 from keras.optimizers import SGD
@@ -183,6 +212,9 @@ else:
                     metrics=[EnergyLoss])
 
 # Run prediction
+#Y_test_compare = Y_test_use[:,first_var_index]
+#score = model_DC.evaluate([X_test_DC_use,X_test_IC_use], Y_test_compare, batch_size=256)
+#print("Evaluate:",score)
 t0 = time.time()
 Y_test_predicted = model_DC.predict([X_test_DC_use,X_test_IC_use])
 t1 = time.time()
@@ -195,14 +227,15 @@ from PlottingFunctions import plot_2D_prediction
 from PlottingFunctions import plot_2D_prediction_fraction
 from PlottingFunctions import plot_bin_slices
 from PlottingFunctions import plot_distributions
+from PlottingFunctions import plot_length_energy
 
-plots_names = ["Energy", "CosZenith", "Track"]
-plots_units = ["GeV", "", "m"]
-maxabs_factors = [100., 1., 200.]
+plots_names = ["Energy", "Cosine Zenith", "Track"]
+plots_units = ["(GeV)", "", "(m)"]
+maxabs_factors = [energy_factor, 1., 200.]
 maxvals = [max_energy, 1., 0.]
 minvals = [min_energy, -1., 0.]
 use_fractions = [True, False, True]
-bins_array = [95,100,100]
+bins_array = [100,100,100]
 if output_variables == 3: 
     maxvals = [max_energy, 1., max(Y_test_use[:,2])*maxabs_factor[2]]
 
@@ -227,32 +260,36 @@ for num in range(0,output_variables):
     plot_2D_prediction(Y_test_use[:,true_index]*maxabs_factor,\
                         Y_test_predicted[:,NN_index]*maxabs_factor,\
                         save,save_folder_name,bins=bins,\
-                        minval=minval,maxval=maxval,\
-                        variable=plot_name,units=plot_units, epochs=epoch)
+                        minval=minval,maxval=maxval,cut_truth=True,axis_square=True,\
+                        variable=plot_name,units=plot_units)
     plot_2D_prediction(Y_test_use[:,true_index]*maxabs_factor, Y_test_predicted[:,NN_index]*maxabs_factor,\
                         save,save_folder_name,bins=bins,\
                         minval=None,maxval=None,\
-                        variable=plot_name,units=plot_units, epochs = epoch)
+                        variable=plot_name,units=plot_units)
     plot_single_resolution(Y_test_use[:,true_index]*maxabs_factor,\
-                    Y_test_predicted[:,NN_index]*maxabs_factor,\
-                   minaxis=-2*maxval,maxaxis=maxval*2,
+                   Y_test_predicted[:,NN_index]*maxabs_factor,\
+                   minaxis=-maxval,maxaxis=maxval,bins=bins,
                    save=save,savefolder=save_folder_name,\
-                   variable=plot_name,units=plot_units, epochs = epoch)
-    plot_distributions(Y_test_use[:,true_index]*maxabs_factor, Y_test_predicted[:,NN_index]*maxabs_factor,\
-                    save,save_folder_name,\
-                    variable=plot_name,units=plot_units)
+                   variable=plot_name,units=plot_units)
     plot_bin_slices(Y_test_use[:,true_index]*maxabs_factor, Y_test_predicted[:,NN_index]*maxabs_factor,\
-                    use_fraction = use_frac,\
+                    use_fraction = False,\
                     bins=10,min_val=minval,max_val=maxval,\
                     save=True,savefolder=save_folder_name,\
-                    variable=plot_name,units=plot_units, epochs = epoch)
+                    variable=plot_name,units=plot_units)
+   
     if compare_reco:
         plot_single_resolution(Y_test_use[:,true_index]*maxabs_factor,\
                    Y_test_predicted[:,NN_index]*maxabs_factor,\
                    use_old_reco = True, old_reco = reco_test_use[:,true_index],\
-                   minaxis=-2*maxval,maxaxis=maxval*2,
+                   minaxis=-maxval,maxaxis=maxval,bins=bins,
                    save=save,savefolder=save_folder_name,\
-                   variable=plot_name,units=plot_units, epochs = epoch,reco_name=reco_name)
+                   variable=plot_name,units=plot_units, reco_name=reco_name)
+        plot_single_resolution(Y_test_use[:,true_index]*maxabs_factor,\
+                   Y_test_predicted[:,NN_index]*maxabs_factor,\
+                   use_old_reco = True, old_reco = reco_test_use[:,true_index],\
+                   use_fraction=True,bins=bins,maxaxis=2.,minaxis=-2.,\
+                   save=save,savefolder=save_folder_name,\
+                   variable=plot_name,units=plot_units)
         plot_bin_slices(Y_test_use[:,true_index]*maxabs_factor, Y_test_predicted[:,NN_index]*maxabs_factor,\
                     old_reco = reco_test_use[:,true_index],\
                     use_fraction = use_frac,\
@@ -262,9 +299,19 @@ for num in range(0,output_variables):
     if first_var == "energy" and num ==0:
         plot_2D_prediction_fraction(Y_test_use[:,true_index]*maxabs_factor,\
                         Y_test_predicted[:,NN_index]*maxabs_factor,\
-                        save,save_folder_name,bins=bins,\
-                        minval=0,maxval=2,\
+                        save,save_folder_name,bins=bins,axis_square=True,\
+                        minval=-2.,maxval=2,\
                         variable=plot_name,units=plot_units)
+        plot_bin_slices(Y_test_use[:,true_index]*maxabs_factor, Y_test_predicted[:,NN_index]*maxabs_factor,\
+                    use_fraction = use_frac,\
+                    bins=10,min_val=minval,max_val=maxval,\
+                    save=True,savefolder=save_folder_name,\
+                    variable=plot_name,units=plot_units)
+        #plot_length_energy(Y_test_use, Y_test_predicted[:,NN_index]*maxabs_factor,\
+        #                    use_fraction=True,ebins=20,tbins=20,\
+        #                    emin=minvals[first_var_index], emax=maxvals[first_var_index],\
+        #                    tmin=0.,tmax=450.,tfactor=maxabs_factors[2],\
+        #                    savefolder=save_folder_name)
     if num > 0 or first_var == "zenith":
         plot_bin_slices(Y_test_use[:,true_index], Y_test_predicted[:,NN_index], \
                        energy_truth=Y_test_use[:,0]*max_energy, \
