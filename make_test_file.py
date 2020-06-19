@@ -25,7 +25,7 @@ else:
 
 name = args.name
 if name is None:
-    split_file_name = file_name_base.split('_')
+    split_file_name = file_name_base[:-4]
     new_name = split_file_name[0]
     for name in range(1,len(split_file_name)-1):
         new_name = new_name + "_" + split_file_name[name]
@@ -56,10 +56,28 @@ if use_old_reco:
     f.close()
     del f
 
+    print("Loaded all %i events"%(Y_test.shape[0]+Y_train.shape[0]+Y_validate.shape[0]))
+
     Y_test_use = numpy.concatenate((Y_test,Y_train,Y_validate))
+    print("Concatted Y")
+    del Y_test
+    del Y_train
+    del Y_validate
     X_test_DC_use = numpy.concatenate((X_test_DC,X_train_DC,X_validate_DC))
+    print("Concatted DC")
+    del X_test_DC
+    del X_train_DC
+    del X_validate_DC
     X_test_IC_use =numpy.concatenate((X_test_IC,X_train_IC,X_validate_IC))
+    print("Concatted IC")
+    del X_test_IC
+    del X_train_IC
+    del X_validate_IC
     reco_test_use = numpy.concatenate((reco_test,reco_train,reco_validate))
+    del reco_test
+    del reco_train
+    del reco_validate
+    print("Concatted reco")
 
 else:
     for file in file_names:
@@ -67,6 +85,7 @@ else:
         Y_test = f['Y_test'][:]
         X_test_DC = f['X_test_DC'][:]
         X_test_IC = f['X_test_IC'][:]
+        reco_test = f['reco_test'][:]
         f.close()
         del f
 
@@ -74,10 +93,12 @@ else:
             Y_test_use = Y_test
             X_test_DC_use = X_test_DC
             X_test_IC_use = X_test_IC
+            reco_test_use = reco_test
         else:
             Y_test_use = numpy.concatenate((Y_test_use, Y_test))
             X_test_DC_use = numpy.concatenate((X_test_DC_use, X_test_DC))
             X_test_IC_use = numpy.concatenate((X_test_IC_use, X_test_IC))
+            reco_test_use = numpy.concatenate((reco_test_use, reco_test))
 
 print(Y_test_use.shape)
 
@@ -86,6 +107,6 @@ f = h5py.File(output_file, "w")
 f.create_dataset("Y_test", data=Y_test_use)
 f.create_dataset("X_test_DC", data=X_test_DC_use)
 f.create_dataset("X_test_IC", data=X_test_IC_use)
-if use_old_reco:
-    f.create_dataset("reco_test", data=reco_test_use)
+#if use_old_reco:
+f.create_dataset("reco_test", data=reco_test_use)
 f.close()

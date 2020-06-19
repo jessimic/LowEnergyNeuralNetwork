@@ -20,11 +20,25 @@ parser.add_argument("--ymin",default=None,
                     dest="ymin", help="min y value for loss plot")
 parser.add_argument("--ymax",default=None,
                     dest="ymax", help="max y value for loss plot")
+parser.add_argument("--title",default=None,
+                    dest='title',help="name of variable for title")
+parser.add_argument("--best_epoch",default=None,
+                    dest='best_epoch',help="value of epoch used for testing")
+parser.add_argument("--variable",default=None,
+                    dest="variable",help="Name of variable for plotting")
 args = parser.parse_args()
+
+lr_start=0.001
+lr_drop=0.1
+lr_epoch=50
 
 plot_folder = args.input_folder
 outplots_dir = args.outplots_dir
 epoch = args.epoch
+best_epoch = args.best_epoch
+variable = args.variable
+if best_epoch:
+    best_epoch = int(best_epoch)
 if epoch:
     epoch = int(epoch)
 ymin = args.ymin
@@ -51,8 +65,8 @@ print(header)
 rawdata = numpy.genfromtxt(file_name, skip_header=1)
 
 data = {}
-for variable in range(0,len(header)):
-    data[header[variable]] = rawdata[:epoch,variable]
+for var in range(0,len(header)):
+    data[header[var]] = rawdata[:epoch,var]
 
 print(data.keys())
 
@@ -70,9 +84,11 @@ if epoch:
 plt.savefig("%s%s.png"%(full_path,savename))
 
 # Loss Plots
-plot_history_from_list(data['loss'],data['val_loss'],save=True,savefolder=full_path,logscale=True,ymin=ymin,ymax=ymax)
+print(args.title,variable)
+plot_history_from_list(data['loss'],data['val_loss'],save=True,savefolder=full_path,logscale=True,ymin=ymin,ymax=ymax,title=args.title,variable=variable,pick_epoch=best_epoch,lr_start=lr_start,lr_drop=lr_drop,lr_epoch=lr_epoch)
 if len(header)-3 == 6:
     plot_history_from_list_split(data['EnergyLoss'],data['val_EnergyLoss'],data['ZenithLoss'],loss['val_ZenithLoss'],save=True,savefolder=full_path,logscale=True,ymin=ymin,ymax=ymax)
+
 
 # Average Validation Plot
 def average_epochs(loss_list,start=None,end=None,file_num=7):

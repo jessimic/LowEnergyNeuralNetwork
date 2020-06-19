@@ -60,6 +60,7 @@ else:
             im = ax[col_index].imshow(image)
             ax[col_index].axis('off')
             col_index +=1
-            
+plt.subplots_adjust(wspace=0.05, hspace=0.05)
+ 
 outname = main_path + plot[:-4] + "_compare%iplots.png"%len(epoch_list)
 plt.savefig(outname,dpi=800)
