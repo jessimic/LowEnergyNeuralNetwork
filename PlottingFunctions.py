@@ -124,7 +124,6 @@ def plot_history(network_history,save=False,savefolder=None,use_logscale=False):
 def plot_history_from_list(loss,val,save=False,savefolder=None,logscale=False,ymin=None,ymax=None,title=None,variable="Energy",pick_epoch=None,lr_start=None,lr_drop=None,lr_epoch=None):
     
     fig,ax = plt.subplots(figsize=(10,7))
-    #plt.tight_layout()
     epochs = numpy.arange(1,len(loss)+1)
     ax.plot(epochs,loss,'b',label="Training")
     ax.plot(epochs,val,'c',label="Validation")
@@ -133,7 +132,7 @@ def plot_history_from_list(loss,val,save=False,savefolder=None,logscale=False,ym
     if logscale:
         ax.set_yscale('log')
     if ymin and ymax:
-        ax.set_ylim(ymin,ymax)
+        pass
     elif ymin:
         ymax = max(max(loss),max(val))
     elif ymax:
@@ -141,9 +140,9 @@ def plot_history_from_list(loss,val,save=False,savefolder=None,logscale=False,ym
     else:
         ymax = max(max(loss),max(val))
         ymin = min(min(loss),min(val))
+    ax.set_ylim(ymin,ymax)
     
     if pick_epoch is not None:
-        #ax.plot([pick_epoch,pick_epoch],[ymin,ymax],linewidth=4,color='g',alpha=0.5,label="Chosen Model")
         ax.axvline(pick_epoch,linewidth=4, color='g',alpha=0.5,label="Chosen Model")
 
     if lr_epoch is not None:

@@ -73,7 +73,7 @@ def VertexMask(set_labels,azimuth_index=2,track_index=7,max_track=1.0):
 
     vertex_mask = {}
     vertex_mask["all_start"] = np.ones((len(theta)),dtype=bool)
-    vertex_mask["old_start_DC"] = np.logical_and(z_mask_start, r_start < radius_DC)
+    vertex_mask["old_start_DC"] = np.logical_and(old_z_mask_start, r_start < radius_DC)
     vertex_mask["start_DC"] = np.logical_and(z_mask_start, r_start < radius_DC)
     vertex_mask["start_IC7"] = np.logical_and(z_mask_start, r_start < radius_IC7)
     vertex_mask["start_IC19"] = np.logical_and(z_mask_start, r_start < radius_IC19)
