@@ -38,6 +38,10 @@ parser.add_argument("--emin",type=float,default=5.0,
                     dest="emin",help="Cut anything less than this energy (in GeV)")
 parser.add_argument("--tmax",type=float,default=200.0,
                     dest="tmax",help="Multiplication factor for track length")
+parser.add_argument("-c", "--cuts",type=str, default="CC",
+                    dest="cuts", help="Type of events to keep (all, cascade, track, CC, NC, etc.)")
+parser.add_argument("--do_cuts", default=False,action='store_true',
+                        dest='do_cuts',help="Apply cuts! Don't ignore energy and event cut")
 args = parser.parse_args()
 
 input_file = args.path + args.input_file
@@ -55,14 +59,23 @@ else:
 energy_min = args.emin
 energy_max = args.emax
 track_max = args.tmax
+cut_name = args.cuts
+do_cuts = args.do_cuts
 
+# Here in case you want only one (input can take a few min)
 do_output = True
 do_input = True
+file_was_transformed = False
 
 f = h5py.File(input_file, 'r')
-Y_test = f['Y_test'][:]
-X_test_DC = f['X_test_DC'][:]
-X_test_IC = f['X_test_IC'][:]
+if file_was_transformed:
+    Y_test = f['Y_test'][:]
+    X_test_DC = f['X_test_DC'][:]
+    X_test_IC = f['X_test_IC'][:]
+else:
+    Y_test = f['labels'][:]
+    X_test_DC = f['features_DC'][:]
+    X_test_IC = f['features_IC'][:]
 
 try:
     Y_train = f['Y_train'][:]
@@ -101,27 +114,40 @@ else:
     Y_labels = np.concatenate((Y_test,Y_train,Y_validate))
     X_DC = np.concatenate((X_test_DC,X_train_DC,X_validate_DC))
     X_IC = np.concatenate((X_test_IC,X_train_IC,X_validate_IC))
+print(Y_labels.shape,X_DC.shape,X_IC.shape)
 
 
 # Untransform so energy and track are in original range. NOTE: zenith still cos(zenith)
-Y_labels[:,0] = Y_labels[:,0]*energy_max
-Y_labels[:,2] = Y_labels[:,2]*track_max
+if file_was_transformed:
+    print("MULTIPLYING ENERGY BY %f and TRACK BY %f to undo transform"%(energy_max,track_max))
+    print("ASSUMING TRACK IS AT INDEX 2")
+    Y_labels[:,0] = Y_labels[:,0]*energy_max
+    Y_labels[:,2] = Y_labels[:,2]*track_max
 
 if reco_test is not None:
     reco_labels = np.concatenate((reco_test,reco_train,reco_validate))
 
 # Apply Cuts
-cut_energy = np.logical_and(Y_labels[:,0] > energy_min, Y_labels[:,0] <energy_max)
-#Y_labels = Y_labels[cut_energy]
-#X_DC = X_DC[cut_energy]
-#X_IC = X_IC[cut_energy]
-if reco_test is not None:
-    reco_labels = reco_labels[cut_energy]
+from handle_data import CutMask
+if do_cuts:
+    print("CUTTING ON ENERGY [%f,%f] AND EVENT TYPE %s"%(energy_min,energy_max,cut_name))
+    mask = CutMask(Y_labels)
+    cut_energy = np.logical_and(Y_labels[:,0] > energy_min, Y_labels[:,0] <energy_max)
+    all_cuts = np.logical_and(mask[cut_name], cut_energy)
+    Y_labels = Y_labels[all_cuts]
+    X_DC = X_DC[all_cuts]
+    X_IC = X_IC[all_cuts]
+    if reco_test is not None:
+        reco_labels = reco_labels[all_cuts]
 
 
-def plot_output(Y_values,outdir,filenumber=None):
-    names = ["Energy", "Cosine Zenith", "Track Length", "Time", "X", "Y", "Z", "Azimuth"]
-    units = ["(GeV)", "", "(m)", "(s)", "(m)", "(m)", "(m)", "(rad)"]
+def plot_output(Y_values,outdir,filenumber=None,transformed=file_was_transformed):
+    if file_was_transformed:
+        names = ["Energy", "Cosine Zenith", "Track Length", "Time", "X", "Y", "Z", "Azimuth"]
+        units = ["(GeV)", "", "(m)", "(s)", "(m)", "(m)", "(m)", "(rad)"]
+    else:
+        names = ["Energy", "Cosine Zenith", "Azimuth", "Time", "X", "Y", "Z", "Track Length"]
+        units = ["(GeV)", "", "(rad)", "(s)", "(m)", "(m)", "(m)", "(m)"]
     for i in range(0,len(names)):
         plt.figure()
         plt.hist(Y_values[:,i],bins=100);
@@ -141,6 +167,17 @@ def plot_output(Y_values,outdir,filenumber=None):
     print("Fraction Track: %f"%(sum(Y_values[:,8])/num_events))
     print("Fraction Antineutrino: %f"%(sum(Y_values[:,10])/num_events))
     print("Fraction CC: %f"%(sum(Y_values[:,11])/num_events))
+
+def plot_energy_zenith(Y_values,outdir,filenumber=None):
+    plt.figure()
+    cts,xbin,ybin,img = plt.hist2d(Y_values[:,0], Y_values[:,1], bins=100)
+    cbar = plt.colorbar()
+    cbar.ax.set_ylabel('counts', rotation=90)
+    plt.set_cmap('ocean_r')
+    plt.xlabel("True Neutrino Energy (GeV)",fontsize=15)
+    plt.ylabel("True Neutrino Cosine Zenith",fontsize=15)
+    plt.title("True Energy vs Cosine Zenith Distribution",fontsize=20)
+    plt.savefig("%s/EnergyZenith%s.png"%(outdir,filenum))
 
 def plot_input(X_values_DC,X_values_IC,outdir,filenumber=None):
     name = ["Charge (p.e.)", "Raw Time of First Pulse (ns)", "Raw Time of Last Pulse (ns)", "Charge weighted mean of pulse times", "Charge weighted std of pulse times"]

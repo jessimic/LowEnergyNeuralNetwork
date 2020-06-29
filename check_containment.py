@@ -1,3 +1,10 @@
+##########################
+# Plot starting and ending positions
+#
+#
+#
+##########################
+
 import numpy as np
 import h5py
 import os, sys
@@ -26,17 +33,17 @@ parser.add_argument("--emin",type=float,default=5.0,
                     dest="emin",help="Cut anything less than this energy (in GeV)")
 parser.add_argument("-c", "--cuts",type=str, default="CC",
                     dest="cuts", help="Type of events to keep (all, cascade, track, CC, NC, etc.)")
-parser.add_argument("-s", "--start",type=str, default="all_start",
-                    dest="start_cut", help="Vertex start cut (all_start, old_start_DC, start_DC, start_IC, start_IC19)")
-parser.add_argument("-e", "--end",type=str, default="all_end",
-                    dest="end_cut", help="End position cut (end_start, end_IC7, end_IC19)")
-args = parser.parse_args()
+parser.add_argument("--start",type=str, default="start_all",
+                    dest="start_cut", help="Starting vertex cut (start_all, old_DC_start, DC_start, IC7_start)")
+parser.add_argument("--end",type=str, default="end_all",
+                    dest="end_cut", help="Ending vertex cut (end_all, IC19_end, IC7_end)")
 parser.add_argument("--labels",type=str,default="labels",
                     dest="labels", help="name of truth array to read in from input files")
 parser.add_argument("--transformed",default=False,action='store_true',
                     dest="transformed", help="add flag if labels truth input is already transformed")
 parser.add_argument("--tmax",type=float,default=200.0,
                     dest="tmax",help="Multiplication factor for track, only used if transformed")
+args = parser.parse_args()
 input_files = args.path + args.input_files
 
 output_path = args.outdir
@@ -52,6 +59,7 @@ cut_name = args.cuts
 start_cut = args.start_cut
 end_cut = args.end_cut
 
+transformed = args.transformed
 truth_name = args.labels
 track_max = args.tmax
 azimuth_index = 2
@@ -70,10 +78,7 @@ if transformed:
     labels[:,track_index] = labels[:,track_index]*track_max
 
 # Apply Cuts
-type_mask = CutMask(file_labels)
-vertex_mask = VertexMask(file_labels,azimuth_index=azimuth_index,track_index=track_index,max_track=track_max)
-vertex_cut = np.logical_and(vertex_mask[start_cut], vertex_mask[end_cut])
-mask = np.logical_and(type_mask, vertex_cut)
+mask = CutMask(labels)
 cut_energy = np.logical_and(labels[:,0] > energy_min, labels[:,0] < energy_max)
 all_cuts = np.logical_and(mask[cut_name], cut_energy)
 labels = labels[all_cuts]

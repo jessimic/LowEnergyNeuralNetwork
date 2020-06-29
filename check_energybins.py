@@ -76,6 +76,8 @@ transformed = args.transformed
 
 azimuth_index = 2
 track_index = 7
+
+print("Cutting Emax %.f, emin %.f, with event type %s, start cut: %s and end cut: %s"%(emax,emin,cut_name,start_cut,end_cut))
     
 if args.name is "None":
     file_name = event_file_names[0].split("/")
@@ -113,7 +115,7 @@ for a_file in event_file_names:
     type_mask = CutMask(file_labels)
     vertex_mask = VertexMask(file_labels,azimuth_index=azimuth_index,track_index=track_index,max_track=track_max)
     vertex_cut = np.logical_and(vertex_mask[start_cut], vertex_mask[end_cut])
-    mask = np.logical_and(type_mask, vertex_cut)
+    mask = np.logical_and(type_mask[cut_name], vertex_cut)
     mask = np.array(mask,dtype=bool)
 
     # Make cuts for event type and energy
@@ -122,6 +124,8 @@ for a_file in event_file_names:
     energy = energy[mask]
     events_after_type_cut = len(energy)
     energy_mask = np.logical_and(energy > emin, energy < emax)
+    #if sum(energy_mask) == 0:
+    #    print(energy[:10])
     energy = energy[energy_mask]
     events_after_energy_cut = len(energy)
     print("%i\t %i\t %i\t"%(total_events,events_after_type_cut,events_after_energy_cut))

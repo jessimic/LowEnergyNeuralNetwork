@@ -39,6 +39,10 @@ parser.add_argument("--emax",type=float,default=200.0,
                     dest="emax",help="Max energy to keep, cut anything above")
 parser.add_argument("--emin",type=float,default=5.0,
                     dest="emin",help="Min energy to keep, cut anything below")
+parser.add_argument("--start",type=str,default="all_start",
+                    dest="start",help="vertex start cut (all_start, start_DC, old_start_DC, start_IC7)")
+parser.add_argument("--end",type=str,default="all_end",
+                    dest="end",help="end position cut (all_end, end_IC7, end_IC19)")
 parser.add_argument("--shuffle",type=str, default=True,
                     dest="shuffle", help="False if you don't want to shuffle")
 parser.add_argument("--find_statistics",type=str, default=False,
@@ -50,7 +54,10 @@ parser.add_argument("-v","--validate",type=str, default=True,
 parser.add_argument("--scaler",type=str, default='MaxAbs',
                     dest="scaler", help="name of transformation scaler type (Robust, MaxAbs, MinMax)")
 parser.add_argument("--tmax",type=float,default=None,
-                    dest="tmax", help="max track length to divide by for transforming output")
+                    dest="tmax", help="factor to divide track length by for transforming output")
+parser.add_argument("--efactor",type=float,default=None,
+                    dest="efactor", help="factor to divide energy by for transforming output")
+parser.add_argument
 args = parser.parse_args()
 input_files = args.input_files
 path = args.path
@@ -59,12 +66,22 @@ output = args.name
 num_outputs = args.num_out
 assert num_outputs<100, "NEED TO CHANGE FILENAME TO ACCOMODATE THIS MANY NUMBERS"
 transform = args.scaler
+
+start_cut = args.start
+end_cut = args.end
+azimuth_index=2
+track_index=7
+track_max = 1. #Used to do vertex cut, transform not yet applied
 cut_name = args.cuts
 emax = args.emax
 emin = args.emin
-max_energy = emax
-max_track = args.tmax
+if args.efactor is None:
+    energy_factor = emax
+else:
+    energy_factor = args.efactor
+track_factor = args.tmax
 find_statistics = args.statistics
+
 if args.reco == "True" or args.reco == "true":
     use_old_reco = True
     print("Expecting old reco values in file, from pegleg, etc.")
@@ -137,9 +154,14 @@ for a_file in event_file_names:
         continue
    
     from handle_data import CutMask
-    mask = CutMask(file_labels)
+    from handle_data import VertexMask
+    type_mask = CutMask(file_labels)
+    vertex_mask = VertexMask(file_labels,azimuth_index=azimuth_index,track_index=track_index,max_track=track_max)
+    vertex_cut = np.logical_and(vertex_mask[start_cut], vertex_mask[end_cut])
+    mask = np.logical_and(type_mask[cut_name], vertex_cut)
+    mask = np.array(mask,dtype=bool)
     e_mask = np.logical_and(np.array(file_labels[:,0])>emin, np.array(file_labels[:,0])<emax)
-    keep_index = np.logical_and(mask[cut_name],e_mask)
+    keep_index = np.logical_and(mask,e_mask)
     number_events = sum(keep_index)
 
     if full_features_DC is None:
@@ -180,6 +202,14 @@ if shuffle:
     full_reco=full_reco, full_initial_stats=full_initial_stats,\
     full_num_pulses=full_num_pulses,use_old_reco_flag=use_old_reco)
 
+over_emax = full_labels[:,0] > emax
+under_emin = full_labels[:,0] < emin
+assert sum(over_emax)==0, "Have events greater than emax in final sample"
+assert sum(under_emin)==0, "Have events less than emin in final sample"
+if cut_name == "CC":
+    isCC = full_labels[:,11] == 1
+    assert sum(isCC)==full_labels.shape[0], "Have NC events in data"
+
 #Transform Input Data
 from scaler_transformations import TransformData, new_transform
 
@@ -193,29 +223,38 @@ print("Finished IC")
 
 print("Finished transforming the data using %s Scaler"%transform)
 
-
 # Transform Energy and Zenith Data
 # MaxAbs on Energy
 # Cos on Zenith
+output_label_names = np.array(["Energy", "Zenith", "Aziuth", "Time", "X", "Y", "Z", "Track", "IsTrack", "Flavor", "IsAntineutrino", "IsCC"])
+output_names = np.array(output_label_names)
+output_transform_factors = np.ones((len(output_names)))
 if transform_output:
-    if not max_energy:
-        print("Not given max energy, finding it from the Y_test in the given file!!!")
-        max_energy = max(abs(full_labels[:,0]))
-    if not max_track:
+    if not track_factor:
         print("Not given max track, finding it from the Y_test in the given file!!!")
-        max_track = max(full_labels[:,7])
+        track_factor = max(full_labels[:,7])
 
     # switch track and azimuth positions
     track = full_labels[:,7]
     azimuth = full_labels[:,2]
     
-    full_labels[:,0] = full_labels[:,0]/float(max_energy) #energy
+    full_labels[:,0] = full_labels[:,0]/float(energy_factor) #energy
     full_labels[:,1] = np.cos(full_labels[:,1]) #cos zenith
-    full_labels[:,2] = track/float(max_track) #MAKE TRACK THIRD INPUT
+    full_labels[:,2] = track/float(track_factor) #MAKE TRACK THIRD INPUT
     full_labels[:,7] = azimuth #MOVE AZIMUTH TO WHERE TRACK WAS
 
-    print("Transforming the energy and zenith output. Dividing energy by %f and taking cosine of zenith"%max_energy)
-    print("Transforming track output. Dividing track by %f and MOVING IT TO INDEX 2 IN ARRAY. AZIMUTH NOW AT 7"%max_track)
+    #Track changes in output arrarys
+    output_label_names[1] = "Cosine Zenith"
+    output_label_names[2] = "Track"
+    output_label_names[7] = "Azimuth"
+    output_transform_factors[0] = energy_factor
+    output_transform_factors[2] = track_factor
+
+    print("Transforming the energy and zenith output. Dividing energy by %f and taking cosine of zenith"%energy_factor)
+    print("Transforming track output. Dividing track by %f and MOVING IT TO INDEX 2 IN ARRAY. AZIMUTH NOW AT 7"%track_factor)
+
+# SAVE FACTORS
+input_transform_factors = np.array([high_stat_DC,high_stat_IC])
 
 #Split data
 from handle_data import SplitTrainTest
@@ -233,7 +272,7 @@ print("Total events saving: %i"%full_features_DC.shape[0])
 
 #Save output to hdf5 file
 cut_name_nospaces = cut_name.replace(" ","")
-cut_file_name = cut_name_nospaces + ".lt" + str(int(emax)) + '.'
+cut_file_name = cut_name_nospaces + ".lt" + str(int(emax)) + "_%s_%s"%(start_cut,end_cut) + '.'
 transform_name = "transformedinput"
 if not find_statistics:
     transform_name = transform_name + "static"
@@ -245,7 +284,11 @@ test_per_file = int(X_test_DC.shape[0]/num_outputs) + 1
 validate_per_file = int(X_validate_DC.shape[0]/num_outputs) + 1
 print("Saving %i train events, %i test events, and %i validate events per %i file(s)"%(train_per_file,test_per_file,validate_per_file,num_outputs))
 for sep_file in range(0,num_outputs):
-    output_file = outdir + output + cut_file_name + transform_name + "_file%02d.hdf5"%sep_file
+    if num_outputs > 1:
+        end = "_file%02d.hdf5"%sep_file
+    else:
+        end = ".hdf5"
+    output_file = outdir + output + cut_file_name + transform_name + end
 
     train_start = train_per_file*sep_file
     test_start = test_per_file*sep_file
@@ -267,6 +310,11 @@ for sep_file in range(0,num_outputs):
     f.create_dataset("X_test_DC", data=X_test_DC[test_start:test_end])
     f.create_dataset("X_train_IC", data=X_train_IC[train_start:train_end])
     f.create_dataset("X_test_IC", data=X_test_IC[test_start:test_end])
+
+    f.attrs['output_label_names'] = [a.encode('utf8') for a in output_label_names]
+    f.create_dataset("output_label_names",data=f.attrs['output_label_names'])
+    f.create_dataset("input_transform_factors",data=input_transform_factors)
+    f.create_dataset("output_transform_factors",data=output_transform_factors)
     if create_validation:
         f.create_dataset("Y_validate", data=Y_validate[validate_start:validate_end])
         f.create_dataset("X_validate_IC", data=X_validate_IC[validate_start:validate_end])
