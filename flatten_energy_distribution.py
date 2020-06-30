@@ -22,7 +22,6 @@ import numpy as np
 import glob
 import h5py
 import argparse
-import matplotlib.pyplot as plt
 from handle_data import CutMask
 from handle_data import VertexMask
 
@@ -138,7 +137,7 @@ for a_file in event_file_names:
     type_mask = CutMask(file_labels)
     vertex_mask = VertexMask(file_labels,azimuth_index=azimuth_index,track_index=track_index,max_track=track_max)
     vertex_cut = np.logical_and(vertex_mask[start_cut], vertex_mask[end_cut])
-    mask = np.logical_and(type_mask, vertex_cut)
+    mask = np.logical_and(type_mask[cut_name], vertex_cut)
     mask = np.array(mask,dtype=bool)
 
     energy = file_labels[:,0]
@@ -225,6 +224,14 @@ if shuffle == True:
     full_num_pulses=full_pulses_per_dom, full_trig_times=full_trig_times, \
     use_old_reco_flag=use_old_reco)
 
+    over_emax = full_labels[:,0] > emax
+    under_emin = full_labels[:,0] < emin
+    assert sum(over_emax)==0, "Have events greater than emax in final sample"
+    assert sum(under_emin)==0, "Have events less than emin in final sample"
+    if cut_name == "CC":
+        isCC = full_labels[:,11] == 1
+        assert sum(isCC)==full_labels.shape[0], "Have NC events in data"
+
 #Save output to hdf5 file
 print(count_energy)
 print("Total events saved: %i"%full_features_DC.shape[0])
@@ -237,7 +244,7 @@ for sep_file in range(0,num_outputs):
         end = full_features_DC.shape[0]
 
     if num_outputs > 1:
-        filenum = "_file%02d.hdf5"%sep_file
+        filenum = "_file%02d"%sep_file
     else:
         filenum = ""
     output_name = output_name = path + output + "lt%03d_"%emax + "%s_"%cut_name + "%s_%s_"%(start_cut,end_cut) + "flat_%sbins_%sevtperbin"%(bins,max_events_per_bin) + filenum + ".hdf5"
