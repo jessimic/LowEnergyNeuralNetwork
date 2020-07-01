@@ -235,8 +235,8 @@ if transform_output:
         track_factor = max(full_labels[:,7])
 
     # switch track and azimuth positions
-    track = full_labels[:,7]
-    azimuth = full_labels[:,2]
+    track = np.copy(full_labels[:,7])
+    azimuth = np.copy(full_labels[:,2])
     
     full_labels[:,0] = full_labels[:,0]/float(energy_factor) #energy
     full_labels[:,1] = np.cos(full_labels[:,1]) #cos zenith
