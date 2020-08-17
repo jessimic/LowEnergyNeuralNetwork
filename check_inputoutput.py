@@ -65,7 +65,7 @@ do_cuts = args.do_cuts
 # Here in case you want only one (input can take a few min)
 do_output = True
 do_input = True
-file_was_transformed = False
+file_was_transformed = True
 
 f = h5py.File(input_file, 'r')
 if file_was_transformed:

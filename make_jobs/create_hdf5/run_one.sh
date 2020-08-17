@@ -12,6 +12,6 @@
 
 source ~/setup_combo_stable.sh
 
-python /mnt/home/micall12/LowEnergyNeuralNetwork/create_training_file_perDOM_nocuts.py  -i @@file@@ -n @@name@@ --emax 200
+python /mnt/home/micall12/LowEnergyNeuralNetwork/create_training_file_perDOM_nocuts.py  -i $1 -n $2 --emax 200
 
 exit $?

@@ -84,7 +84,7 @@ def VertexMask(set_labels,azimuth_index=2,track_index=7,max_track=1.0):
     return vertex_mask
 
 
-def Shuffler(full_features_DC, full_features_IC, full_labels, full_reco=None, full_initial_stats=None, full_num_pulses=None,full_trig_times=None, use_old_reco_flag=False):
+def Shuffler(full_features_DC, full_features_IC, full_labels, full_reco=None, full_initial_stats=None, full_num_pulses=None,full_trig_times=None, full_weights=None, use_old_reco_flag=False):
     """Shuffle the contents of the arrays
         Receives:
         full_features_DC = fully concatenated DC array
@@ -114,6 +114,10 @@ def Shuffler(full_features_DC, full_features_IC, full_labels, full_reco=None, fu
         shuffled_trig_times = np.zeros_like(full_trig_times)
     else:
         shuffled_trig_times = None
+    if full_weights is not None:
+        shuffled_weights = np.zeros_like(full_weights)
+    else:
+        shuffled_weights = None
     
     random_order = np.arange(0,full_features_DC.shape[0])
     np.random.shuffle(random_order)
@@ -129,10 +133,12 @@ def Shuffler(full_features_DC, full_features_IC, full_labels, full_reco=None, fu
             shuffled_num_pulses[evt_num] = full_num_pulses[random_order[evt_num]]
         if full_trig_times is not None:
             shuffled_trig_times[evt_num] = full_trig_times[random_order[evt_num]]
+        if full_weights is not None:
+            shuffled_weights[evt_num] = full_weights[random_order[evt_num]]
 
-    return shuffled_features_DC, shuffled_features_IC, shuffled_labels, shuffled_reco, shuffled_initial_stats, shuffled_num_pulses, shuffled_trig_times
+    return shuffled_features_DC, shuffled_features_IC, shuffled_labels, shuffled_reco, shuffled_initial_stats, shuffled_num_pulses, shuffled_trig_times, shuffled_weights
 
-def SplitTrainTest(features_DC,features_IC,labels,reco=None,use_old_reco=False,create_validation=True,fraction_test=0.1,fraction_validate=0.2):
+def SplitTrainTest(features_DC,features_IC,labels,reco=None,weights=None,use_old_reco=False,create_validation=True,fraction_test=0.1,fraction_validate=0.2):
     """
     Splits features DC, features IC, labels, and (optionally) old reco into train, test, and validation sets
     Receives:
@@ -171,12 +177,16 @@ def SplitTrainTest(features_DC,features_IC,labels,reco=None,use_old_reco=False,c
     features_DC_train = features_DC[num_validate:num_train]
     features_IC_train = features_IC[num_validate:num_train]
     labels_train = labels[num_validate:num_train]
+    if weights is not None:
+        weights_train = weights[num_validate:num_train]
     if use_old_reco:
         reco_train = reco[num_validate:num_train]
 
     features_DC_test = features_DC[num_train:]
     features_IC_test = features_IC[num_train:]
     labels_test = labels[num_train:]
+    if weights is not None:
+        weights_test = weights[num_train:]
     if use_old_reco:
         reco_test = reco[num_train:]
 
@@ -184,6 +194,8 @@ def SplitTrainTest(features_DC,features_IC,labels,reco=None,use_old_reco=False,c
         features_DC_validate = features_DC[:num_validate]
         features_IC_validate = features_IC[:num_validate]
         labels_validate = labels[:num_validate]
+        if weights is not None:
+            weights_validate = weights[:num_validate]
         if use_old_reco:
             reco_validate = reco[:num_validate]
 
@@ -192,6 +204,8 @@ def SplitTrainTest(features_DC,features_IC,labels,reco=None,use_old_reco=False,c
     X_train_DC_raw = X_train_DC_raw.astype("float32")
     X_train_IC_raw = X_train_IC_raw.astype("float32")
     Y_train_raw = Y_train_raw.astype("float32")
+    if weights is not None:
+        weights_train_raw = weights_train.astype("float32")
     if use_old_reco:
         reco_train_raw = reco_train.astype("float32")
     else:
@@ -201,6 +215,8 @@ def SplitTrainTest(features_DC,features_IC,labels,reco=None,use_old_reco=False,c
     X_test_DC_raw = X_test_DC_raw.astype("float32")
     X_test_IC_raw = X_test_IC_raw.astype("float32")
     Y_test_raw = Y_test_raw.astype("float32")
+    if weights is not None:
+        weights_test_raw = weights_test.astype("float32")
     if use_old_reco:
         reco_test_raw = reco_test.astype("float32")
     else:
@@ -211,6 +227,8 @@ def SplitTrainTest(features_DC,features_IC,labels,reco=None,use_old_reco=False,c
         X_validate_DC_raw = X_validate_DC_raw.astype("float32")
         X_validate_IC_raw = X_validate_IC_raw.astype("float32")
         Y_validate_raw = Y_validate_raw.astype("float32")
+        if weights is not None:
+            weights_validate_raw = weights_validate.astype("float32")
         if use_old_reco:
             reco_validate_raw = reco_validate.astype("float32")
         else:
@@ -220,4 +238,4 @@ def SplitTrainTest(features_DC,features_IC,labels,reco=None,use_old_reco=False,c
         X_validate_IC_raw = None
         Y_validate_raw = None
 
-    return X_train_DC_raw, X_train_IC_raw, Y_train_raw,  X_test_DC_raw, X_test_IC_raw, Y_test_raw, X_validate_DC_raw, X_validate_IC_raw, Y_validate_raw, reco_train_raw, reco_test_raw, reco_validate_raw
+    return X_train_DC_raw, X_train_IC_raw, Y_train_raw,  X_test_DC_raw, X_test_IC_raw, Y_test_raw, X_validate_DC_raw, X_validate_IC_raw, Y_validate_raw, reco_train_raw, reco_test_raw, reco_validate_raw, reco_train_raw, reco_test_raw, weights_validate_raw

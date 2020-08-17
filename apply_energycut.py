@@ -13,14 +13,20 @@ parser.add_argument("--emax",type=float,default=None,
                     dest="emax",help="Cut max energy")
 parser.add_argument("--emin",type=float,default=None,
                     dest="emin",help="Cut min energy")
+parser.add_argument("--efactor",type=float,default=None,
+                    dest="efactor",help="Factor to multiple energy by")
 args = parser.parse_args()
 
 input_file = args.path + args.input_file
 emax = args.emax
 emin = args.emin
 cut_name = "%iemax_%iemin"%(int(emax),int(emin))
-emin = emin/emax
-emax = 1.
+efactor = args.efactor
+if efactor is None:
+    efactor = emax
+    print("ASSUMING EFACTOR IS THE SAME AS EMAX (%f)"%emax)
+emin = emin/efactor
+emax = emax/efactor
 
 
 f = h5py.File(input_file, 'r')
@@ -52,8 +58,7 @@ except:
 f.close()
 del f
 
-# Apply Cuts
-from handle_data import VertexMask
+# Apply Energy Cuts
 test_mask = np.logical_and(Y_test[:,0] > emin, Y_test[:,0] < emax)
 Y_test = Y_test[test_mask]
 X_test_DC = X_test_DC[test_mask]

@@ -52,9 +52,9 @@ parser.add_argument("--mask_zenith", default=False,action='store_true',
 parser.add_argument("--z_values", type=str,default=None,
                         dest='z_values',help="Options are gt0 or lt0")
 parser.add_argument("--emax",type=float,default=100.,
-                        dest='emax',help="Factor to multiply energy by")
+                        dest='emax',help="Max energy for use for plotting")
 parser.add_argument("--efactor",type=float,default=100.,
-                        dest='efactor',help="ENERGY TO MULTIPLY BY!")
+                        dest='efactor',help="ENERGY FACTOR TO MULTIPLY BY!")
 args = parser.parse_args()
 
 test_file = args.path + args.input_file
@@ -112,6 +112,12 @@ X_test_DC_use = f['X_test_DC'][:]
 X_test_IC_use = f['X_test_IC'][:]
 if compare_reco:
     reco_test_use = f['reco_test'][:]
+try:
+    weights = f["weights_test"][:]
+except:
+    weights = None
+    print("File does not have weights, not using...")
+    pass
 f.close
 del f
 print(X_test_DC_use.shape,X_test_IC_use.shape,Y_test_use.shape)
@@ -220,6 +226,16 @@ Y_test_predicted = model_DC.predict([X_test_DC_use,X_test_IC_use])
 t1 = time.time()
 print("This took me %f seconds for %i events"%(((t1-t0)),Y_test_predicted.shape[0]))
 #print(X_test_DC_use.shape,X_test_IC_use.shape,Y_test_predicted.shape,Y_test_use.shape)
+
+print("Saving output file: %s/prediction_values.hdf5"%save_folder_name)
+f = h5py.File("%s/prediction_values.hdf5"%save_folder_name, "w")
+f.create_dataset("Y_test_use", data=Y_test_use)
+f.create_dataset("Y_predicted", data=Y_test_predicted)
+if compare_reco:
+    f.create_dataset("reco_test", data=reco_test_use)
+if weights is not None:
+    f.create_dataset("weights_test", data=weights)
+f.close()
 
 ### MAKE THE PLOTS ###
 from PlottingFunctions import plot_single_resolution

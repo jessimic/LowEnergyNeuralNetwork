@@ -24,9 +24,6 @@ while event_file.more():
     if frame["I3EventHeader"].sub_event_stream != "InIceSplit":
         continue
 
-    #santa = frame['SANTA_FitTrack_SS_Particle']
-    #print(santa.energy)
-
     count_events +=1
 
 print("Total number of events: %i"%count_events)

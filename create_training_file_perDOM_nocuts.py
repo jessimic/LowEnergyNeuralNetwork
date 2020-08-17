@@ -48,7 +48,7 @@ true_name = args.true_name
 reco_type = args.reco_type
 if args.reco == 'True' or args.reco == 'true':
     use_old_reco = True
-    print("Expecting old reco values in files, pulling from pegleg frames")
+    print("Expecting old reco values in files, pulling from %s frames"%reco_type)
 else:
     use_old_reco = False
 if args.cleaned == "True" or args.cleaned == "true":
@@ -232,9 +232,8 @@ def read_files(filename_list):
     output_initial_stats = []
     output_num_pulses_per_dom = []
     output_trigger_times = []
-    not_in_DC = 0
+    output_weights = []
     isOther_count = 0
-    containment_cut_count =0
 
     for event_file_name in filename_list:
         print("reading file: {}".format(event_file_name))
@@ -281,26 +280,42 @@ def read_files(filename_list):
             isCC = frame['I3MCWeightDict']['InteractionType']==1.
             isNC = frame['I3MCWeightDict']['InteractionType']==2.
             isOther = not isCC and not isNC
-            
+           
+
+
             if use_old_reco:
 
                 if reco_type == "retro":
-                    if not frame.Has('retro_crs_prefit__median__neutrino'):
+                    if not frame.Has('L7_reconstructed_total_energy'):
                         continue
-                    reco_nu = frame['retro_crs_prefit__median__neutrino']
-                    reco_length = frame['retro_crs_prefit__median__track'].length
+                    #reco_nu = frame['retro_crs_prefit__median__neutrino']
+                    #reco_length = frame['retro_crs_prefit__median__track'].length
+                    reco_energy = frame['L7_reconstructed_total_energy'].value
+                    reco_time = frame['L7_reconstructed_time'].value
+                    reco_zenith = frame['L7_reconstructed_zenith'].value
+                    reco_azimuth = frame['L7_reconstructed_azimuth'].value
+                    reco_x = frame['L7_reconstructed_vertex_x'].value
+                    reco_y = frame['L7_reconstructed_vertex_y'].value
+                    reco_z = frame['L7_reconstructed_vertex_z'].value
+                    reco_length = frame['L7_reconstructed_track_length'].value
+                    reco_casc_energy = frame['L7_reconstructed_cascade_energy'].value
+                    reco_track_energy = frame['L7_reconstructed_track_energy'].value
+                    reco_em_casc_energy = frame['L7_reconstructed_em_cascade_energy'].value
                 if reco_type == "pegleg":
                     if not frame.Has('IC86_Dunkman_L6_PegLeg_MultiNest8D_NumuCC'):
                         continue
                     reco_nu = frame['IC86_Dunkman_L6_PegLeg_MultiNest8D_NumuCC']
-                    reco_length = frame["trueMuon"].length
-                reco_energy = reco_nu.energy
-                reco_time = reco_nu.time
-                reco_zenith = reco_nu.dir.zenith
-                reco_azimuth = reco_nu.dir.azimuth
-                reco_x = reco_nu.pos.x
-                reco_y = reco_nu.pos.y
-                reco_z = reco_nu.pos.z
+                    reco_length = reco_nu.length
+                    reco_energy = reco_nu.energy
+                    reco_time = reco_nu.time
+                    reco_zenith = reco_nu.dir.zenith
+                    reco_azimuth = reco_nu.dir.azimuth
+                    reco_x = reco_nu.pos.x
+                    reco_y = reco_nu.pos.y
+                    reco_z = reco_nu.pos.z
+                    reco_casc_energy = frame['IC86_Dunkman_L6_PegLeg_MultiNest8D_HDCasc'].energy
+                    reco_track_energy = frame['IC86_Dunkman_L6_PegLeg_MultiNest8D_Track'].energy
+                    reco_em_casc_energy = frame['IC86_Dunkman_L6_PegLeg_MultiNest8D_EMCasc'].energy
 
 
             # input file sanity check: this should not print anything since "isOther" should always be false
@@ -364,15 +379,27 @@ def read_files(filename_list):
             output_labels.append( numpy.array([ float(nu_energy), float(nu_zenith), float(nu_azimuth), float(nu_time), float(nu_x), float(nu_y), float(nu_z), float(track_length), float(isTrack), float(neutrino_type), float(particle_type), float(isCC) ]) )
 
             if use_old_reco:
-                output_reco_labels.append( numpy.array([ float(reco_energy), float(reco_zenith), float(reco_azimuth), float(reco_time), float(reco_x), float(reco_y), float(reco_z), float(reco_length) ]) )
+                output_reco_labels.append( numpy.array([ float(reco_energy), float(reco_zenith), float(reco_azimuth), float(reco_time), float(reco_x), float(reco_y), float(reco_z), float(reco_length), float(reco_track_energy), float(reco_casc_energy), float(reco_em_casc_energy) ]) )
             
+            #Save weights
+            #[File, RunID, SubrunID, EventID, NEvents, OneWeight, NormalizedOneWeight, GENIEWeight, InteractionProbabilityWeight, SinglePowerLawFlux_flux => 0.00154532, SinglePowerLawFlux_index, SinglePowerLawFlux_norm, SinglePowerLawFlux_weight, TotalInteractionProbabilityWeight, weight] 
+            weights = frame['I3MCWeightDict']
+            header = frame["I3EventHeader"]
+            file_name_only = event_file_name.split("/")[-1]
+            #from dragon_weights import weight_frame 
+            if reco_type == "pegleg":
+                #the_weight = weight_frame(frame)
+                output_weights.append( numpy.array([ float(header.run_id), float(header.sub_run_id), float(header.event_id), float(weights["NEvents"]), float(weights["OneWeight"]),  float(weights["GENIEWeight"]), float(weights["PowerLawIndex"]), float(0.3)]) ) #, float(the_weight)  ]) )
+            else:
+                output_weights.append( numpy.array([ float(header.run_id), float(header.sub_run_id), float(header.event_id), float(weights["NEvents"]), float(weights["OneWeight"]), float(weights["GENIEWeight"]),float(weights["PowerLawIndex"]), float(weights["gen_ratio"]), float(weights["weight"]) ]) )
+                #output_weights.append( numpy.array([ float(header.run_id), float(header.sub_run_id), float(header.event_id), float(weights["NEvents"]), float(weights["NormalizedOneWeight"]), float(weights["OneWeight"]), float(weights["weight"]), float(weights["GENIEWeight"]), float(weights["InteractionProbabilityWeight"]), float(weights["SinglePowerLawFlux_flux"]), float(weights["SinglePowerLawFlux_index"]), float(weights["SinglePowerLawFlux_norm"]), float(weights["SinglePowerLawFlux_weight"]), float(weights["TotalInteractionProbabilityWeight"]) ]) )
+
             output_features_DC.append(DC_array)
             output_features_IC.append(IC_near_DC_array)
             output_initial_stats.append(initial_stats)
             output_num_pulses_per_dom.append(num_pulses_per_dom)
             output_trigger_times.append(trig_time)
     
-        print("Got rid of %i events not in DC so far"%not_in_DC)
         print("Got rid of %i events classified as other so far"%isOther_count)
 
         # close the input file once we are done
@@ -384,12 +411,12 @@ def read_files(filename_list):
     output_initial_stats=numpy.asarray(output_initial_stats)
     output_num_pulses_per_dom=numpy.asarray(output_num_pulses_per_dom)
     output_trigger_times = numpy.asarray(output_trigger_times)
+    output_weights = numpy.asarray(output_weights)
     if use_old_reco:
         output_reco_labels=numpy.asarray(output_reco_labels)
 
-    print("Got rid of %i events not in DC in total"%not_in_DC)
 
-    return output_features_DC, output_features_IC, output_labels, output_reco_labels, output_initial_stats, output_num_pulses_per_dom, output_trigger_times, ICstrings
+    return output_features_DC, output_features_IC, output_labels, output_reco_labels, output_initial_stats, output_num_pulses_per_dom, output_trigger_times, output_weights, ICstrings
 
 #Construct list of filenames
 import glob
@@ -401,7 +428,7 @@ assert event_file_names,"No files loaded, please check path."
 
 #Call function to read and label files
 #Currently set to ONLY get track events, no cascades!!! #
-features_DC, features_IC, labels, reco_labels, initial_stats, num_pulses_per_dom, output_trigger_times, ICstrings = read_files(event_file_names)
+features_DC, features_IC, labels, reco_labels, initial_stats, num_pulses_per_dom, output_trigger_times, output_weights, ICstrings = read_files(event_file_names)
 
 print(features_DC.shape)
 
@@ -416,4 +443,5 @@ if use_old_reco:
 f.create_dataset("initial_stats", data=initial_stats)
 f.create_dataset("num_pulses_per_dom", data=num_pulses_per_dom)
 f.create_dataset("trigger_times",data=output_trigger_times)
+f.create_dataset("weights",data=output_weights)
 f.close()

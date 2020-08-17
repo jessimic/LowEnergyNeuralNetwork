@@ -57,6 +57,8 @@ parser.add_argument("--tmax",type=float,default=None,
                     dest="tmax", help="factor to divide track length by for transforming output")
 parser.add_argument("--efactor",type=float,default=None,
                     dest="efactor", help="factor to divide energy by for transforming output")
+parser.add_argument("--test_only", default=False,action='store_true',
+                        dest='test_only',help="Put all events into test arrays only")
 parser.add_argument
 args = parser.parse_args()
 input_files = args.input_files
@@ -81,6 +83,7 @@ else:
     energy_factor = args.efactor
 track_factor = args.tmax
 find_statistics = args.statistics
+test_only = args.test_only
 
 if args.reco == "True" or args.reco == "true":
     use_old_reco = True
@@ -119,12 +122,6 @@ if not find_statistics:
 
 file_names = path + input_files
 event_file_names = sorted(glob.glob(file_names))
-
-#event_file_names = ["/mnt/scratch/micall12/training_files/NuMu_140000_level2.zst_cleaned_lt100_CC_flat_95bins_36034evtperbinall.lt100_file00.hdf5",\
-#                    "/mnt/scratch/micall12/training_files/NuMu_140000_level2.zst_cleaned_lt100_CC_flat_95bins_36034evtperbinall.lt100_file01.hdf5",\
-#                    "/mnt/scratch/micall12/training_files/NuMu_140000_level2.zst_cleaned_lt100_CC_flat_95bins_36034evtperbinall.lt100_file02.hdf5",\
-#                    "/mnt/scratch/micall12/training_files/NuE_120000_level2_cleaned_lt100_vertexDC_CC_flat_95bins_15478evtperbinall.allfiles.CC.lt100_file00.hdf5"]
-#print("I AM USING HARDCODED FILENAMES, IGNORING YOUR INPUT ARG!!!!!!")
 assert event_file_names,"No files loaded, please check path."
 
 full_features_DC = None
@@ -134,6 +131,7 @@ full_reco = None
 full_initial_stats = None
 full_num_pulses = None
 full_trig_times = None
+full_weights = None
 
 # Labels: [ nu energy, nu zenith, nu azimuth, nu time, nu x, nu y, nu z, track length (0 for cascade), isTrack (track = 1, cascasde = 0), flavor, type (anti = 1), isCC (CC=1, NC = 0)]
 
@@ -144,6 +142,11 @@ for a_file in event_file_names:
     file_features_DC = f["features_DC"][:]
     file_features_IC = f["features_IC"][:]
     file_labels = f["labels"][:]
+    try:
+        file_weights = f["weights"][:]
+    except:
+        print("no weights included")
+        pass
     if use_old_reco:
         file_reco = f["reco_labels"][:]
     f.close()
@@ -178,6 +181,12 @@ for a_file in event_file_names:
         full_labels = file_labels[keep_index]
     else:
         full_labels = np.concatenate((full_labels, file_labels[keep_index]))
+    
+    if file_weights is not None:
+        if full_weights is None:
+            full_weights = file_weights[keep_index]
+        else:
+            full_weights = np.concatenate((full_weights, file_weights[keep_index]))
 
     if use_old_reco:
         if full_reco is None:
@@ -197,11 +206,12 @@ if shuffle:
     from handle_data import Shuffler
 
     full_features_DC, full_features_IC, full_labels, \
-    full_reco, full_initial_stats, full_num_pulses,full_trig_times = \
+    full_reco, full_initial_stats, full_num_pulses,full_trig_times,full_weights = \
     Shuffler(full_features_DC,full_features_IC,full_labels,\
     full_reco=full_reco, full_initial_stats=full_initial_stats,\
-    full_num_pulses=full_num_pulses,use_old_reco_flag=use_old_reco)
+    full_num_pulses=full_num_pulses,full_weights=full_weights,use_old_reco_flag=use_old_reco)
 
+# Check that it follows the usual energy and CC cuts
 over_emax = full_labels[:,0] > emax
 under_emin = full_labels[:,0] < emin
 assert sum(over_emax)==0, "Have events greater than emax in final sample"
@@ -257,14 +267,25 @@ if transform_output:
 input_transform_factors = np.array([high_stat_DC,high_stat_IC])
 
 #Split data
-from handle_data import SplitTrainTest
-X_train_DC, X_train_IC, Y_train, \
-X_test_DC, X_test_IC, Y_test, \
-X_validate_DC, X_validate_IC, Y_validate,\
-reco_train, reco_test, reco_validate  \
-= SplitTrainTest(full_features_DC,full_features_IC,full_labels,\
-reco=full_reco,use_old_reco=use_old_reco,create_validation=create_validation,\
-fraction_test=0.1,fraction_validate=0.2)
+if test_only:
+    print("MAKING ALL %i EVENTS FOR TEST OUTPUT"%full_labels.shape[0])
+    X_test_DC = full_features_DC
+    X_test_IC = full_features_IC
+    Y_test = full_labels
+    weights_test = full_weights
+    if use_old_reco == True:
+        reco_test = full_reco
+else:
+    from handle_data import SplitTrainTest
+    X_train_DC, X_train_IC, Y_train, \
+    X_test_DC, X_test_IC, Y_test, \
+    X_validate_DC, X_validate_IC, Y_validate,\
+    reco_train, reco_test, reco_validate,\
+    weights_train, weights_test, weights_validate\
+    = SplitTrainTest(full_features_DC,full_features_IC,full_labels,\
+    reco=full_reco,use_old_reco=use_old_reco,\
+    weights=full_weights,create_validation=create_validation,\
+    fraction_test=0.1,fraction_validate=0.2)
 
 
 #Save output to hdf5 file
@@ -279,10 +300,12 @@ if not find_statistics:
 if transform_output:
     transform_name = transform_name + "_transformed3output"
 
-train_per_file = int(X_train_DC.shape[0]/num_outputs) + 1
+if not test_only:
+    train_per_file = int(X_train_DC.shape[0]/num_outputs) + 1
+    validate_per_file = int(X_validate_DC.shape[0]/num_outputs) + 1
+    print("Saving %i train events and %i validate events per %i file(s)"%(train_per_file,validate_per_file,num_outputs))
 test_per_file = int(X_test_DC.shape[0]/num_outputs) + 1
-validate_per_file = int(X_validate_DC.shape[0]/num_outputs) + 1
-print("Saving %i train events, %i test events, and %i validate events per %i file(s)"%(train_per_file,test_per_file,validate_per_file,num_outputs))
+print("%i test events per %i file(s)"%(test_per_file,num_outputs))
 for sep_file in range(0,num_outputs):
     if num_outputs > 1:
         end = "_file%02d.hdf5"%sep_file
@@ -290,39 +313,49 @@ for sep_file in range(0,num_outputs):
         end = ".hdf5"
     output_file = outdir + output + cut_file_name + transform_name + end
 
-    train_start = train_per_file*sep_file
     test_start = test_per_file*sep_file
-    validate_start = validate_per_file*sep_file
+    if not test_only:
+        train_start = train_per_file*sep_file
+        validate_start = validate_per_file*sep_file
     if sep_file < num_outputs-1:
-        train_end = train_per_file*(sep_file+1)
         test_end = test_per_file*(sep_file+1)
-        validate_end = validate_per_file*(sep_file+1)
+        if not test_only:
+            train_end = train_per_file*(sep_file+1)
+            validate_end = validate_per_file*(sep_file+1)
     else:
-        train_end = X_train_DC.shape[0] 
-        test_end = X_test_DC.shape[0] 
-        validate_end = X_validate_DC.shape[0] 
+        test_end = X_test_DC.shape[0]
+        if not test_only:
+            train_end = X_train_DC.shape[0] 
+            validate_end = X_validate_DC.shape[0] 
 
-    print("I put %i - %i train events, %i - %i test events, and %i - %i validate events into %s"%(train_start,train_end,test_start,test_end,validate_start,validate_end,output_file))
+    print("I put %i - %i test events into %s"%(test_start,test_end,output_file))
+    if not test_only:
+        print("I put %i - %i train events and %i - %i validate events into %s"%(train_start,train_end,validate_start,validate_end,output_file))
     f = h5py.File(output_file, "w")
-    f.create_dataset("Y_train", data=Y_train[train_start:train_end])
     f.create_dataset("Y_test", data=Y_test[test_start:test_end])
-    f.create_dataset("X_train_DC", data=X_train_DC[train_start:train_end])
     f.create_dataset("X_test_DC", data=X_test_DC[test_start:test_end])
-    f.create_dataset("X_train_IC", data=X_train_IC[train_start:train_end])
     f.create_dataset("X_test_IC", data=X_test_IC[test_start:test_end])
-
+    f.create_dataset("weights_test", data=weights_test[test_start:test_end])
     f.attrs['output_label_names'] = [a.encode('utf8') for a in output_label_names]
     f.create_dataset("output_label_names",data=f.attrs['output_label_names'])
     f.create_dataset("input_transform_factors",data=input_transform_factors)
     f.create_dataset("output_transform_factors",data=output_transform_factors)
-    if create_validation:
-        f.create_dataset("Y_validate", data=Y_validate[validate_start:validate_end])
-        f.create_dataset("X_validate_IC", data=X_validate_IC[validate_start:validate_end])
-        f.create_dataset("X_validate_DC", data=X_validate_DC[validate_start:validate_end])
-    if use_old_reco:
-        f.create_dataset("reco_train",data=reco_train[train_start:train_end])
-        f.create_dataset("reco_test",data=reco_test[test_start:test_end])
+
+    if not test_only:
+        f.create_dataset("Y_train", data=Y_train[train_start:train_end])
+        f.create_dataset("X_train_DC", data=X_train_DC[train_start:train_end])
+        f.create_dataset("X_train_IC", data=X_train_IC[train_start:train_end])
+        f.create_dataset("weights_train", data=weights_train[train_start:train_end])
         if create_validation:
-            f.create_dataset("reco_validate",data=reco_validate[validate_start:validate_end])
+            f.create_dataset("Y_validate", data=Y_validate[validate_start:validate_end])
+            f.create_dataset("X_validate_IC", data=X_validate_IC[validate_start:validate_end])
+            f.create_dataset("X_validate_DC", data=X_validate_DC[validate_start:validate_end])
+            f.create_dataset("weights_validate", data=weights_validate[validate_start:validate_end])
+    if use_old_reco:
+        f.create_dataset("reco_test",data=reco_test[test_start:test_end])
+        if not test_only:
+            f.create_dataset("reco_train",data=reco_train[train_start:train_end])
+            if create_validation:
+                f.create_dataset("reco_validate",data=reco_validate[validate_start:validate_end])
     f.close()
                    
