@@ -24,7 +24,6 @@ from scipy.interpolate import UnivariateSpline
 from scipy import interpolate
 import scipy.stats
 import itertools
-import wquantiles as wq
 
 import matplotlib 
 matplotlib.rc('xtick', labelsize=20) 
@@ -37,6 +36,9 @@ font = {'family' : 'normal',
 matplotlib.rc('font', **font)
 
 def get_RMS(resolution,weights=None):
+    if weights is not None:
+        import wquantiles as wq
+
     mean_array = numpy.ones_like(resolution)*numpy.mean(resolution)
     if weights is None:
         rms = numpy.sqrt( sum((mean_array - resolution)**2)/len(resolution) )
@@ -73,6 +75,8 @@ def find_contours_2D(x_values,y_values,xbins,weights=None,c1=16,c2=84):
         y_lower = values for y value lower limits per bin, repeated for plotting (i.e. [30,30,10,10,20,20,...]
         y_upper = values for y value upper limits per bin, repeated for plotting (i.e. [50,50,40,40,60,60,...]
     """
+    if weights is not None:
+        import wquantiles as wq
     y_values = numpy.array(y_values)
     indices = numpy.digitize(x_values,xbins)
     r1_save = []
@@ -252,7 +256,7 @@ def plot_distributions_CCNC(truth_all_labels,truth,reco,save=False,savefolder=No
         plt.savefig("%sNNEnergyDistribution_CCNC.png"%savefolder)
     plt.close()
 
-def plot_distributions(truth,reco,save=False,savefolder=None,variable="Energy",units="(GeV)"):
+def plot_distributions(truth,reco=None,save=False,savefolder=None,old_reco=None,weights=None,variable="Energy",units="(GeV)",reco_name="Retro", minval=None, maxval=None,bins=100,cnn_name="CNN",log=False):
     """
     Plot testing set distribution
     Recieves:
@@ -265,58 +269,45 @@ def plot_distributions(truth,reco,save=False,savefolder=None,variable="Energy",u
     Returns:
         1D histogram of variable's absolute distribution for truth and for reco overlaid
     """
-    max_range = numpy.max([numpy.max(truth),numpy.max(reco)])
-    min_range = numpy.min([numpy.min(truth),numpy.min(reco)])
+    if maxval is None:
+        if old_reco is None:
+            maxval = numpy.max([numpy.max(truth),numpy.max(reco)])
+        else:
+            maxval = numpy.max([numpy.max([numpy.max(truth),numpy.max(reco)]),numpy.max(old_reco)])
+    if minval is None:
+        if old_reco is None:
+            minval = numpy.min([numpy.min(truth),numpy.min(reco)])
+        else:
+            minval = numpy.min([numpy.min([numpy.min(truth),numpy.min(reco)]),numpy.min(old_reco)])
     plt.figure(figsize=(10,7))
-    plt.title("%s Distribution"%variable,fontsize=25)
-    plt.hist(truth, bins=100,color='b',alpha=0.5,range=[min_range,max_range],label="Truth");
-    plt.hist(reco, bins=100,color='g', alpha=0.5,range=[min_range,max_range],label="NN Reco");
+    name = ""
+    if weights is not None:
+        name += "Weighted"
+    plt.title("%s %s Distribution"%(name,variable),fontsize=25)
+    plt.hist(truth, bins=bins,color='g',alpha=0.5,range=[minval,maxval],weights=weights,label="Truth");
+    maskT = numpy.logical_and(truth > minval, truth < maxval)
+    print("Truth Total: %i, Events in Plot: %i, Overflow: %i"%(len(truth),sum(maskT),len(truth)-sum(maskT)))
+    name += "T"
+    if reco is not None:
+        plt.hist(reco, bins=bins,color='b', alpha=0.5,range=[minval,maxval],weights=weights,label=cnn_name);
+        name += "R"
+        maskR = numpy.logical_and(reco > minval, reco < maxval)
+        print("Reco Total: %i, Events in Plot: %i, Overflow: %i"%(len(reco),sum(maskR),len(reco)-sum(maskR)))
+    if old_reco is not None:
+        plt.hist(old_reco, bins=bins,color='orange', alpha=0.5,range=[minval,maxval],weights=weights,label=reco_name);
+        name += "OR"
+        maskOR = numpy.logical_and(old_reco > minval, old_reco < maxval)
+        print("Old Reco Total: %i, Events in Plot: %i, Overflow: %i"%(len(old_reco),sum(maskOR),len(old_reco)-sum(maskOR)))
     plt.xlabel("%s (%s)"%(variable,units),fontsize=20)
+    if log:
+        plt.yscale("log")
     plt.legend(fontsize=10)
+
+    name += "%s"%variable.replace(" ","")
     if save:
-        plt.savefig("%s%sDistribution.png"%(savefolder,variable))
+        plt.savefig("%s%sDistribution_%ito%i.png"%(savefolder,name,int(minval),int(maxval)))
     plt.close()
 
-def plot_weighted_distributions(truth,reco,save=False,savefolder=None,weights=None,old_reco=None,reco_name="",variable="Energy",units="(GeV)"):
-    """
-    Plot testing set distribution
-    Recieves:
-        truth = array, Y_test truth labels
-        reco = array, neural network prediction output
-        save = optional, bool to save plot
-        savefolder = optional, output folder to save to, if not in current dir
-        variable = string, variable name
-        units = string, units for variable
-    Returns:
-        1D histogram of variable's absolute distribution for truth and for reco overlaid
-    """
-    given_max=100
-    given_min = 0
-    max_range = numpy.max([numpy.max(truth),numpy.max(reco)])
-    min_range = numpy.min([numpy.min(truth),numpy.min(reco)])
-    plt.figure(figsize=(10,7))
-    title="%s Distribution"%variable
-    if weights is not None:
-        title = "Weighted %s Distribution"%variable
-    plt.title(title,fontsize=25)
-    keep_true = numpy.logical_and(truth>min_range,truth<max_range)
-    keep_reco = numpy.logical_and(reco>min_range,reco<max_range)
-    keep_old_reco = numpy.logical_and(old_reco>min_range,old_reco<max_range)
-    
-    plt.hist(truth, bins=100,color='red',alpha=0.5,range=[min_range,max_range],weights=weights,label="Truth");
-    plt.hist(reco, bins=100,color='b', alpha=0.5,range=[min_range,max_range],weights=weights,label="NN Reco");
-    if old_reco is not None:
-        plt.hist(old_reco, bins=100,color='g', alpha=0.5,range=[min_range,max_range],weights=weights,label="%s"%reco_name);
-    plt.xlabel("%s %s"%(variable,units),fontsize=20)
-    plt.xticks(fontsize=15)
-    plt.yticks(fontsize=15)
-    plt.legend(fontsize=20)
-    savename = title.replace(" ","")
-    if old_reco is not None:
-        savename+="_%s"%(reco_name.replace(" ",""))
-    if save:
-        plt.savefig("%s%s%s.png"%(savefolder,variable,savename))
-    plt.close()
 
 def plot_2D_prediction(truth, nn_reco, \
                         save=False,savefolder=None,weights=None,syst_set="",\
@@ -396,10 +387,10 @@ def plot_2D_prediction(truth, nn_reco, \
     plt.figure(figsize=(10,7))
     if log:
         cts,xbin,ybin,img = plt.hist2d(truth, nn_reco, bins=bins,range=[[xmin,xmax],[ymin,ymax]],\
-                        cmap='viridis_r', norm=colors.LogNorm(), weights=weights, cmax=zmax, cmin=cmax)
+                        cmap='viridis_r', norm=colors.LogNorm(), weights=weights, cmax=zmax, cmin=cmin)
     else:
         cts,xbin,ybin,img = plt.hist2d(truth, nn_reco, bins=bins,range=[[xmin,xmax],[ymin,ymax]],\
-                        cmap='viridis_r', weights=weights, cmax=zmax, cmin=cmax)
+                        cmap='viridis_r', weights=weights, cmax=zmax, cmin=cmin)
     cbar = plt.colorbar()
     cbar.ax.set_ylabel('counts', rotation=90)
     plt.xlabel("True Neutrino %s %s"%(variable,units),fontsize=20)
@@ -602,6 +593,8 @@ def plot_single_resolution(truth,nn_reco,weights=None, \
         Can have two distributions of NN Reco Resolution vs Pegleg Reco Resolution
     """
 
+    if weights is not None:
+        import wquantiles as wq
     fig, ax = plt.subplots(figsize=(10,7))
 
     ## Assume old_reco truth is the same as test sample, option to set it otherwise
@@ -644,11 +637,13 @@ def plot_single_resolution(truth,nn_reco,weights=None, \
         true_mask = numpy.logical_and(truth >= mintrue, truth <= maxtrue)
         title += "\n(true %s [%.2f, %.2f])"%(variable,mintrue,maxtrue)
         nn_resolution = nn_resolution[true_mask]
-        weights = weights[true_mask]
+        if weights is not None:
+            weights = weights[true_mask]
         if use_old_reco:
             true2_mask = numpy.logical_and(truth2 >= mintrue, truth2 <= maxtrue)
             old_reco_resolution = old_reco_resolution[true2_mask]
-            weights_reco = weights_reco[true2_mask]
+            if weights is not None:
+                weights_reco = weights_reco[true2_mask]
     true_cut_size=len(nn_resolution)
     
     
@@ -694,12 +689,14 @@ def plot_single_resolution(truth,nn_reco,weights=None, \
     if axis_cut:
         axis_mask = numpy.logical_and(nn_resolution >= minaxis, nn_resolution <= maxaxis)
         nn_resolution = nn_resolution[axis_mask]
-        weights = weights[axis_mask]
+        if weights is not None:
+            weights = weights[axis_mask]
         if use_old_reco:
             reco_axis_mask = numpy.logical_and(old_reco_resolution >= minaxis, old_reco_resolution <= maxaxis)
             old_reco_resolution = old_reco_resolution[reco_axis_mask]
             reco_len = len(old_reco_resolution)
-            weights_reco = weights_reco[reco_axis_mask]
+            if weights is not None:
+                weights_reco = weights_reco[reco_axis_mask]
            
     true_axis_cut_size=len(nn_resolution)
 
@@ -930,7 +927,8 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
                        use_fraction = False, old_reco=None,old_reco_truth=None, reco_energy_truth=None,\
                        bins=10,min_val=0.,max_val=60., ylim = None,\
                        save=False,savefolder=None,vs_predict=False,\
-                       variable="Energy",units="(GeV)",epochs=None,reco_name="PegLeg"):
+                       variable="Energy",units="(GeV)",xvariable="Energy",xunits="(GeV)",\
+                       epochs=None,reco_name="PegLeg"):
     """Plots different variable slices vs each other (systematic set arrays)
     Receives:
         truth= array with truth labels for this one variable
@@ -946,6 +944,8 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
         Scatter plot with energy values on x axis (median of bin width)
         y axis has median of resolution with error bars containing 68% of resolution
     """
+    if weights is not None:
+        import wquantiles as wq
     nn_reco = numpy.array(nn_reco)
     truth = numpy.array(truth)
      ## Assume old_reco truth is the same as test sample, option to set it otherwise
@@ -999,7 +999,7 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
                 x_axis_array = truth
                 x_axis_array2 = truth2
             else:
-                title="%s Resolution Energy Dependence"%(variable)
+                title="%s Resolution %s Dependence"%(variable,xvariable)
                 energy_truth = numpy.array(energy_truth)
                 x_axis_array = energy_truth
                 x_axis_array2 = energy_truth2
@@ -1065,20 +1065,21 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
     if weights is not None:
         savename += "Weighted"
     if energy_truth is not None:
-        savename += "_EnergyBinned"
-        plt.xlabel("True Energy (GeV)",fontsize=20)
+        xvar_no_space = xvariable.replace(" ","")
+        savename += "_%sBinned"%xvar_no_space
+        plt.xlabel("True %s %s"%(xvariable,xunits),fontsize=20)
     if old_reco is not None:
         savename += "_Compare%sReco"%reco_name
     if type(ylim) is not None:
         savename += "_ylim"
     if save == True:
-        plt.savefig("%s%s.png"%(savefolder,savename))
+        plt.savefig("%s%s.png"%(savefolder,savename),bbox_inches='tight')
     plt.close()
 
 def plot_rms_slices(truth, nn_reco, energy_truth=None, use_fraction = False,  \
                        old_reco=None,old_reco_truth=None, reco_energy_truth=None,\
                        bins=10,min_val=0.,max_val=60., ylim = None,weights=None,\
-                       save=False,savefolder=None,use_rms=False,\
+                       save=False,savefolder=None,\
                        variable="Energy",units="(GeV)",epochs=None,reco_name="PegLeg"):
     """Plots different variable slices vs each other (systematic set arrays)
     Receives:
@@ -1205,7 +1206,7 @@ def plot_rms_slices(truth, nn_reco, energy_truth=None, use_fraction = False,  \
     if type(ylim) is not None:
         savename += "_ylim"
     if save == True:
-        plt.savefig("%s%s.png"%(savefolder,savename))
+        plt.savefig("%s%s.png"%(savefolder,savename),bbox_inches='tight')
     plt.close()
 
 def imshow_plot(array,name,emin,emax,tmin,tmax,zlabel,savename):
