@@ -144,11 +144,12 @@ def get_observable_features(frame,low_window=-500,high_window=4000):
             charge = pulse.charge
 
             #Cut any pulses < 0.25 PE
-            #if charge < 0.25:
-            #    continue
-            #Quantize pulse chargest to make all seasons appear the same
-            #quanta = 0.05
-            #charge = (np.float64(charge) // quanta) * quanta + quanta / 2.
+            if charge < 0.25:
+                continue
+            
+            # Quantize pulse chargest to make all seasons appear the same
+            quanta = 0.05
+            charge = (np.float64(charge) // quanta) * quanta + quanta / 2.
 
             if string_val not in store_string:
                 store_string.append(string_val)
@@ -298,6 +299,7 @@ def read_files(filename_list, use_old_reco, check_filters, true_name, reco_type)
     output_weights = []
     isOther_count = 0
     passed_all_filters = 0
+    skipped_triggers = 0
 
     for event_file_name in filename_list:
         print("reading file: {}".format(event_file_name))
@@ -310,175 +312,180 @@ def read_files(filename_list, use_old_reco, check_filters, true_name, reco_type)
                 if header.sub_event_stream != "InIceSplit":
                     continue
             
-            # ALWAYS USE EVENTS THAT PASSES CLEANING!
-            #if use_cleaned_pulses:
-            try:
-                cleaned = frame["SRTTWOfflinePulsesDC"]
-            except:
-                continue
-            
-            # Check filters
-            if check_filters:
-                DCFilter = frame["FilterMask"].get("DeepCoreFilter_13").condition_passed
-                L3Filter = frame["L3_oscNext_bool"]
-                L4Filter = frame["L4_oscNext_bool"]
-                L5Filter = frame["L5_oscNext_bool"]
-                if (DCFilter and L3Filter and L4Filter and L5Filter):
-                    passed_all_filters +=1
-                else:
-                    continue
-
-            # GET TRUTH LABELS
-            nu = frame["I3MCTree"][0]
-            
-            if true_name:
-                nu_check = frame[true_name]
-                assert nu==nu_check,"CHECK I3MCTree[0], DOES NOT MATCH TRUTH IN GIVEN KEY"
-            
-            if (nu.type != dataclasses.I3Particle.NuMu and nu.type != dataclasses.I3Particle.NuMuBar\
-                and nu.type != dataclasses.I3Particle.NuE and nu.type != dataclasses.I3Particle.NuEBar\
-                and nu.type != dataclasses.I3Particle.NuTau and nu.type != dataclasses.I3Particle.NuTauBar):
-                print("PARTICLE IS NOT NEUTRUNO!! Skipping event...")
-                continue           
- 
-            nu_x = nu.pos.x
-            nu_y = nu.pos.y
-            nu_z = nu.pos.z
-            nu_zenith = nu.dir.zenith
-            nu_azimuth = nu.dir.azimuth
-            nu_energy = nu.energy
-            nu_time = nu.time
-            isTrack = frame['I3MCWeightDict']['InteractionType']==1.   # it is a cascade with a trac
-            isCascade = frame['I3MCWeightDict']['InteractionType']==2. # it is just a cascade
-            isCC = frame['I3MCWeightDict']['InteractionType']==1.
-            isNC = frame['I3MCWeightDict']['InteractionType']==2.
-            isOther = not isCC and not isNC
-           
-
-
-            if use_old_reco:
-
-                if reco_type == "retro":
-                    fit_success = ( "retro_crs_prefit__fit_status" in frame ) and frame["retro_crs_prefit__fit_status"] == 0
-                    if fit_success:
-                        reco_energy = frame['L7_reconstructed_total_energy'].value
-                        reco_time = frame['L7_reconstructed_time'].value
-                        reco_zenith = frame['L7_reconstructed_zenith'].value
-                        reco_azimuth = frame['L7_reconstructed_azimuth'].value
-                        reco_x = frame['L7_reconstructed_vertex_x'].value
-                        reco_y = frame['L7_reconstructed_vertex_y'].value
-                        reco_z = frame['L7_reconstructed_vertex_z'].value
-                        reco_length = frame['L7_reconstructed_track_length'].value
-                        reco_casc_energy = frame['L7_reconstructed_cascade_energy'].value
-                        reco_track_energy = frame['L7_reconstructed_track_energy'].value
-                        reco_em_casc_energy = frame['L7_reconstructed_em_cascade_energy'].value
+                # ALWAYS USE EVENTS THAT PASSES CLEANING!
+                #if use_cleaned_pulses:
+                #try:
+                #    cleaned = frame["SRTTWOfflinePulsesDC"]
+                #except:
+                #    continue
+                
+                # Check filters
+                if check_filters:
+                    DCFilter = frame["FilterMask"].get("DeepCoreFilter_13").condition_passed
+                    L3Filter = frame["L3_oscNext_bool"]
+                    L4Filter = frame["L4_oscNext_bool"]
+                    L5Filter = frame["L5_oscNext_bool"]
+                    if (DCFilter and L3Filter and L4Filter and L5Filter):
+                        passed_all_filters +=1
                     else:
                         continue
-                        #reco_energy =0
-                        #reco_time = 0
-                        #reco_zenith =0
-                        #reco_azimuth = 0 
-                        #reco_x = 0
-                        #reco_y = 0
-                        #reco_z = 0
-                        #reco_length =0
-                        #reco_casc_energy = 0
-                        #reco_track_energy = 0
-                        #reco_em_casc_energy = 0
 
-                if reco_type == "pegleg":
-                    if not frame.Has('IC86_Dunkman_L6_PegLeg_MultiNest8D_NumuCC'):
-                        continue
-                    reco_nu = frame['IC86_Dunkman_L6_PegLeg_MultiNest8D_NumuCC']
-                    reco_length = reco_nu.length
-                    reco_energy = reco_nu.energy
-                    reco_time = reco_nu.time
-                    reco_zenith = reco_nu.dir.zenith
-                    reco_azimuth = reco_nu.dir.azimuth
-                    reco_x = reco_nu.pos.x
-                    reco_y = reco_nu.pos.y
-                    reco_z = reco_nu.pos.z
-                    reco_casc_energy = frame['IC86_Dunkman_L6_PegLeg_MultiNest8D_HDCasc'].energy
-                    reco_track_energy = frame['IC86_Dunkman_L6_PegLeg_MultiNest8D_Track'].energy
-                    reco_em_casc_energy = frame['IC86_Dunkman_L6_PegLeg_MultiNest8D_EMCasc'].energy
+                # GET TRUTH LABELS
+                nu = frame["I3MCTree"][0]
+                
+                if true_name:
+                    nu_check = frame[true_name]
+                    assert nu==nu_check,"CHECK I3MCTree[0], DOES NOT MATCH TRUTH IN GIVEN KEY"
+                
+                if (nu.type != dataclasses.I3Particle.NuMu and nu.type != dataclasses.I3Particle.NuMuBar\
+                    and nu.type != dataclasses.I3Particle.NuE and nu.type != dataclasses.I3Particle.NuEBar\
+                    and nu.type != dataclasses.I3Particle.NuTau and nu.type != dataclasses.I3Particle.NuTauBar):
+                    print("PARTICLE IS NOT NEUTRUNO!! Skipping event...")
+                    continue           
+ 
+                nu_x = nu.pos.x
+                nu_y = nu.pos.y
+                nu_z = nu.pos.z
+                nu_zenith = nu.dir.zenith
+                nu_azimuth = nu.dir.azimuth
+                nu_energy = nu.energy
+                nu_time = nu.time
+                isTrack = frame['I3MCWeightDict']['InteractionType']==1.   # it is a cascade with a trac
+                isCascade = frame['I3MCWeightDict']['InteractionType']==2. # it is just a cascade
+                isCC = frame['I3MCWeightDict']['InteractionType']==1.
+                isNC = frame['I3MCWeightDict']['InteractionType']==2.
+                isOther = not isCC and not isNC
+               
 
 
-            # input file sanity check: this should not print anything since "isOther" should always be false
-            if isOther:
-                print("isOTHER - not Track or Cascade...skipping event...")
-                isOther_count += 1
-                continue
+                if use_old_reco:
 
-                #print(frame['I3MCWeightDict'])
-            
-            # set track classification for numu CC only
-            if ((nu.type == dataclasses.I3Particle.NuMu or nu.type == dataclasses.I3Particle.NuMuBar) and isCC):
-                isTrack = True
-                isCascade = False
-                if frame["I3MCTree"][1].type == dataclasses.I3Particle.MuMinus or frame["I3MCTree"][1].type == dataclasses.I3Particle.MuPlus:
-                    track_length = frame["I3MCTree"][1].length
-                else:
-                    print("Second particle in MCTree not muon for numu CC? Skipping event...")
+                    if reco_type == "retro":
+                        fit_success = ( "retro_crs_prefit__fit_status" in frame ) and frame["retro_crs_prefit__fit_status"] == 0
+                        if fit_success:
+                            reco_energy = frame['L7_reconstructed_total_energy'].value
+                            reco_time = frame['L7_reconstructed_time'].value
+                            reco_zenith = frame['L7_reconstructed_zenith'].value
+                            reco_azimuth = frame['L7_reconstructed_azimuth'].value
+                            reco_x = frame['L7_reconstructed_vertex_x'].value
+                            reco_y = frame['L7_reconstructed_vertex_y'].value
+                            reco_z = frame['L7_reconstructed_vertex_z'].value
+                            reco_length = frame['L7_reconstructed_track_length'].value
+                            reco_casc_energy = frame['L7_reconstructed_cascade_energy'].value
+                            reco_track_energy = frame['L7_reconstructed_track_energy'].value
+                            reco_em_casc_energy = frame['L7_reconstructed_em_cascade_energy'].value
+                        else:
+                            continue
+                            #reco_energy =0
+                            #reco_time = 0
+                            #reco_zenith =0
+                            #reco_azimuth = 0 
+                            #reco_x = 0
+                            #reco_y = 0
+                            #reco_z = 0
+                            #reco_length =0
+                            #reco_casc_energy = 0
+                            #reco_track_energy = 0
+                            #reco_em_casc_energy = 0
+
+                    if reco_type == "pegleg":
+                        if not frame.Has('IC86_Dunkman_L6_PegLeg_MultiNest8D_NumuCC'):
+                            continue
+                        reco_nu = frame['IC86_Dunkman_L6_PegLeg_MultiNest8D_NumuCC']
+                        reco_length = reco_nu.length
+                        reco_energy = reco_nu.energy
+                        reco_time = reco_nu.time
+                        reco_zenith = reco_nu.dir.zenith
+                        reco_azimuth = reco_nu.dir.azimuth
+                        reco_x = reco_nu.pos.x
+                        reco_y = reco_nu.pos.y
+                        reco_z = reco_nu.pos.z
+                        reco_casc_energy = frame['IC86_Dunkman_L6_PegLeg_MultiNest8D_HDCasc'].energy
+                        reco_track_energy = frame['IC86_Dunkman_L6_PegLeg_MultiNest8D_Track'].energy
+                        reco_em_casc_energy = frame['IC86_Dunkman_L6_PegLeg_MultiNest8D_EMCasc'].energy
+
+
+                # input file sanity check: this should not print anything since "isOther" should always be false
+                if isOther:
+                    print("isOTHER - not Track or Cascade...skipping event...")
+                    isOther_count += 1
                     continue
-            else:
-                isTrack = False
-                isCascade = True
-                track_length = 0
+
+                    #print(frame['I3MCWeightDict'])
+                
+                # set track classification for numu CC only
+                if ((nu.type == dataclasses.I3Particle.NuMu or nu.type == dataclasses.I3Particle.NuMuBar) and isCC):
+                    isTrack = True
+                    isCascade = False
+                    if frame["I3MCTree"][1].type == dataclasses.I3Particle.MuMinus or frame["I3MCTree"][1].type == dataclasses.I3Particle.MuPlus:
+                        track_length = frame["I3MCTree"][1].length
+                    else:
+                        print("Second particle in MCTree not muon for numu CC? Skipping event...")
+                        continue
+                else:
+                    isTrack = False
+                    isCascade = True
+                    track_length = 0
+            
+                #Save flavor and particle type (anti or not)
+                if (nu.type == dataclasses.I3Particle.NuMu):
+                    neutrino_type = 14
+                    particle_type = 0 #particle
+                elif (nu.type == dataclasses.I3Particle.NuMuBar):
+                    neutrino_type = 14
+                    particle_type = 1 #antiparticle
+                elif (nu.type == dataclasses.I3Particle.NuE):
+                    neutrino_type = 12
+                    particle_type = 0 #particle
+                elif (nu.type == dataclasses.I3Particle.NuEBar):
+                    neutrino_type = 12
+                    particle_type = 1 #antiparticle
+                elif (nu.type == dataclasses.I3Particle.NuTau):
+                    neutrino_type = 16
+                    particle_type = 0 #particle
+                elif (nu.type == dataclasses.I3Particle.NuTauBar):
+                    neutrino_type = 16
+                    particle_type = 1 #antiparticle
+                else:
+                    print("Do not know first particle type in MCTree, should be neutrino, skipping this event")
+                    continue
+                
+                DC_array, IC_near_DC_array,initial_stats,num_pulses_per_dom, trig_time, extra_triggers, ICstrings, total_pulses  = get_observable_features(frame)
+
+                # Check if there were multiple SMT3 triggers or no SMT3 triggers
+                # Skip event if so
+                if extra_triggers > 0 or trig_time == None:
+                    skipped_triggers +=1
+                    continue
+                
+                # Remove events with less than 8 hits
+                if total_pulses < 8:
+                    continue
+
+                # regression variables
+                # OUTPUT: [ nu energy, nu zenith, nu azimuth, nu time, nu x, nu y, nu z, track length (0 for cascade), isTrack, flavor, type (anti = 1), isCC]
+                output_labels.append( np.array([ float(nu_energy), float(nu_zenith), float(nu_azimuth), float(nu_time), float(nu_x), float(nu_y), float(nu_z), float(track_length), float(isTrack), float(neutrino_type), float(particle_type), float(isCC) ]) )
+
+                if use_old_reco:
+                    output_reco_labels.append( np.array([ float(reco_energy), float(reco_zenith), float(reco_azimuth), float(reco_time), float(reco_x), float(reco_y), float(reco_z), float(reco_length), float(reco_track_energy), float(reco_casc_energy), float(reco_em_casc_energy) ]) )
+
+                #Save weights
+                #[File, RunID, SubrunID, EventID, NEvents, OneWeight, NormalizedOneWeight, GENIEWeight, InteractionProbabilityWeight, SinglePowerLawFlux_flux => 0.00154532, SinglePowerLawFlux_index, SinglePowerLawFlux_norm, SinglePowerLawFlux_weight, TotalInteractionProbabilityWeight, weight] 
+                weights = frame['I3MCWeightDict']
+                #from dragon_weights import weight_frame 
+                if reco_type == "pegleg":
+                    #the_weight = weight_frame(frame)
+                    output_weights.append( np.array([ float(header.run_id), float(header.sub_run_id), float(header.event_id), float(weights["NEvents"]), float(weights["OneWeight"]),  float(weights["GENIEWeight"]), float(weights["PowerLawIndex"]), float(0.3)]) ) #, float(the_weight)  ]) )
+                else:
+                    output_weights.append( np.array([ float(header.run_id), float(header.sub_run_id), float(header.event_id), float(weights["NEvents"]), float(weights["OneWeight"]), float(weights["GENIEWeight"]),float(weights["PowerLawIndex"]), float(weights["gen_ratio"]), float(weights["weight"]) ]) )
+            # close the input file once we are done
         
-            #Save flavor and particle type (anti or not)
-            if (nu.type == dataclasses.I3Particle.NuMu):
-                neutrino_type = 14
-                particle_type = 0 #particle
-            elif (nu.type == dataclasses.I3Particle.NuMuBar):
-                neutrino_type = 14
-                particle_type = 1 #antiparticle
-            elif (nu.type == dataclasses.I3Particle.NuE):
-                neutrino_type = 12
-                particle_type = 0 #particle
-            elif (nu.type == dataclasses.I3Particle.NuEBar):
-                neutrino_type = 12
-                particle_type = 1 #antiparticle
-            elif (nu.type == dataclasses.I3Particle.NuTau):
-                neutrino_type = 16
-                particle_type = 0 #particle
-            elif (nu.type == dataclasses.I3Particle.NuTauBar):
-                neutrino_type = 16
-                particle_type = 1 #antiparticle
-            else:
-                print("Do not know first particle type in MCTree, should be neutrino, skipping this event")
-                continue
-            
-            DC_array, IC_near_DC_array,initial_stats,num_pulses_per_dom, trig_time, extra_triggers, ICstrings, total_pulses  = get_observable_features(frame)
 
-            # Check if there were multiple SMT3 triggers or no SMT3 triggers
-            # Skip event if so
-            if extra_triggers > 0 or trig_time == None:
-                continue
-            
-            # regression variables
-            # OUTPUT: [ nu energy, nu zenith, nu azimuth, nu time, nu x, nu y, nu z, track length (0 for cascade), isTrack, flavor, type (anti = 1), isCC]
-            output_labels.append( np.array([ float(nu_energy), float(nu_zenith), float(nu_azimuth), float(nu_time), float(nu_x), float(nu_y), float(nu_z), float(track_length), float(isTrack), float(neutrino_type), float(particle_type), float(isCC) ]) )
-
-            if use_old_reco:
-                output_reco_labels.append( np.array([ float(reco_energy), float(reco_zenith), float(reco_azimuth), float(reco_time), float(reco_x), float(reco_y), float(reco_z), float(reco_length), float(reco_track_energy), float(reco_casc_energy), float(reco_em_casc_energy) ]) )
-
-            #Save weights
-            #[File, RunID, SubrunID, EventID, NEvents, OneWeight, NormalizedOneWeight, GENIEWeight, InteractionProbabilityWeight, SinglePowerLawFlux_flux => 0.00154532, SinglePowerLawFlux_index, SinglePowerLawFlux_norm, SinglePowerLawFlux_weight, TotalInteractionProbabilityWeight, weight] 
-            weights = frame['I3MCWeightDict']
-            #from dragon_weights import weight_frame 
-            if reco_type == "pegleg":
-                #the_weight = weight_frame(frame)
-                output_weights.append( np.array([ float(header.run_id), float(header.sub_run_id), float(header.event_id), float(weights["NEvents"]), float(weights["OneWeight"]),  float(weights["GENIEWeight"]), float(weights["PowerLawIndex"]), float(0.3)]) ) #, float(the_weight)  ]) )
-            else:
-                output_weights.append( np.array([ float(header.run_id), float(header.sub_run_id), float(header.event_id), float(weights["NEvents"]), float(weights["OneWeight"]), float(weights["GENIEWeight"]),float(weights["PowerLawIndex"]), float(weights["gen_ratio"]), float(weights["weight"]) ]) )
-        # close the input file once we are done
-    
-
-            output_features_DC.append(DC_array)
-            output_features_IC.append(IC_near_DC_array)
-            output_initial_stats.append(initial_stats)
-            output_num_pulses_per_dom.append(num_pulses_per_dom)
-            output_trigger_times.append(trig_time)
+                output_features_DC.append(DC_array)
+                output_features_IC.append(IC_near_DC_array)
+                output_initial_stats.append(initial_stats)
+                output_num_pulses_per_dom.append(num_pulses_per_dom)
+                output_trigger_times.append(trig_time)
 
         del event_file
 
@@ -491,6 +498,8 @@ def read_files(filename_list, use_old_reco, check_filters, true_name, reco_type)
     output_weights = np.asarray(output_weights)
     if use_old_reco:
         output_reco_labels=np.asarray(output_reco_labels)
+
+    print("Skipped %i events due to no or double triggers"%skipped_triggers)
 
     return output_features_DC, output_features_IC, output_labels, output_reco_labels, output_initial_stats, output_num_pulses_per_dom, output_trigger_times, output_weights, ICstrings
 
@@ -508,6 +517,7 @@ features_DC, features_IC, labels, output_label_names, input_transform_factors, o
 
 time_end=time.time()
 print("Total time: %f"%(time_end-time_start))
+print("Total events : %i"%labels.shape[0])
 
 #Save output to hdf5 file
 number_files = len(event_file_names)
@@ -516,7 +526,7 @@ if number_files > 1:
     num_file_name = "_%sfiles"%number_files
 if not output_name:
     output_name = event_file_names[0].split("/")[-1]
-output_path = output_dir + output_name + "_NOvertex_IC" + str(ICstrings) + num_file_name + ".hdf5"
+output_path = output_dir + output_name + "_transformed_IC" + str(ICstrings) + num_file_name + ".hdf5"
 f = h5py.File(output_path, "w")
 f.create_dataset("features_DC", data=features_DC)
 f.create_dataset("features_IC", data=features_IC)

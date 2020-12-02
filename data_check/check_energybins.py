@@ -45,8 +45,10 @@ parser.add_argument("--emax",type=float,default=100.0,
                     dest="emax",help="Cut anything greater than this energy (in GeV)")
 parser.add_argument("--emin",type=float,default=5.0,
                     dest="emin",help="Cut anything less than this energy (in GeV)")
-parser.add_argument("--tmax",type=float,default=1.0,
-                    dest="tmax",help="Multiplication factor for track")
+parser.add_argument("--efactor",type=float,default=100,
+                    dest="efactor",help="Multiplication factor for energy")
+parser.add_argument("--tfactor",type=float,default=200,
+                    dest="tfactor",help="Multiplication factor for track")
 parser.add_argument("-c", "--cuts",type=str, default="CC",
                     dest="cuts", help="Type of events to keep (all, cascade, track, CC, NC, etc.)")
 parser.add_argument("--labels",type=str,default="labels",
@@ -65,7 +67,8 @@ event_file_names = sorted(glob.glob(files_with_paths))
 
 emax = args.emax
 emin = args.emin
-track_max = args.tmax
+efactor = args.efactor
+tfactor = args.tfactor
 bin_size = args.bin_size
 cut_name = args.cuts
 energy_bin_array = np.arange(emin,emax,bin_size)
@@ -106,15 +109,16 @@ for a_file in event_file_names:
     if transformed:
         azimuth_indx = 7
         track_index = 2
-        file_labels[:,0] = file_labels[:,0]*emax
+        file_labels[:,0] = file_labels[:,0]*efactor
         file_labels[:,1] = np.arccos(file_labels[:,1])
+        file_labels[:,track_index] = file_labels[:,0]*tfactor
 
     if file_labels.shape[0] == 0:
         print("Empty file...skipping...")
         continue
     
     type_mask = CutMask(file_labels)
-    vertex_mask = VertexMask(file_labels,azimuth_index=azimuth_index,track_index=track_index,max_track=track_max)
+    vertex_mask = VertexMask(file_labels,azimuth_index=azimuth_index,track_index=track_index,max_track=tfactor)
     vertex_cut = np.logical_and(vertex_mask[start_cut], vertex_mask[end_cut])
     mask = np.logical_and(type_mask[cut_name], vertex_cut)
     mask = np.array(mask,dtype=bool)
