@@ -85,6 +85,28 @@ def get_observable_features(frame,low_window=-500,high_window=4000):
     else:
         ice_pulses = dataclasses.I3RecoPulseSeriesMap.from_frame(frame,'SplitInIcePulses')
 
+    #First cut: Check if there are 8 cleaned pulses > 0.25 PE
+    cleaned_ice_pulses = dataclasses.I3RecoPulseSeriesMap.from_frame(frame,'SRTTWOfflinePulsesDC')
+    count_cleaned_pulses = 0
+    clean_pulses_8_or_more = False
+    for omkey, pulselist in cleaned_ice_pulses:
+        if clean_pulses_8_or_more == True:
+            break
+        for pulse in pulselist:
+
+            a_charge = pulse.charge
+
+            #Cut any pulses < 0.25 PE
+            if a_charge < 0.25:
+                continue
+
+            #Count number pulses > 0.25 PE in event
+            count_cleaned_pulses +=1
+            if count_cleaned_pulses >=8:
+                clean_pulses_8_or_more = True
+                break
+                
+    
     #Look inside ice pulses and get stats on charges and time
     # DC = deep core which is certain strings/DOMs in IceCube
     store_string = []
@@ -102,7 +124,6 @@ def get_observable_features(frame,low_window=-500,high_window=4000):
     charge_outside = 0
     count_inside = 0
     charge_inside = 0
-    total_pulses = 0
 
     # Config 1011 is SMT3
     # dataclasses.TriggerKey(source, ttype, config_id)
@@ -128,111 +149,112 @@ def get_observable_features(frame,low_window=-500,high_window=4000):
     array_DC[...,1:] = -20000
     array_IC_near_DC[...,1:] = -20000
     
-    for omkey, pulselist in ice_pulses:
-        dom_index =  omkey.om-1
-        string_val = omkey.string
-        timelist = []
-        chargelist = []
+    #Only go through pulse series if we're keeping it    
+    if clean_pulses_8_or_more == True:
+        for omkey, pulselist in ice_pulses:
+            dom_index =  omkey.om-1
+            string_val = omkey.string
+            timelist = []
+            chargelist = []
 
-        DC_flag = False
-        IC_near_DC_flag = False
+            DC_flag = False
+            IC_near_DC_flag = False
 
-        
-        for pulse in pulselist:
-            total_pulses +=1
             
-            charge = pulse.charge
-
-            #Cut any pulses < 0.25 PE
-            if charge < 0.25:
-                continue
-            
-            # Quantize pulse chargest to make all seasons appear the same
-            quanta = 0.05
-            charge = (np.float64(charge) // quanta) * quanta + quanta / 2.
-
-            if string_val not in store_string:
-                store_string.append(string_val)
-
-            # Check IceCube near DeepCore DOMs
-            if( (string_val in IC_near_DC_strings) and dom_index<60):
-                string_index = IC_near_DC_strings.index(string_val)
-                timelist.append(pulse.time)
-                chargelist.append(charge)
-                IC_near_DC_flag = True
-
-            # Check DeepCore DOMS
-            elif ( (string_val in DC_strings) and dom_index<60): #dom_index >=10
-                string_index = DC_strings.index(string_val)
-                timelist.append(pulse.time)
-                chargelist.append(charge)
-                DC_flag = True
-
-
-            else:
-                count_outside +=1
-                charge_outside += charge
+            for pulse in pulselist:
                 
-        if DC_flag == True or IC_near_DC_flag == True:
+                charge = pulse.charge
 
-            charge_array = np.array(chargelist)
-            time_array = np.array(timelist)
-            time_array = [ (t_value - shift_time_by) for t_value in time_array ]
-            time_shifted = [ (t_value - time_array[0]) for t_value in time_array ]
-            time_shifted = np.array(time_shifted)
-            mask_500 = time_shifted<500
-            mask_100 = time_shifted<100
+                #Cut any pulses < 0.25 PE
+                if charge < 0.25:
+                    continue
+                
+                # Quantize pulse chargest to make all seasons appear the same
+                quanta = 0.05
+                charge = (np.float64(charge) // quanta) * quanta + quanta / 2.
 
-            # Remove pulses so only those in certain time window are saved
-            original_num_pulses = len(timelist)
-            time_array_in_window = list(time_array)
-            charge_array_in_window = list(charge_array)
-            for time_index in range(0,original_num_pulses):
-                time_value =  time_array[time_index]
-                if time_value < low_window or time_value > high_window:
-                    time_array_in_window.remove(time_value)
-                    charge_array_in_window.remove(charge_array[time_index])
-            charge_array = np.array(charge_array_in_window)
-            time_array = np.array(time_array_in_window)
-            assert len(charge_array)==len(time_array), "Mismatched pulse time and charge"
-            if len(charge_array) == 0:
-                continue
+                if string_val not in store_string:
+                    store_string.append(string_val)
 
-            #Original Stats
-            count_inside += len(chargelist)
-            charge_inside += sum(chargelist)
+                # Check IceCube near DeepCore DOMs
+                if( (string_val in IC_near_DC_strings) and dom_index<60):
+                    string_index = IC_near_DC_strings.index(string_val)
+                    timelist.append(pulse.time)
+                    chargelist.append(charge)
+                    IC_near_DC_flag = True
 
-            # Check that pulses are sorted in time
-            for i_t,time in enumerate(time_array):
-                assert time == sorted(time_array)[i_t], "Pulses are not pre-sorted!"
-
-            # Charge weighted mean and stdev
-            weighted_avg_time = np.average(time_array,weights=charge_array)
-            weighted_std_time = np.sqrt( np.average((time_array - weighted_avg_time)**2, weights=charge_array) )
+                # Check DeepCore DOMS
+                elif ( (string_val in DC_strings) and dom_index<60): #dom_index >=10
+                    string_index = DC_strings.index(string_val)
+                    timelist.append(pulse.time)
+                    chargelist.append(charge)
+                    DC_flag = True
 
 
-        if DC_flag == True:
-            array_DC[string_index,dom_index,0] = sum(chargelist)
-            array_DC[string_index,dom_index,1] = time_array[0]
-            array_DC[string_index,dom_index,2] = time_array[-1]
-            array_DC[string_index,dom_index,3] = weighted_avg_time
-            array_DC[string_index,dom_index,4] = weighted_std_time
+                else:
+                    count_outside +=1
+                    charge_outside += charge
+                    
+            if DC_flag == True or IC_near_DC_flag == True:
+
+                charge_array = np.array(chargelist)
+                time_array = np.array(timelist)
+                time_array = [ (t_value - shift_time_by) for t_value in time_array ]
+                time_shifted = [ (t_value - time_array[0]) for t_value in time_array ]
+                time_shifted = np.array(time_shifted)
+                mask_500 = time_shifted<500
+                mask_100 = time_shifted<100
+
+                # Remove pulses so only those in certain time window are saved
+                original_num_pulses = len(timelist)
+                time_array_in_window = list(time_array)
+                charge_array_in_window = list(charge_array)
+                for time_index in range(0,original_num_pulses):
+                    time_value =  time_array[time_index]
+                    if time_value < low_window or time_value > high_window:
+                        time_array_in_window.remove(time_value)
+                        charge_array_in_window.remove(charge_array[time_index])
+                charge_array = np.array(charge_array_in_window)
+                time_array = np.array(time_array_in_window)
+                assert len(charge_array)==len(time_array), "Mismatched pulse time and charge"
+                if len(charge_array) == 0:
+                    continue
+
+                #Original Stats
+                count_inside += len(chargelist)
+                charge_inside += sum(chargelist)
+
+                # Check that pulses are sorted in time
+                for i_t,time in enumerate(time_array):
+                    assert time == sorted(time_array)[i_t], "Pulses are not pre-sorted!"
+
+                # Charge weighted mean and stdev
+                weighted_avg_time = np.average(time_array,weights=charge_array)
+                weighted_std_time = np.sqrt( np.average((time_array - weighted_avg_time)**2, weights=charge_array) )
+
+
+            if DC_flag == True:
+                array_DC[string_index,dom_index,0] = sum(chargelist)
+                array_DC[string_index,dom_index,1] = time_array[0]
+                array_DC[string_index,dom_index,2] = time_array[-1]
+                array_DC[string_index,dom_index,3] = weighted_avg_time
+                array_DC[string_index,dom_index,4] = weighted_std_time
+                
+                num_pulses_per_dom[string_index,dom_index,0] = len(chargelist)
             
-            num_pulses_per_dom[string_index,dom_index,0] = len(chargelist)
+            if IC_near_DC_flag == True:
+                array_IC_near_DC[string_index,dom_index,0] = sum(chargelist)
+                array_IC_near_DC[string_index,dom_index,1] = time_array[0]
+                array_IC_near_DC[string_index,dom_index,2] = time_array[-1]
+                array_IC_near_DC[string_index,dom_index,3] = weighted_avg_time
+                array_IC_near_DC[string_index,dom_index,4] = weighted_std_time
+
+        initial_stats[0] = count_outside
+        initial_stats[1] = charge_outside
+        initial_stats[2] = count_inside
+        initial_stats[3] = charge_inside
         
-        if IC_near_DC_flag == True:
-            array_IC_near_DC[string_index,dom_index,0] = sum(chargelist)
-            array_IC_near_DC[string_index,dom_index,1] = time_array[0]
-            array_IC_near_DC[string_index,dom_index,2] = time_array[-1]
-            array_IC_near_DC[string_index,dom_index,3] = weighted_avg_time
-            array_IC_near_DC[string_index,dom_index,4] = weighted_std_time
-
-    initial_stats[0] = count_outside
-    initial_stats[1] = charge_outside
-    initial_stats[2] = count_inside
-    initial_stats[3] = charge_inside
-
-    return array_DC, array_IC_near_DC, initial_stats, num_pulses_per_dom, trigger_time, num_extra_DC_triggers, ICstrings, total_pulses
+    return array_DC, array_IC_near_DC, initial_stats, num_pulses_per_dom, trigger_time, num_extra_DC_triggers, ICstrings, clean_pulses_8_or_more
 
 def apply_transform(features_DC, features_IC, output_labels=None, energy_factor=100., track_factor=200.,transform="MaxAbs",transform_output=True):
     from scaler_transformations import TransformData, new_transform
@@ -300,6 +322,9 @@ def read_files(filename_list, use_old_reco, check_filters, true_name, reco_type)
     isOther_count = 0
     passed_all_filters = 0
     skipped_triggers = 0
+    probnu = 0
+    less_8_hits = 0
+
 
     for event_file_name in filename_list:
         print("reading file: {}".format(event_file_name))
@@ -308,6 +333,7 @@ def read_files(filename_list, use_old_reco, check_filters, true_name, reco_type)
         for frame in event_file:
             if frame.Stop == icetray.I3Frame.Physics:
                 header = frame["I3EventHeader"]
+                #print("Saved events: ", len(output_labels))
 
                 if header.sub_event_stream != "InIceSplit":
                     continue
@@ -355,6 +381,7 @@ def read_files(filename_list, use_old_reco, check_filters, true_name, reco_type)
                 isCC = frame['I3MCWeightDict']['InteractionType']==1.
                 isNC = frame['I3MCWeightDict']['InteractionType']==2.
                 isOther = not isCC and not isNC
+                L4_NoiseClassifier_ProbNu = frame['L4_NoiseClassifier_ProbNu'].value
                
 
 
@@ -450,7 +477,7 @@ def read_files(filename_list, use_old_reco, check_filters, true_name, reco_type)
                     print("Do not know first particle type in MCTree, should be neutrino, skipping this event")
                     continue
                 
-                DC_array, IC_near_DC_array,initial_stats,num_pulses_per_dom, trig_time, extra_triggers, ICstrings, total_pulses  = get_observable_features(frame)
+                DC_array, IC_near_DC_array,initial_stats,num_pulses_per_dom, trig_time, extra_triggers, ICstrings, has_8_hits  = get_observable_features(frame)
 
                 # Check if there were multiple SMT3 triggers or no SMT3 triggers
                 # Skip event if so
@@ -459,15 +486,21 @@ def read_files(filename_list, use_old_reco, check_filters, true_name, reco_type)
                     continue
                 
                 # Remove events with less than 8 hits
-                if total_pulses < 8:
+                if has_8_hits == False:
+                    less_8_hits += 1
+                    #print("event has less than 8 hits")
+                    continue
+
+                if L4_NoiseClassifier_ProbNu < 0.95:
+                    probnu +=1
                     continue
 
                 # regression variables
-                # OUTPUT: [ nu energy, nu zenith, nu azimuth, nu time, nu x, nu y, nu z, track length (0 for cascade), isTrack, flavor, type (anti = 1), isCC]
-                output_labels.append( np.array([ float(nu_energy), float(nu_zenith), float(nu_azimuth), float(nu_time), float(nu_x), float(nu_y), float(nu_z), float(track_length), float(isTrack), float(neutrino_type), float(particle_type), float(isCC) ]) )
+                # OUTPUT: [ nu energy, nu zenith, nu azimuth, nu time, nu x, nu y, nu z, track length (0 for cascade), isTrack, flavor, type (anti = 1), isCC, nu zenith (will not be transformed to cos zenith)]
+                output_labels.append( np.array([ float(nu_energy), float(nu_zenith), float(nu_azimuth), float(nu_time), float(nu_x), float(nu_y), float(nu_z), float(track_length), float(isTrack), float(neutrino_type), float(particle_type), float(isCC), float(nu_zenith) ]) )
 
                 if use_old_reco:
-                    output_reco_labels.append( np.array([ float(reco_energy), float(reco_zenith), float(reco_azimuth), float(reco_time), float(reco_x), float(reco_y), float(reco_z), float(reco_length), float(reco_track_energy), float(reco_casc_energy), float(reco_em_casc_energy) ]) )
+                    output_reco_labels.append( np.array([ float(reco_energy), float(reco_zenith), float(reco_azimuth), float(reco_time), float(reco_x), float(reco_y), float(reco_z), float(reco_length), float(reco_track_energy), float(reco_casc_energy), float(reco_em_casc_energy), float(reco_zenith) ]) )
 
                 #Save weights
                 #[File, RunID, SubrunID, EventID, NEvents, OneWeight, NormalizedOneWeight, GENIEWeight, InteractionProbabilityWeight, SinglePowerLawFlux_flux => 0.00154532, SinglePowerLawFlux_index, SinglePowerLawFlux_norm, SinglePowerLawFlux_weight, TotalInteractionProbabilityWeight, weight] 
@@ -499,7 +532,13 @@ def read_files(filename_list, use_old_reco, check_filters, true_name, reco_type)
     if use_old_reco:
         output_reco_labels=np.asarray(output_reco_labels)
 
-    print("Skipped %i events due to no or double triggers"%skipped_triggers)
+    if skipped_triggers > 0:
+        print("Skipped %i events due to no or double triggers"%skipped_triggers)
+    if less_8_hits > 0:
+        print("Skipped %i events due to less than 8 hits"%less_8_hits)
+    if probnu > 0:
+        print("Skipped %i events due to ProbNu < 0.95"%probnu)
+        
 
     return output_features_DC, output_features_IC, output_labels, output_reco_labels, output_initial_stats, output_num_pulses_per_dom, output_trigger_times, output_weights, ICstrings
 
