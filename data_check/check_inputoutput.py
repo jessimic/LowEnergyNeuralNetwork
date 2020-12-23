@@ -42,6 +42,12 @@ parser.add_argument("-c", "--cuts",type=str, default="CC",
                     dest="cuts", help="Type of events to keep (all, cascade, track, CC, NC, etc.)")
 parser.add_argument("--do_cuts", default=False,action='store_true',
                         dest='do_cuts',help="Apply cuts! Don't ignore energy and event cut")
+parser.add_argument("--transformed",default=False,action='store_true',
+                    dest="transformed", help="add flag if labels truth input is already transformed")
+parser.add_argument("--no_input",default=True,action='store_false',
+                    dest="no_input", help="add flag if you don't want to plot input")
+parser.add_argument("--no_output",default=True,action='store_false',
+                    dest="no_output", help="add flag if you don't want to plot output")
 args = parser.parse_args()
 
 input_file = args.path + args.input_file
@@ -63,9 +69,9 @@ cut_name = args.cuts
 do_cuts = args.do_cuts
 
 # Here in case you want only one (input can take a few min)
-do_output = True
-do_input = False
-file_was_transformed = True
+do_output = args.no_output
+do_input = args.no_input
+file_was_transformed = args.transformed
 
 f = h5py.File(input_file, 'r')
 if file_was_transformed:
@@ -96,12 +102,40 @@ except:
 
 try:
     reco_test = f['reco_test'][:]
+except:
+    reco_test = None
+try:
     reco_train = f['reco_train'][:]
     reco_validate = f['reco_validate'][:]
 except:
-    reco_test = None
     reco_train = None
     reco_validate = None
+
+try:
+    weights_test = f['weights_test']
+except:
+    wegiths_test = None
+try:
+    weights_train = f['weights_train']
+    weights_validate = f['weights_validate']
+except:
+    weights_train = None
+    weightsvalidate = None
+
+try:
+    output_names = f['output_label_names'][:]
+    output_factors = f['output_transform_factors'][:]
+    input_factors = f['input_transform_factors'][:]
+except:
+    if file_was_transformed:
+        output_names = ["Energy", "Cosine Zenith", "Track Length", "Time", "X", "Y", "Z", "Azimuth", "Zenith"]
+        output_factors = [emax, 1., tmax, 1., 1., 1., 1., 1., 1.]
+        input_factors = [25., 4000., 4000., 4000., 2000.] 
+    else:
+        output_names = ["Energy", "Cosine Zenith", "Azimuth", "Time", "X", "Y", "Z", "Track Length", "Zenith"]
+        output_factors = [1., 1., 1., 1., 1., 1., 1., 1., 1.]
+        input_factors = [1., 1., 1., 1., 1.] 
+
 
 f.close()
 del f
@@ -115,7 +149,7 @@ else:
     X_DC = np.concatenate((X_test_DC,X_train_DC,X_validate_DC))
     X_IC = np.concatenate((X_test_IC,X_train_IC,X_validate_IC))
 print(Y_labels.shape,X_DC.shape,X_IC.shape)
-
+print(len(output_factors))
 
 # Untransform so energy and track are in original range. NOTE: zenith still cos(zenith)
 if file_was_transformed:
@@ -141,25 +175,84 @@ if do_cuts:
         reco_labels = reco_labels[all_cuts]
 
 
-def plot_output(Y_values,outdir,filenumber=None,transformed=file_was_transformed):
+def plot_output(Y_values,outdir,filenumber=None,names=output_names,transform=output_factors):
     if file_was_transformed:
-        names = ["Energy", "Cosine Zenith", "Track Length", "Time", "X", "Y", "Z", "Azimuth"]
-        units = ["(GeV)", "", "(m)", "(s)", "(m)", "(m)", "(m)", "(rad)"]
+        units = ["(GeV)", "", "(m)", "(s)", "(m)", "(m)", "(m)", "(rad)", "(rad)"]
     else:
-        names = ["Energy", "Cosine Zenith", "Azimuth", "Time", "X", "Y", "Z", "Track Length"]
-        units = ["(GeV)", "", "(rad)", "(s)", "(m)", "(m)", "(m)", "(m)"]
-    for i in range(0,len(names)):
+        units = ["(GeV)", "", "(rad)", "(s)", "(m)", "(m)", "(m)", "(m)", "(rad)"]
+    
+    plt.figure()
+    plt.hist(Y_values[:,0]*transform[0],bins=100);
+    plt.title("%s Distribution"%names[0],fontsize=25)
+    plt.xlabel("%s %s"%(names[0],units[0]),fontsize=15)
+    plt.xticks(fontsize=15)
+    plt.yticks(fontsize=15)
+    if filenum:
+        filenum_name = "_%s"%filenum
+    else:
+        filenum_name = ""
+    #plt.savefig("%s/Output_%s%s.png"%(outdir,names[0].replace(" ", ""),filenum_name))
+    plt.savefig("%s/Output_Energy%s.png"%(outdir,filenum_name))
+    
+    plt.figure()
+    plt.hist(Y_values[:,1]*transform[1],bins=100);
+    plt.title("%s Distribution"%names[1],fontsize=25)
+    plt.xlabel("%s %s"%(names[1],units[1]),fontsize=15)
+    plt.xticks(fontsize=15)
+    plt.yticks(fontsize=15)
+    if filenum:
+        filenum_name = "_%s"%filenum
+    else:
+        filenum_name = ""
+    #plt.savefig("%s/Output_%s%s.png"%(outdir,names[1].replace(" ", ""),filenum_name))
+    plt.savefig("%s/Output_CosZenith%s.png"%(outdir,filenum_name))
+
+    if Y_values.shape[-1] == 13:
         plt.figure()
-        plt.hist(Y_values[:,i],bins=100);
-        plt.title("%s Distribution"%names[i],fontsize=25)
-        plt.xlabel("%s %s"%(names[i],units[i]),fontsize=15)
+        plt.hist(Y_values[:,12],bins=100);
+        plt.title("Zenith Distribution",fontsize=25)
+        plt.xlabel("Zenith %s"%(units[-1]),fontsize=15)
         plt.xticks(fontsize=15)
         plt.yticks(fontsize=15)
         if filenum:
             filenum_name = "_%s"%filenum
         else:
             filenum_name = ""
-        plt.savefig("%s/Output_%s%s.png"%(outdir,names[i].replace(" ", ""),filenum_name))
+        #plt.savefig("%s/Output_%s%s.png"%(outdir,names[12].replace(" ", ""),filenum_name))
+        plt.savefig("%s/Output_Zenith%s.png"%(outdir,filenum_name))
+
+
+    row_index = 0
+    col_index = 0
+    rows = 3
+    cols = 3
+    fig, ax = plt.subplots(rows,cols,figsize=(15,15))
+    for i in range(0,len(units)):
+        if i == 8:
+            try:
+                values = Y_values[:,12]
+                a_name = "Zenith"
+            except:
+                break
+        else:
+            values = Y_values[:,i]*transform[i]
+            a_name = name[i]
+        ax[row_index, col_index]
+        ax[row_index, col_index].hist(values,bins=100);
+        ax[row_index, col_index].set_title("%s Distribution"%a_name,fontsize=25)
+        ax[row_index, col_index].set_xlabel("%s %s"%(a_name,units[i]),fontsize=15)
+        #ax[row_index, col_index].set_xticks(fontsize=15)
+        #ax[row_index, col_index].set_yticks(fontsize=15)
+        if col_index < (cols-1):
+            col_index += 1
+        else:
+            row_index += 1
+            col_index = 0
+    if filenum:
+        filenum_name = "_%s"%filenum
+    else:
+        filenum_name = ""
+    plt.savefig("%s/AllOutput_All%s.png"%(outdir,filenum_name))
     
     num_events = Y_values.shape[0]
     flavor = list(Y_values[:,9])
@@ -177,9 +270,20 @@ def plot_energy_zenith(Y_values,outdir,filenumber=None):
     plt.xlabel("True Neutrino Energy (GeV)",fontsize=15)
     plt.ylabel("True Neutrino Cosine Zenith",fontsize=15)
     plt.title("True Energy vs Cosine Zenith Distribution",fontsize=20)
-    plt.savefig("%s/EnergyZenith%s.png"%(outdir,filenum))
+    plt.savefig("%s/EnergyCosZenith%s.png"%(outdir,filenum))
 
-def plot_input(X_values_DC,X_values_IC,outdir,filenumber=None):
+    if Y_values.shape[-1] ==13:
+        plt.figure()
+        cts,xbin,ybin,img = plt.hist2d(Y_values[:,0], Y_values[:,12], bins=100)
+        cbar = plt.colorbar()
+        cbar.ax.set_ylabel('counts', rotation=90)
+        plt.set_cmap('ocean_r')
+        plt.xlabel("True Neutrino Energy (GeV)",fontsize=15)
+        plt.ylabel("True Neutrino Zenith (rad)",fontsize=15)
+        plt.title("True Energy vs Zenith Distribution",fontsize=20)
+        plt.savefig("%s/EnergyZenith%s.png"%(outdir,filenum))
+
+def plot_input(X_values_DC,X_values_IC,outdir,filenumber=None,transform=input_factors):
     name = ["Charge (p.e.)", "Raw Time of First Pulse (ns)", "Raw Time of Last Pulse (ns)", "Charge weighted mean of pulse times", "Charge weighted std of pulse times"]
     IC_label = "IC"
     DC_label = "DC"
@@ -187,8 +291,8 @@ def plot_input(X_values_DC,X_values_IC,outdir,filenumber=None):
     print(X_values_DC.shape,X_values_IC.shape)
     for i in range(0,X_values_DC.shape[-1]):
 
-        DC_data = X_values_DC[...,i].flatten()
-        IC_data = X_values_IC[...,i].flatten()
+        DC_data = X_values_DC[...,i].flatten()*transform[i]
+        IC_data = X_values_IC[...,i].flatten()*transform[i]
 
         min_range = min(min(DC_data),min(IC_data))
         max_range = max(max(DC_data),max(IC_data))

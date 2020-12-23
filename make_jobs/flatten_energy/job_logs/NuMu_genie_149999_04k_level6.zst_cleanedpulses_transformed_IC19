@@ -1,0 +1,236 @@
+Keeping CC event types
+Saving PEGLEG info: False 
+Bin size: 1.000000 GeV 
+Max Count Per Bin: 20000 events 
+Energy Range: 1.000000 - 500.000000 
+Starting cut: all_end 
+Ending cut: all_end 
+Shuffling: True 
+Keeping event types: CC
+Assuming file is already transformed by 100.000000 for energy and 200.000000 for track, and cosine zenith
+Total events this file: 254
+Total events saved: 181, Saved this file: 181, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004030_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 264
+Total events saved: 363, Saved this file: 182, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004048_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 473
+Total events saved: 796, Saved this file: 433, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004066_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 655
+Total events saved: 1343, Saved this file: 547, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004081_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 456
+Total events saved: 1749, Saved this file: 406, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004098_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 447
+Total events saved: 2157, Saved this file: 408, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004119_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 679
+Total events saved: 2719, Saved this file: 562, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004132_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 621
+Total events saved: 3244, Saved this file: 525, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004150_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 472
+Total events saved: 3670, Saved this file: 426, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004159_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 659
+Total events saved: 4216, Saved this file: 546, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004173_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 287
+Total events saved: 4404, Saved this file: 188, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004178_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 249
+Total events saved: 4580, Saved this file: 176, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004207_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 1188
+Total events saved: 5574, Saved this file: 994, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004218_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 447
+Total events saved: 5979, Saved this file: 405, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004227_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 287
+Total events saved: 6167, Saved this file: 188, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004232_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 251
+Total events saved: 6347, Saved this file: 180, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004242_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 414
+Total events saved: 6727, Saved this file: 380, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004249_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 401
+Total events saved: 7104, Saved this file: 377, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004252_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 247
+Total events saved: 7275, Saved this file: 171, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004253_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 251
+Total events saved: 7442, Saved this file: 167, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004301_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 497
+Total events saved: 7892, Saved this file: 450, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004303_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 222
+Total events saved: 8046, Saved this file: 154, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004305_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 290
+Total events saved: 8256, Saved this file: 210, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004322_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 453
+Total events saved: 8676, Saved this file: 420, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004340_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 715
+Total events saved: 9273, Saved this file: 597, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004344_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 249
+Total events saved: 9453, Saved this file: 180, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004352_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 705
+Total events saved: 10031, Saved this file: 578, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004397_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 680
+Total events saved: 10582, Saved this file: 551, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004421_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 453
+Total events saved: 10995, Saved this file: 413, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004423_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 238
+Total events saved: 11155, Saved this file: 160, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004438_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 1124
+Total events saved: 12117, Saved this file: 962, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004446_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 271
+Total events saved: 12302, Saved this file: 185, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004452_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 740
+Total events saved: 12931, Saved this file: 629, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004457_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 674
+Total events saved: 13488, Saved this file: 557, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004472_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 260
+Total events saved: 13664, Saved this file: 176, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004498_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 288
+Total events saved: 13875, Saved this file: 211, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004500_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 485
+Total events saved: 14324, Saved this file: 449, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004505_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 274
+Total events saved: 14520, Saved this file: 196, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004519_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 457
+Total events saved: 14929, Saved this file: 409, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004521_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 247
+Total events saved: 15101, Saved this file: 172, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004526_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 665
+Total events saved: 15650, Saved this file: 549, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004534_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 272
+Total events saved: 15851, Saved this file: 201, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004537_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 632
+Total events saved: 16363, Saved this file: 512, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004538_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 671
+Total events saved: 16923, Saved this file: 560, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004548_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 294
+Total events saved: 17135, Saved this file: 212, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004554_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 906
+Total events saved: 17830, Saved this file: 695, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004568_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 254
+Total events saved: 17993, Saved this file: 163, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004581_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 710
+Total events saved: 18578, Saved this file: 585, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004592_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 243
+Total events saved: 18752, Saved this file: 174, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004601_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 456
+Total events saved: 19175, Saved this file: 423, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004608_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 232
+Total events saved: 19339, Saved this file: 164, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004634_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 461
+Total events saved: 19752, Saved this file: 413, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004641_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 442
+Total events saved: 20159, Saved this file: 407, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004646_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 469
+Total events saved: 20572, Saved this file: 413, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004664_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 255
+Total events saved: 20751, Saved this file: 179, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004667_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 227
+Total events saved: 20912, Saved this file: 161, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004671_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 964
+Total events saved: 21673, Saved this file: 761, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004696_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 234
+Total events saved: 21822, Saved this file: 149, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004709_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 431
+Total events saved: 22216, Saved this file: 394, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004717_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 300
+Total events saved: 22437, Saved this file: 221, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004725_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 285
+Total events saved: 22657, Saved this file: 220, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004731_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 461
+Total events saved: 23083, Saved this file: 426, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004779_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 262
+Total events saved: 23270, Saved this file: 187, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004784_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 648
+Total events saved: 23797, Saved this file: 527, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004800_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 261
+Total events saved: 23976, Saved this file: 179, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004803_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 653
+Total events saved: 24517, Saved this file: 541, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004813_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 31
+Total events saved: 24546, Saved this file: 29, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004817_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 641
+Total events saved: 25100, Saved this file: 554, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004819_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 467
+Total events saved: 25533, Saved this file: 433, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004830_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 448
+Total events saved: 25943, Saved this file: 410, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004832_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 269
+Total events saved: 26139, Saved this file: 196, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004833_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 269
+Total events saved: 26342, Saved this file: 203, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004836_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 612
+Total events saved: 26838, Saved this file: 496, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004837_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 428
+Total events saved: 27229, Saved this file: 391, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004840_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 636
+Total events saved: 27754, Saved this file: 525, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004849_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 251
+Total events saved: 27918, Saved this file: 164, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004850_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 272
+Total events saved: 28125, Saved this file: 207, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004858_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 427
+Total events saved: 28507, Saved this file: 382, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004894_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 297
+Total events saved: 28735, Saved this file: 228, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004907_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 13
+Total events saved: 28744, Saved this file: 9, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004909_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 255
+Total events saved: 28916, Saved this file: 172, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004922_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 245
+Total events saved: 29085, Saved this file: 169, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004923_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 664
+Total events saved: 29635, Saved this file: 550, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004932_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 676
+Total events saved: 30192, Saved this file: 557, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004941_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 458
+Total events saved: 30607, Saved this file: 415, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004948_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 664
+Total events saved: 31145, Saved this file: 538, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004961_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 277
+Total events saved: 31359, Saved this file: 214, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004962_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 458
+Total events saved: 31783, Saved this file: 424, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004963_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 511
+Total events saved: 32247, Saved this file: 464, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004964_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 921
+Total events saved: 32977, Saved this file: 730, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004968_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 291
+Total events saved: 33191, Saved this file: 214, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004974_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 281
+Total events saved: 33405, Saved this file: 214, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004983_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Total events this file: 242
+Total events saved: 33562, Saved this file: 157, Finsihed file: /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_004993_level6.zst_cleanedpulses_transformed_IC19.hdf5
+Finished concatonating all the files. Now I will shuffle..
+[  0.   0.   0.   0.  48.  85. 108. 139. 149. 176. 174. 229. 235. 249.
+ 280. 265. 308. 322. 386. 344. 391. 389. 402. 409. 438. 408. 459. 455.
+ 444. 431. 462. 457. 486. 448. 486. 494. 503. 504. 485. 348. 351. 332.
+ 325. 309. 332. 342. 332. 347. 372. 322. 339. 351. 330. 331. 320. 365.
+ 314. 343. 337. 349. 293. 321. 331. 362. 349. 366. 320. 313. 336. 331.
+ 311. 323. 313. 271. 312. 311. 306. 318. 282.  58.  53.  45.  53.  60.
+  48.  53.  43.  61.  57.  37.  71.  52.  50.  51.  47.  51.  67.  44.
+  45.  63.  44.  38.  55.  48.  40.  59.  50.  56.  48.  41.  44.  37.
+  42.  39.  42.  47.  45.  37.  60.  40.  45.  42.  52.  44.  50.  58.
+  45.  39.  57.  44.  44.  57.  46.  32.  46.  36.  36.  36.  42.  38.
+  35.  39.  53.  35.  47.  41.  47.  42.  55. 103.  92. 104. 105. 121.
+ 100. 114. 122. 101. 112.  88. 106.  96. 130. 101.  99. 104. 106. 107.
+  92. 100. 107. 109. 101.  91.  94. 102. 113. 111. 101.  95.  94. 100.
+  90.  98. 103.  95.  96.  95.  96.  94. 101.  88.  95.  87.  97. 102.
+ 106.  90.  96.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.
+   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.
+   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.
+   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.
+   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.
+   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.
+   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.
+   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.
+   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.
+   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.
+   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.
+   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.
+   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.
+   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.
+   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.
+   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.
+   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.
+   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.
+   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.
+   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.
+   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.   0.
+   0.   0.   0.   0.   0.   0.   0.   0.   0.]
+Total events saved: 33562
+I put evnts 0 - 33562 into /mnt/scratch/micall12/training_files/newMC_16Dec/NuMu_genie_149999_04k_level6.zst_cleanedpulses_transformed_IC19lt500_CC_all_end_all_end_flat_499bins_20000evtperbin.hdf5
+Saved:  ['features DC', 'features IC', 'labels', 'weights', 'initial stats', 'number of pulses per DOM', 'trigger times', 'output label names', 'output transform factors', 'input transform factors']
