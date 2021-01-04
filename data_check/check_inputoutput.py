@@ -123,14 +123,20 @@ except:
     weightsvalidate = None
 
 try:
-    output_names = f['output_label_names'][:]
+    label_names = f['output_label_names'][:]
+    output_names = [n.decode('utf8') for n in label_names]
     output_factors = f['output_transform_factors'][:]
-    input_factors = f['input_transform_factors'][:]
+    input_factors = [25., 4000., 4000., 4000., 2000.] #f['input_transform_factors'][:]
+    print("USING HARD CODED INPUT FACTORS")
+    print("MULTIPLYING ENERGY BY %f and TRACK BY %f to undo transform"%(output_factors[0],track_max))
+    print("ASSUMING TRACK IS AT INDEX 2")
 except:
     if file_was_transformed:
         output_names = ["Energy", "Cosine Zenith", "Track Length", "Time", "X", "Y", "Z", "Azimuth", "Zenith"]
         output_factors = [emax, 1., tmax, 1., 1., 1., 1., 1., 1.]
         input_factors = [25., 4000., 4000., 4000., 2000.] 
+        print("MULTIPLYING ENERGY BY %f and TRACK BY %f to undo transform"%(energy_max,track_max))
+        print("ASSUMING TRACK IS AT INDEX 2")
     else:
         output_names = ["Energy", "Cosine Zenith", "Azimuth", "Time", "X", "Y", "Z", "Track Length", "Zenith"]
         output_factors = [1., 1., 1., 1., 1., 1., 1., 1., 1.]
@@ -150,13 +156,6 @@ else:
     X_IC = np.concatenate((X_test_IC,X_train_IC,X_validate_IC))
 print(Y_labels.shape,X_DC.shape,X_IC.shape)
 print(len(output_factors))
-
-# Untransform so energy and track are in original range. NOTE: zenith still cos(zenith)
-if file_was_transformed:
-    print("MULTIPLYING ENERGY BY %f and TRACK BY %f to undo transform"%(energy_max,track_max))
-    print("ASSUMING TRACK IS AT INDEX 2")
-    Y_labels[:,0] = Y_labels[:,0]*energy_max
-    Y_labels[:,2] = Y_labels[:,2]*track_max
 
 if reco_test is not None:
     reco_labels = np.concatenate((reco_test,reco_train,reco_validate))
@@ -236,10 +235,9 @@ def plot_output(Y_values,outdir,filenumber=None,names=output_names,transform=out
                 break
         else:
             values = Y_values[:,i]*transform[i]
-            a_name = name[i]
-        ax[row_index, col_index]
+            a_name = names[i]
         ax[row_index, col_index].hist(values,bins=100);
-        ax[row_index, col_index].set_title("%s Distribution"%a_name,fontsize=25)
+        ax[row_index, col_index].set_title("%s Distribution"%a_name,fontsize=15)
         ax[row_index, col_index].set_xlabel("%s %s"%(a_name,units[i]),fontsize=15)
         #ax[row_index, col_index].set_xticks(fontsize=15)
         #ax[row_index, col_index].set_yticks(fontsize=15)
@@ -248,11 +246,12 @@ def plot_output(Y_values,outdir,filenumber=None,names=output_names,transform=out
         else:
             row_index += 1
             col_index = 0
+    plt.suptitle("Output Distributions %s"%filenum,fontsize=25)
     if filenum:
         filenum_name = "_%s"%filenum
     else:
         filenum_name = ""
-    plt.savefig("%s/AllOutput_All%s.png"%(outdir,filenum_name))
+    plt.savefig("%s/AllOutput_%s.png"%(outdir,filenum_name))
     
     num_events = Y_values.shape[0]
     flavor = list(Y_values[:,9])
@@ -284,33 +283,45 @@ def plot_energy_zenith(Y_values,outdir,filenumber=None):
         plt.savefig("%s/EnergyZenith%s.png"%(outdir,filenum))
 
 def plot_input(X_values_DC,X_values_IC,outdir,filenumber=None,transform=input_factors):
-    name = ["Charge (p.e.)", "Raw Time of First Pulse (ns)", "Raw Time of Last Pulse (ns)", "Charge weighted mean of pulse times", "Charge weighted std of pulse times"]
+    name = ["Charge/25 (p.e./25)", "Time of First Pulse/4000 (ns/4000)", "Time of Last Pulse/4000 (ns/4000)", "Charge weighted mean of pulse times/4000", "Charge weighted std of pulse times/2000"]
     IC_label = "IC"
     DC_label = "DC"
     
     print(X_values_DC.shape,X_values_IC.shape)
+
+    row_index = 0
+    col_index = 0
+    rows = 2
+    cols = 3
+    fig, ax = plt.subplots(rows,cols,figsize=(15,10))
     for i in range(0,X_values_DC.shape[-1]):
 
-        DC_data = X_values_DC[...,i].flatten()*transform[i]
-        IC_data = X_values_IC[...,i].flatten()*transform[i]
+        DC_data = X_values_DC[...,i].flatten()
+        IC_data = X_values_IC[...,i].flatten()
 
         min_range = min(min(DC_data),min(IC_data))
         max_range = max(max(DC_data),max(IC_data))
-        plt.figure()
-        plt.hist(IC_data,log=True,bins=100,range=[min_range,max_range],color='g',label=IC_label,alpha=0.5);
-        plt.hist(DC_data,log=True,bins=100,range=[min_range,max_range],color='b',label=DC_label,alpha=0.5);
-        plt.title(name[i],fontsize=25)
-        plt.xlabel(name[i],fontsize=15)
-        plt.legend(fontsize=15)
-        if filenum:
-            filenum_name = "_%s"%filenum
+        #plt.figure()
+        ax[row_index, col_index].hist(IC_data,log=True,bins=100,range=[min_range,max_range],color='g',label=IC_label,alpha=0.5);
+        ax[row_index, col_index].hist(DC_data,log=True,bins=100,range=[min_range,max_range],color='b',label=DC_label,alpha=0.5);
+        ax[row_index, col_index].set_title(name[i],fontsize=15)
+        ax[row_index, col_index].set_xlabel(name[i],fontsize=15)
+        ax[row_index, col_index].legend(fontsize=15)
+        if col_index < (cols-1):
+            col_index += 1
         else:
-            filenum_name = ""
-        plt.savefig("%s/Input_Variable%i%s.png"%(outdir,i,filenum_name))
+            row_index += 1
+            col_index = 0
+    plt.suptitle("Transformed Input Distributions %s"%filenum,fontsize=25)
+    if filenum:
+        filenum_name = "_%s"%filenum
+    else:
+        filenum_name = ""
+    plt.savefig("%s/AllInput_%s.png"%(outdir,filenum_name))
 
 if do_output:
-    plot_output(Y_labels,outdir,filenumber=filenum)
+    plot_output(Y_labels,outdir,filenumber=filenum,names=output_names)
     if reco_test is not None:
         plot_output(reco_labels,outdir,filenumber="%s_reco"%filenum)
 if do_input:
-    plot_input(X_DC,X_IC,outdir,filenumber=filenum)
+    plot_input(X_DC,X_IC,outdir,filenumber=filenum,transform=input_factors)
