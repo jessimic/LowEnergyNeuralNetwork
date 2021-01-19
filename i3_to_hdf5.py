@@ -71,7 +71,6 @@ if args.check_filters == "True" or args.check_filters == "true":
 else:
     check_filters = False
 
-
 def get_observable_features(frame,low_window=-500,high_window=4000):
     """
     Load observable features from IceCube files
@@ -247,7 +246,7 @@ def get_observable_features(frame,low_window=-500,high_window=4000):
                 array_IC_near_DC[string_index,dom_index,1] = time_array[0]
                 array_IC_near_DC[string_index,dom_index,2] = time_array[-1]
                 array_IC_near_DC[string_index,dom_index,3] = weighted_avg_time
-                array_IC_near_DC[string_index,dom_index,4] = weighted_std_time
+
 
         initial_stats[0] = count_outside
         initial_stats[1] = charge_outside
@@ -565,6 +564,8 @@ if number_files > 1:
     num_file_name = "_%sfiles"%number_files
 if not output_name:
     output_name = event_file_names[0].split("/")[-1]
+if use_cleaned_pulses:
+    output_name += "_cleanedpulses"
 output_path = output_dir + output_name + "_transformed_IC" + str(ICstrings) + num_file_name + ".hdf5"
 f = h5py.File(output_path, "w")
 f.create_dataset("features_DC", data=features_DC)

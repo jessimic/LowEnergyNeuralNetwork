@@ -30,6 +30,8 @@ parser.add_argument("-i", "--input",type=str,default='Level5_IC86.2013_genie_num
                     dest="input_file", help="path and name of the input file")
 parser.add_argument("-n", "--name",type=str,default='Level5_IC86.2013_genie_numu.014640.00000X',
                     dest="output_name",help="name for output file (no path)")
+parser.add_argument("-o", "--outdir",type=str,default='/mnt/scratch/micall12/training_files/',
+                    dest="outdir", help="path for storing output file")
 parser.add_argument("-r", "--reco",type=str,default="False",
                     dest="reco", help="True if using Level5p or have a pegleg reco")
 parser.add_argument("--reco_type",type=str,default="pegleg",
@@ -40,12 +42,16 @@ parser.add_argument("--cleaned",type=str,default="False",
                     dest="cleaned", help="True if wanted to use SRTTWOfflinePulsesDC")
 parser.add_argument("--true_name",type=str,default=None,
                     dest="true_name", help="Name of key for true particle info if you want to check with I3MCTree[0]")
+parser.add_argument("--check_filters", default=False,action='store_true',
+                        dest='check_filters',help="check for L2-L5 filters")
 args = parser.parse_args()
 input_file = args.input_file
 output_name = args.output_name
+outdir = args.outdir
 emax = args.emax
 true_name = args.true_name
 reco_type = args.reco_type
+check_filters = args.check_filters
 if args.reco == 'True' or args.reco == 'true':
     use_old_reco = True
     print("Expecting old reco values in files, pulling from %s frames"%reco_type)
@@ -87,6 +93,7 @@ def get_observable_features(frame,low_window=-500,high_window=4000):
     charge_outside = 0
     count_inside = 0
     charge_inside = 0
+    total_pulses = 0
 
     # Config 1011 is SMT3
     # dataclasses.TriggerKey(source, ttype, config_id)
@@ -111,7 +118,7 @@ def get_observable_features(frame,low_window=-500,high_window=4000):
     #Start by making all times negative shift time (to distinguish null from 0)
     array_DC[...,1:] = -20000
     array_IC_near_DC[...,1:] = -20000
-
+    
     for omkey, pulselist in ice_pulses:
         dom_index =  omkey.om-1
         string_val = omkey.string
@@ -123,7 +130,17 @@ def get_observable_features(frame,low_window=-500,high_window=4000):
 
         
         for pulse in pulselist:
+            total_pulses +=1
             
+            charge = pulse.charge
+
+            #Cut any pulses < 0.25 PE
+            #if charge < 0.25:
+            #    continue
+            #Quantize pulse chargest to make all seasons appear the same
+            #quanta = 0.05
+            #charge = (numpy.float64(charge) // quanta) * quanta + quanta / 2.
+
             if string_val not in store_string:
                 store_string.append(string_val)
 
@@ -131,20 +148,20 @@ def get_observable_features(frame,low_window=-500,high_window=4000):
             if( (string_val in IC_near_DC_strings) and dom_index<60):
                 string_index = IC_near_DC_strings.index(string_val)
                 timelist.append(pulse.time)
-                chargelist.append(pulse.charge)
+                chargelist.append(charge)
                 IC_near_DC_flag = True
 
             # Check DeepCore DOMS
             elif ( (string_val in DC_strings) and dom_index<60): #dom_index >=10
                 string_index = DC_strings.index(string_val)
                 timelist.append(pulse.time)
-                chargelist.append(pulse.charge)
+                chargelist.append(charge)
                 DC_flag = True
 
 
             else:
                 count_outside +=1
-                charge_outside += pulse.charge
+                charge_outside += charge
                 
         if DC_flag == True or IC_near_DC_flag == True:
 
@@ -206,7 +223,7 @@ def get_observable_features(frame,low_window=-500,high_window=4000):
     initial_stats[2] = count_inside
     initial_stats[3] = charge_inside
 
-    return array_DC, array_IC_near_DC, initial_stats, num_pulses_per_dom, trigger_time, num_extra_DC_triggers, ICstrings
+    return array_DC, array_IC_near_DC, initial_stats, num_pulses_per_dom, trigger_time, num_extra_DC_triggers, ICstrings, total_pulses
 
 def read_files(filename_list):
     """
@@ -234,6 +251,7 @@ def read_files(filename_list):
     output_trigger_times = []
     output_weights = []
     isOther_count = 0
+    passed_all_filters = 0
 
     for event_file_name in filename_list:
         print("reading file: {}".format(event_file_name))
@@ -254,6 +272,19 @@ def read_files(filename_list):
                 cleaned = frame["SRTTWOfflinePulsesDC"]
             except:
                 continue
+            
+            # Check filters
+            if check_filters:
+                DCFilter = frame["FilterMask"].get("DeepCoreFilter_13").condition_passed
+                L3Filter = frame["L3_oscNext_bool"]
+                L4Filter = frame["L4_oscNext_bool"]
+                L5Filter = frame["L5_oscNext_bool"]
+                if (DCFilter and L3Filter and L4Filter and L5Filter):
+                    #failed_filter = False
+                    passed_all_filters +=1
+                else:
+                    #failed_filter = True
+                    continue
 
             # GET TRUTH LABELS
             nu = frame["I3MCTree"][0]
@@ -286,21 +317,37 @@ def read_files(filename_list):
             if use_old_reco:
 
                 if reco_type == "retro":
-                    if not frame.Has('L7_reconstructed_total_energy'):
+                    #if not frame.Has('L7_reconstructed_total_energy'):
+                    #    continue
+                    fit_success = ( "retro_crs_prefit__fit_status" in frame ) and frame["retro_crs_prefit__fit_status"] == 0
+                    if fit_success:
+                        #reco_nu = frame['retro_crs_prefit__median__neutrino']
+                        #reco_length = frame['retro_crs_prefit__median__track'].length
+                        reco_energy = frame['L7_reconstructed_total_energy'].value
+                        reco_time = frame['L7_reconstructed_time'].value
+                        reco_zenith = frame['L7_reconstructed_zenith'].value
+                        reco_azimuth = frame['L7_reconstructed_azimuth'].value
+                        reco_x = frame['L7_reconstructed_vertex_x'].value
+                        reco_y = frame['L7_reconstructed_vertex_y'].value
+                        reco_z = frame['L7_reconstructed_vertex_z'].value
+                        reco_length = frame['L7_reconstructed_track_length'].value
+                        reco_casc_energy = frame['L7_reconstructed_cascade_energy'].value
+                        reco_track_energy = frame['L7_reconstructed_track_energy'].value
+                        reco_em_casc_energy = frame['L7_reconstructed_em_cascade_energy'].value
+                    else:
                         continue
-                    #reco_nu = frame['retro_crs_prefit__median__neutrino']
-                    #reco_length = frame['retro_crs_prefit__median__track'].length
-                    reco_energy = frame['L7_reconstructed_total_energy'].value
-                    reco_time = frame['L7_reconstructed_time'].value
-                    reco_zenith = frame['L7_reconstructed_zenith'].value
-                    reco_azimuth = frame['L7_reconstructed_azimuth'].value
-                    reco_x = frame['L7_reconstructed_vertex_x'].value
-                    reco_y = frame['L7_reconstructed_vertex_y'].value
-                    reco_z = frame['L7_reconstructed_vertex_z'].value
-                    reco_length = frame['L7_reconstructed_track_length'].value
-                    reco_casc_energy = frame['L7_reconstructed_cascade_energy'].value
-                    reco_track_energy = frame['L7_reconstructed_track_energy'].value
-                    reco_em_casc_energy = frame['L7_reconstructed_em_cascade_energy'].value
+                        #reco_energy =0
+                        #reco_time = 0
+                        #reco_zenith =0
+                        #reco_azimuth = 0 
+                        #reco_x = 0
+                        #reco_y = 0
+                        #reco_z = 0
+                        #reco_length =0
+                        #reco_casc_energy = 0
+                        #reco_track_energy = 0
+                        #reco_em_casc_energy = 0
+
                 if reco_type == "pegleg":
                     if not frame.Has('IC86_Dunkman_L6_PegLeg_MultiNest8D_NumuCC'):
                         continue
@@ -364,15 +411,19 @@ def read_files(filename_list):
                 continue
             
             # Only look at "low energy" events for now
-            if nu_energy > emax:
-                continue
+            #if nu_energy > emax:
+            #    continue
             
-            DC_array, IC_near_DC_array,initial_stats,num_pulses_per_dom, trig_time, extra_triggers, ICstrings  = get_observable_features(frame)
+            DC_array, IC_near_DC_array,initial_stats,num_pulses_per_dom, trig_time, extra_triggers, ICstrings, total_pulses  = get_observable_features(frame)
 
             # Check if there were multiple SMT3 triggers or no SMT3 triggers
             # Skip event if so
             if extra_triggers > 0 or trig_time == None:
                 continue
+
+            # Remove events with less than 8 hits
+            #if total_pulses < 8:
+            #    continue
 
             # regression variables
             # OUTPUT: [ nu energy, nu zenith, nu azimuth, nu time, nu x, nu y, nu z, track length (0 for cascade), isTrack, flavor, type (anti = 1), isCC]
@@ -414,7 +465,10 @@ def read_files(filename_list):
     output_weights = numpy.asarray(output_weights)
     if use_old_reco:
         output_reco_labels=numpy.asarray(output_reco_labels)
-
+    
+    if check_filters:
+        print("Passed all filters:",passed_all_filters)
+        assert output_labels.shape[0]<=passed_all_filters, "SOME EVENTS DID NOT PASS ALL FILTERS"
 
     return output_features_DC, output_features_IC, output_labels, output_reco_labels, output_initial_stats, output_num_pulses_per_dom, output_trigger_times, output_weights, ICstrings
 
@@ -433,7 +487,7 @@ features_DC, features_IC, labels, reco_labels, initial_stats, num_pulses_per_dom
 print(features_DC.shape)
 
 #Save output to hdf5 file
-output_path = "/mnt/scratch/micall12/training_files/" + output_name + "_lt" + str(int(emax)) + "_NOvertex_IC" + str(ICstrings) + ".hdf5"
+output_path = outdir + output_name + "_lt" + str(int(emax)) + "_NOvertex_IC" + str(ICstrings) + ".hdf5"
 f = h5py.File(output_path, "w")
 f.create_dataset("features_DC", data=features_DC)
 f.create_dataset("features_IC", data=features_IC)

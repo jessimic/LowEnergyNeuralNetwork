@@ -116,14 +116,17 @@ To create the processing scripts, you will need IceTry access in the IceCube sof
 
 ## Description of major code components
 
-### Order to run code from creating new training data --> testing CNN
-1. Create hdf5 files from i3 files (`create_training_file_perDOM_nocut.py`)
+### Order to run code from creating new training data --> testing CNN on same sample
+1. Create hdf5 files from i3 files (`i3_to_hdf5.py`)
 2. Flatten energy distribution (optional, for training) (`flatten_energy_distribution.py`)
-3. Cut, concatenate, and transform data for easier training (`cut_concat_transform_separate_files.py`)
 4. Train the CNN (`CNN_LoadMultipleFiles.py`)
 5. Make testonly file (`make_test_file.py`)
 5. Test the CNN (`CNN_TestOnly.py`)
 
+### Order to run code for creating a testing sample/testing ONLY
+1. Start from i3 file and test from there, writing back to i3 file (`CNN_Test_i3.py`)
+2. Pull output from i3 files into single concatenated hdf5 file (`pull_labels_i3_to_hdf5.py`)
+3. Plot CNN prediction, truth, and old Retro comparisons (`plot_hdf5_energy_from_predictionfile.py`)
 
 ### Training and Testing Scripts
 
@@ -196,7 +199,7 @@ To create the processing scripts, you will need IceTry access in the IceCube sof
 ### Processing Scripts (Getting Data into Training/Testing Format)
 
 #### Example Processing Flat Training Sample
-- Generate hdf5 files with `create_training_file_perDOM_nocut.py`
+- Generate hdf5 files with `i3_to_hdf5.py`
 	- Best performance is running in parallel (give script one infile)
 	- Use setup in `/make_jobs/create_hdf5/` to generate many job scripts
 	- `create_job_files_single_training.sh` makes a job script for every file in the specified folder
@@ -212,47 +215,33 @@ To create the processing scripts, you will need IceTry access in the IceCube sof
 		- Vertex start position
 		- Containment cut (i.e. end position)
 	- MAKE SURE TO SHUFFLE BEFORE SEPARATING INTO VARIOUS OUTFILES
-	- Separating into outfiles will speed up the transform processing (next step), so it is suggested to do here (AFTER SHUFFLING)
-	- Example scripts in `/make_jobs/make_even/`
-	- Example for batches of submission scripts (one for each sim number): 
-```python $INDIR/flatten_energy_distribution.py -i NuMu_140000_000???_level2_sim2.zst_lt200_NOvertex_IC19.hdf5 -o NuMu_140000_level2_sim2_IC19 
-	--emax 100 --emin 5 --max_per_bin 36034 --cuts CC --shuffle False 
-	--num_out 1 --start "old_start_DC" --end "all_end"
-	```
-	- Example for final level submission script (put 7 intermediate files together):
-```python $INDIR/flatten_energy_distribution.py -i NuMu_140000_level2_sim?_IC19lt150_CC_start_IC7_all_end_flat_145bins_46240evtperbin.hdf5 -o NuMu_140000_level2_IC19_ 
---emax 100 --emin 5 --max_per_bin 36034 --cuts CC --start old_start_DC --shuffle True 
---num_out 7
+	- Separating into outfiles will help file storage/transfers, and the CNN expects multiple input files
+	- Example scripts in `/make_jobs/flatten_energy/`
+	- Use `create_jobs_flatten_subset.sh` to create submission scripts (one batch of ~1000 files)
+        - Uses `job_template_flatten_subset.sb` as base fie, edit args there
+	- Use `job_template_flatten_final.sb` to submit to cluster, add arguments in command line. Example:
+```sbatch job_template_flatten_final.sb NuMu_140000_level2_sim?_IC19lt150_CC_start_IC7_all_end_flat_145bins_46240evtperbin.hdf5 NuMu_140000_level2_IC19_ 20000 8
 ```
-	- Scripts for HPCC in `make_jobs/
-- Cut, concatenate, and transform data with `cut_concat_transform_separate_files.py`
-	- If you already cut and concatenated with the `flatten_energy_distribution`, then you won't need to use that functionality here
-	- You can use the cut and concat features if skipped flattening (like for a testing sample)
-	-  Don't forget to cut! Not as important if already cut during flatten, but beware of the defaults
-		- Energy max
-		- Energy min
-		- Event type (CC, NC, track, cascade, etc.)
-		- Vertex start position
-		- Containment cut (i.e. end position)
-	- MAKE SURE TO SHUFFLE BEFORE SEPARATING INTO VARIOUS OUTFILES
-		- You don't need to shuffle again, if you already did in the last step
-	- Example scripts in `/make_jobs/make_even/transform` and `/make_jobs/concat`
-	- Example for transforming one file
-```python $INDIR/cut_concat_transform_separate_files.py -i NuMu_140000_level2_IC19_lt150_CC_start_IC7_all_end_flat_145bins_46240evtperbin_file00.hdf5 
-	-o NuMu_140000_level2_IC19_lt150_CC_start_IC7_all_end_flat_145bins_46240evtperbin_file00
+        - Args: INFILE NAME MAX NUMOUT
+        - MAX = max number of events per GeV bin
+        - NUMOUT = number of output files to split output into (1 means no splitting)
+        - Edit other args inside the .sb file directly
 	-c CC --emax 100 --emin 5 --shuffle False --trans_output True --tmax 200.0 --num_out 1```
 	
 
-#### Description of Scripts
-- `create_training_file_perDOM_nocut.py` - data from i3 to output hdf5
+#### Description of Training Sample Scripts
+- `i3_to_hdf5.py` - data from i3 to output hdf5
 	- Takes in one or many i3 files
 	- Extracts pulses, summarizes pulses per DOM, discards pulses not passing cuts
 		- Only keep events with ONE DeepCore SMT3 trigger
 		- Only keep pulses in [-500, 4000] ns of trigger
-		- Event has SRTTWOfflinePulsesDC frame (cleaned pulses)
+		- Event has at least 8 hits (cleaned pulses)
+        - Only keep pulses > 0.25 p.e.
+        - L4_NoiseClassifier_ProbNu > 0.95
 		- Event header has InIceSplit
 		- First particle in the MCTree must be a neutrino
 	- Shifts all pulses by trigger time (all null hits at -20000, moved to more reasonable position during transform)
+    - Applies MaxAbs transform and other charge/time transformations!!
 	- Functionality:
 		- Can do any number of IC strings (put numbers in IC_near_DC_strings list)
 		- Cleaned (SRTTWOfflinePulsesDC) or uncleaned (SplitInIcePulses) pulses, parser arg
@@ -265,14 +254,6 @@ To create the processing scripts, you will need IceTry access in the IceCube sof
 Can also put out a [evt # x 7] labels for old reco
 		- Reco labels: [nu energy, nu zenith, nu azimuth, nu time, nu x, nu y, nu z, track length]
 
-- `create_training_single_file_perDOM.py` - data from i3 to output hdf5 WITH MORE CUTS
-	- Same information as for `create_training_file_perDOM_nocut.py`
-	- Additional cuts:
-		- Always has a starting vertex cut, can be DC or IC7
-		- Optional ending position cut, parser arg
-		- Fraction drop of cascade or track (automatically off)
-	- Downside: may need to rerun if the vertex or ending position isn't set, can make these cuts later if you use `create_training_file_perDOM_nocut.py`
-
 - `flatten_energy_distribution.py` - reads in multiple files and saves events only if that current energy bin has not reached its maximum
 	- Throws away any event that is "superfluous" after maximum reached per bin
 	- User specifies maximum per bin (use `check_energybins.py` to determine) and GeV size of bins
@@ -281,11 +262,20 @@ Can also put out a [evt # x 7] labels for old reco
 		- Ending position cut, parser arg
 		- Energy maximum, parser arg
 		- Energy minimum, parser arg
-	- Can output more than 1 file, to split events between (so files are not so large)
 	- MUST shuffle if using NUM_OUT > 1
+    - Functionality:
+	    - Can output more than 1 file, to split events between (so files are not so large)
+        - Can split into train/test/validate
+        - Can take in already transformed data or not transformed
 	- Outputs `features_DC`, `features_IC`, `labels`, `num_pulses_per_dom`, `trigger_time`, and optional `reco_labels` to use for statitics/comparisons later
 
+- ` create_training_file_perDOM_nocuts.py`
+    - Very similar to `i3_to_hdf5.py` but doesn't have the same cuts applied
+    - Old version of pulling i3 to hdf5
+    - Does not apply MaxAbs transform!
+
 - `cut_concat_transform_separate.py`
+    - Part of old pipeline. May be useful without transform
 
 - `cut_concat_separate_files.py`
 
@@ -299,7 +289,34 @@ Can also put out a [evt # x 7] labels for old reco
 		- This last step takes all "Training", "Validation" and "Testing" arrays and makes them into one large "Testing" array
 		- USE THE FLAG `--old_reco` to have the script put all train, test, validate into one
 
-	
+#### Description of Training Sample Scripts
+- `CNN_Test_i3.py` - used for testing CNN on entire i3 files
+    - Similar to `i3_to_hdf5.py` in how it pulls data from pulse series and transforms for running in network, but immediately tests on given CNN model instead of saving input/output to hdf5
+    - Less flexibility in args:
+        - Naming (input, output, directory)
+        - Model directory, model name, epoch number for model name (trained CNN model)
+        - Cleaned vs uncleaned pulse series
+    - Run the job scripts that create_job_files.sh creates in parallel on cluster
+        - Needs icecube library to run
+    - Find example running scripts in `make_jobs/i3_test`, specifically starting with `create_job_files.sh` to make a job for each i3 file you want to test
+    - Edit job arguments in job_template.sb in `make_jobs/i3_test`
+    - Ouputs new i3 file with “FLERCNN” as output key in frame, only stores energy there as an I3Double
+
+- `pull_labels_i3_to_hdf5.py` - takes output from i3 files, including CNN test output, and stores in arrays similar to structure from training
+    - Grabs the output CNN energy from i3 file to make it into hdf5 file
+        - Creates array for CNN output, truth labels, Retro Reco, additional information (used for analysis cuts), weights
+    - Needs icecube library to run
+    - Example on how to run:
+``` python pull_labels_i3_to_hdf5.py -i "/mnt/research/IceCube/jmicallef/FLERCNN_i3_output/oscNext_genie_level7_v02.00_pass2.140000.00????_FLERCNN.i3.zst" -o /mnt/home/micall12/LowEnergyNeuralNetwork/output_plots/energy_numu_flat_1_500_level6_cleanedpulses_IC19_CC_20000evtperbin_lrEpochs50/retroL7_152epochs/ -n prediction_values
+```
+- `plot_hdf5_energy_from_predictionfile.py` - loads the predictions from the hdf5 and plots them
+    - Lots of different masks available
+    - Meant to be a code that evolves/editing by user directly
+        - Only args are input file/output dir
+    - Makes lots of plots after reading in the variables from hdf5
+    - Example:
+```python plot_hdf5_energy_from_predictionfile.py -i /mnt/home/micall12/LowEnergyNeuralNetwork/output_plots/energy_numu_flat_1_500_level6_cleanedpulses_IC19_CC_20000evtperbin_lrEpochs50/retroL7_152epochs/prediction_values.hdf5 -o /mnt/home/micall12/LowEnergyNeuralNetwork/output_plots/energy_numu_flat_1_500_level6_cleanedpulses_IC19_CC_20000evtperbin_lrEpochs50/retroL7_152epochs/```
+
 ### Scripts to Evaluate/Check Data
 
 - `check_energybins.py` - quickly read in many files and make distribution of energy
