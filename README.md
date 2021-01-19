@@ -289,7 +289,7 @@ Can also put out a [evt # x 7] labels for old reco
 		- This last step takes all "Training", "Validation" and "Testing" arrays and makes them into one large "Testing" array
 		- USE THE FLAG `--old_reco` to have the script put all train, test, validate into one
 
-#### Description of Training Sample Scripts
+#### Description of Testing Sample Scripts
 - `CNN_Test_i3.py` - used for testing CNN on entire i3 files
     - Similar to `i3_to_hdf5.py` in how it pulls data from pulse series and transforms for running in network, but immediately tests on given CNN model instead of saving input/output to hdf5
     - Less flexibility in args:
