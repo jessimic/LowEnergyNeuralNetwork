@@ -307,7 +307,7 @@ Can also put out a [evt # x 7] labels for old reco
         - Creates array for CNN output, truth labels, Retro Reco, additional information (used for analysis cuts), weights
     - Needs icecube library to run
     - Example on how to run:
-``` python pull_labels_i3_to_hdf5.py -i "/mnt/research/IceCube/jmicallef/FLERCNN_i3_output/oscNext_genie_level7_v02.00_pass2.140000.00????_FLERCNN.i3.zst" -o /mnt/home/micall12/LowEnergyNeuralNetwork/output_plots/energy_numu_flat_1_500_level6_cleanedpulses_IC19_CC_20000evtperbin_lrEpochs50/retroL7_152epochs/ -n prediction_values
+```python pull_labels_i3_to_hdf5.py -i "/mnt/research/IceCube/jmicallef/FLERCNN_i3_output/oscNext_genie_level7_v02.00_pass2.140000.00????_FLERCNN.i3.zst" -o /mnt/home/micall12/LowEnergyNeuralNetwork/output_plots/energy_numu_flat_1_500_level6_cleanedpulses_IC19_CC_20000evtperbin_lrEpochs50/retroL7_152epochs/ -n prediction_values
 ```
 - `plot_hdf5_energy_from_predictionfile.py` - loads the predictions from the hdf5 and plots them
     - Lots of different masks available
@@ -315,7 +315,8 @@ Can also put out a [evt # x 7] labels for old reco
         - Only args are input file/output dir
     - Makes lots of plots after reading in the variables from hdf5
     - Example:
-```python plot_hdf5_energy_from_predictionfile.py -i /mnt/home/micall12/LowEnergyNeuralNetwork/output_plots/energy_numu_flat_1_500_level6_cleanedpulses_IC19_CC_20000evtperbin_lrEpochs50/retroL7_152epochs/prediction_values.hdf5 -o /mnt/home/micall12/LowEnergyNeuralNetwork/output_plots/energy_numu_flat_1_500_level6_cleanedpulses_IC19_CC_20000evtperbin_lrEpochs50/retroL7_152epochs/```
+```python plot_hdf5_energy_from_predictionfile.py -i /mnt/home/micall12/LowEnergyNeuralNetwork/output_plots/energy_numu_flat_1_500_level6_cleanedpulses_IC19_CC_20000evtperbin_lrEpochs50/retroL7_152epochs/prediction_values.hdf5 -o /mnt/home/micall12/LowEnergyNeuralNetwork/output_plots/energy_numu_flat_1_500_level6_cleanedpulses_IC19_CC_20000evtperbin_lrEpochs50/retroL7_152epochs/
+```
 
 ### Scripts to Evaluate/Check Data
 
