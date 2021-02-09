@@ -26,6 +26,11 @@ import random
 
 import time
 
+from keras.optimizers import Adam
+from keras.losses import mean_squared_error
+from keras.losses import mean_absolute_percentage_error
+from keras.losses import binary_crossentropy
+
 ## Create ability to change settings from terminal ##
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input",type=str,default=None,
@@ -38,8 +43,12 @@ parser.add_argument("--model_dir",type=str,default='/mnt/home/micall12/LowEnergy
                     dest="model_dir", help="path for where to pull the model from")
 parser.add_argument("--model_name",type=str,
                     dest="model_name", help="name of output folder where model is located")
+parser.add_argument("--variable",type=str,default="energy",
+                    dest="variable", help="name of variable to predict, class has specific unique function to run the classifier")
 parser.add_argument("-e","--epochs",default=None,
                     dest="epochs", help="epoch number for model to use")
+parser.add_argument("-f","--factor", type=float, default=100.,
+                    dest="factor", help="transformation factor to adjust output by")
 parser.add_argument("--cleaned",type=str,default="False",
                     dest="cleaned", help="True if wanted to use SRTTWOfflinePulsesDC")
 args = parser.parse_args()
@@ -51,14 +60,18 @@ if args.cleaned == "True" or args.cleaned == "true":
     use_cleaned_pulses = True
 else:
     use_cleaned_pulses = False
-efactor=100.
+scale_factor=args.factor
 
+variable = args.variable
 model_name = args.model_name
 model_path = args.model_dir + args.model_name
 if args.epochs is None:
     model_name ="%s/%s_final_model.hdf5"%(model_path,model_name)
 else:
     model_name ="%s/%s_%sepochs_model.hdf5"%(model_path,model_name,args.epochs)
+
+print("Predicting: %s,\nOutput transformation scale factor: %.2f.,\nUsing model: %s"%(variable, scale_factor, model_name))
+
 def get_observable_features(frame,low_window=-500,high_window=4000):
     """
     Load observable features from IceCube files
@@ -250,18 +263,19 @@ def apply_transform(features_DC, features_IC, labels=None, energy_factor=100., t
     features_DC = TransformData(features_DC, low_stats=low_stat_DC, high_stats=high_stat_DC, scaler=transform)
     features_IC = new_transform(features_IC)
     features_IC = TransformData(features_IC, low_stats=low_stat_IC, high_stats=high_stat_IC, scaler=transform)
-    #labels[:,0] = labels[:,0]/float(energy_factor) #energy
-    #labels[:,1] = np.cos(labels[:,1]) #cos zenith
 
     return features_DC, features_IC
 
 
-def cnn_test(features_DC, features_IC, load_model_name, output_variables=1,DC_drop_value=0.2,IC_drop_value=0.2,connected_drop_value=0.2):
-    from cnn_model import make_network
+def cnn_test(features_DC, features_IC, load_model_name, output_variables=1,DC_drop_value=0.2,IC_drop_value=0.2,connected_drop_value=0.2,model_type="energy"):
+    if model_type == "class":
+        from cnn_classification_model import make_network
+    else:
+        from cnn_model import make_network
     
     model_DC = make_network(features_DC,features_IC, output_variables, DC_drop_value, IC_drop_value,connected_drop_value)
     model_DC.load_weights(load_model_name)
-    
+
     Y_test_predicted = model_DC.predict([features_DC,features_IC])
 
     return Y_test_predicted
@@ -322,14 +336,14 @@ def read_files(filename):
     return  output_features_DC, output_features_IC, output_headers
 
 
-def test_write(filename_list, model_name,output_dir, output_name, efactor=100.):
+def test_write(filename_list, model_name,output_dir, output_name, factor=100.,model_type="energy"):
 
 
     for a_file in filename_list:
         if output_name is None:
             basename = a_file.split("/")[-1] 
             basename = basename[:-7]
-            output_name = str(basename) + "_FLERCNN"
+            output_name = str(basename) + "_FLERCNN_" + model_type
         outfile = dataio.I3File(output_dir+output_name+".i3.zst",'w')
         print("Writing to %s"%(output_dir+output_name+".i3.zst"))
         
@@ -339,7 +353,7 @@ def test_write(filename_list, model_name,output_dir, output_name, efactor=100.):
 
 
         t0 = time.time()
-        energy = cnn_test(DC_array, IC_near_DC_array, model_name)
+        prediction = cnn_test(DC_array, IC_near_DC_array, model_name,model_type=model_type)
         t1 = time.time()
         print("Time to run CNN Test on %i events: %f seconds"%(DC_array.shape[0],t1-t0))
             
@@ -362,7 +376,9 @@ def test_write(filename_list, model_name,output_dir, output_name, efactor=100.):
                     print("Event ID is off")
                     continue
 
-                frame['FLERCNN_energy'] = dataclasses.I3Double(energy[index][0]*efactor)
+                key_name = "FLERCNN_%s"%model_type
+                adjusted_prediction = prediction[index][0]*factor
+                frame[key_name] = dataclasses.I3Double(adjusted_prediction)
                 outfile.push(frame)
                 index +=1
             else:
@@ -375,7 +391,7 @@ import glob
 event_file_names = sorted(glob.glob(input_file))
 assert event_file_names,"No files loaded, please check path."
 time_start=time.time()
-test_write(event_file_names, model_name, output_dir, output_name, efactor)
+test_write(event_file_names, model_name, output_dir, output_name, factor=scale_factor, model_type=variable)
 time_end=time.time()
 print("Total time: %f"%(time_end-time_start))
 

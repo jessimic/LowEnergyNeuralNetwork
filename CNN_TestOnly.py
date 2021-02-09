@@ -55,6 +55,10 @@ parser.add_argument("--emax",type=float,default=100.,
                         dest='emax',help="Max energy for use for plotting")
 parser.add_argument("--efactor",type=float,default=100.,
                         dest='efactor',help="ENERGY FACTOR TO MULTIPLY BY!")
+parser.add_argument("--transform_zenith",default=False,action='store_true',
+                    dest="transform_zenith",help="transform zenith")
+parser.add_argument("--no_plots",default=False,action='store_true',
+                    dest="no_plots",help="add flag if you don't want any plots, just the prediction file")
 args = parser.parse_args()
 
 test_file = args.path + args.input_file
@@ -75,6 +79,8 @@ energy_factor = args.efactor
 
 mask_zenith = args.mask_zenith
 z_values = args.z_values
+transform_zenith = args.transform_zenith
+no_plots = args.no_plots
 
 save = True
 save_folder_name = "%soutput_plots/%s/"%(args.output_dir,filename)
@@ -93,11 +99,11 @@ elif args.first_variable == "energy" or args.first_variable == "energy" or args.
     first_var = "energy"
     first_var_index = 0
     print("testing with energy as the first index")
+elif args.first_variable == "class" or args.first_variable == "classification" or args.first_variable == "Class" or args.first_variable == "Classification" or args.first_variable == "C" or args.first_variable == "c":
+    first_var = "class"
 else:
-    first_var = "energy"
-    first_var_index = 0
-    print("only supports energy and zenith right now! Please choose one of those. Defaulting to energy")
-    print("testing with energy as the first index")
+    first_var = None
+assert first_var is not None, "Only supports energy and zenith and classification right now! Please choose one of those."
 
 reco_name = args.test
 save_folder_name += "/%s_%sepochs/"%(reco_name.replace(" ",""),epoch)
@@ -146,6 +152,8 @@ if mask_zenith:
     X_test_IC_use = X_test_IC_use[mask_zenith]
     if compare_reco:
         reco_test_use = reco_test_use[mask_zenith]
+if transform_zenith:
+    Y_test_use[:,1] = np.tanh(Y_test_use[:,1])
 
 #Make network and load model
 from keras.optimizers import SGD
@@ -153,7 +161,10 @@ from keras.optimizers import Adam
 from keras.callbacks import EarlyStopping
 from keras.callbacks import ModelCheckpoint
 
-from cnn_model import make_network
+if first_var == "class":
+    from cnn_classification_model import make_network
+else:
+    from cnn_model import make_network
 model_DC = make_network(X_test_DC_use,X_test_IC_use,output_variables,DC_drop_value,IC_drop_value,connected_drop_value)
 model_DC.load_weights(load_model_name)
 print("Loading model %s"%load_model_name)
@@ -161,6 +172,7 @@ print("Loading model %s"%load_model_name)
 # WRITE OWN LOSS FOR MORE THAN ONE REGRESSION OUTPUT
 from keras.losses import mean_squared_error
 from keras.losses import mean_absolute_percentage_error
+from keras.losses import binary_crossentropy
 
 if first_var == "zenith":
     def ZenithLoss(y_truth,y_predicted):
@@ -177,6 +189,17 @@ if first_var == "zenith":
     
     print("zenith first")
 
+elif first_var == "class":
+    def ClassificationLoss(y_truth,y_predicted):
+        return binary_crossentropy(y_truth[:,0],y_predicted[:,0])
+    
+    def CustomLoss(y_truth,y_predicted):
+            class_loss = ClassificationLoss(y_truth,y_predicted)
+            return class_loss
+
+    model_DC.compile(loss=CustomLoss,
+            optimizer=Adam(lr=learning_rate),
+            metrics=[ClassificationLoss])
 
 else: 
     def EnergyLoss(y_truth,y_predicted):
@@ -218,17 +241,18 @@ else:
                     metrics=[EnergyLoss])
 
 # Run prediction
-#Y_test_compare = Y_test_use[:,first_var_index]
-#score = model_DC.evaluate([X_test_DC_use,X_test_IC_use], Y_test_compare, batch_size=256)
-#print("Evaluate:",score)
+if first_var == "class":
+    Y_test_compare = Y_test_use[:,8]
+    score = model_DC.evaluate([X_test_DC_use,X_test_IC_use], Y_test_compare, batch_size=256)
+    print("Evaluate:",score)
 t0 = time.time()
 Y_test_predicted = model_DC.predict([X_test_DC_use,X_test_IC_use])
 t1 = time.time()
 print("This took me %f seconds for %i events"%(((t1-t0)),Y_test_predicted.shape[0]))
 #print(X_test_DC_use.shape,X_test_IC_use.shape,Y_test_predicted.shape,Y_test_use.shape)
 
-print("Saving output file: %s/prediction_values.hdf5"%save_folder_name)
-f = h5py.File("%s/prediction_values.hdf5"%save_folder_name, "w")
+print("Saving output file: %s/prediction_values_%s.hdf5"%save_folder_name,first_var)
+f = h5py.File("%s/prediction_values_%s.hdf5"%(save_folder_name,first_var), "w")
 f.create_dataset("Y_test_use", data=Y_test_use)
 f.create_dataset("Y_predicted", data=Y_test_predicted)
 if compare_reco:
@@ -237,109 +261,114 @@ if weights is not None:
     f.create_dataset("weights_test", data=weights)
 f.close()
 
-### MAKE THE PLOTS ###
-from PlottingFunctions import plot_single_resolution
-from PlottingFunctions import plot_2D_prediction
-from PlottingFunctions import plot_2D_prediction_fraction
-from PlottingFunctions import plot_bin_slices
-from PlottingFunctions import plot_distributions
-from PlottingFunctions import plot_length_energy
+if not no_plots:
+    ### MAKE THE PLOTS ###
+    from PlottingFunctions import plot_single_resolution
+    from PlottingFunctions import plot_2D_prediction
+    from PlottingFunctions import plot_2D_prediction_fraction
+    from PlottingFunctions import plot_bin_slices
+    from PlottingFunctions import plot_distributions
+    from PlottingFunctions import plot_length_energy
 
-plots_names = ["Energy", "Cosine Zenith", "Track"]
-plots_units = ["(GeV)", "", "(m)"]
-maxabs_factors = [energy_factor, 1., 200.]
-maxvals = [max_energy, 1., 0.]
-minvals = [min_energy, -1., 0.]
-use_fractions = [True, False, True]
-bins_array = [100,100,100]
-if output_variables == 3: 
-    maxvals = [max_energy, 1., max(Y_test_use[:,2])*maxabs_factor[2]]
+    plots_names = ["Energy", "Cosine Zenith", "Track"]
+    plots_units = ["(GeV)", "", "(m)"]
+    maxabs_factors = [energy_factor, 1., 200.]
+    maxvals = [max_energy, 1., 0.]
+    minvals = [min_energy, -1., 0.]
+    use_fractions = [True, False, True]
+    bins_array = [100,100,100]
+    if output_variables == 3: 
+        maxvals = [max_energy, 1., max(Y_test_use[:,2])*maxabs_factor[2]]
+    if transform_zenith:
+        Y_test_use[:,1] = np.arctanh(Y_test_use[:,1])
+        Y_test_predicted[:,0] = np.arctanh(Y_test_predicted[:,0])
 
-for num in range(0,output_variables):
 
-    NN_index = num
-    if first_var == "energy":
-        true_index = num
-        name_index = num
-    if first_var == "zenith":
-        true_index = first_var_index
-        name_index = first_var_index
-    plot_name = plots_names[name_index]
-    plot_units = plots_units[name_index]
-    maxabs_factor = maxabs_factors[name_index]
-    maxval = maxvals[name_index]
-    minval = minvals[name_index]
-    use_frac = use_fractions[name_index]
-    bins = bins_array[name_index]
-    print("Plotting %s at position %i in true test output and %i in NN test output"%(plot_name, true_index,NN_index))
-    
-    plot_2D_prediction(Y_test_use[:,true_index]*maxabs_factor,\
-                        Y_test_predicted[:,NN_index]*maxabs_factor,\
-                        save,save_folder_name,bins=bins,\
-                        minval=minval,maxval=maxval,cut_truth=True,axis_square=True,\
-                        variable=plot_name,units=plot_units)
-    plot_2D_prediction(Y_test_use[:,true_index]*maxabs_factor, Y_test_predicted[:,NN_index]*maxabs_factor,\
-                        save,save_folder_name,bins=bins,\
-                        minval=None,maxval=None,\
-                        variable=plot_name,units=plot_units)
-    plot_single_resolution(Y_test_use[:,true_index]*maxabs_factor,\
-                   Y_test_predicted[:,NN_index]*maxabs_factor,\
-                   minaxis=-maxval,maxaxis=maxval,bins=bins,
-                   save=save,savefolder=save_folder_name,\
-                   variable=plot_name,units=plot_units)
-    plot_bin_slices(Y_test_use[:,true_index]*maxabs_factor, Y_test_predicted[:,NN_index]*maxabs_factor,\
-                    use_fraction = False,\
-                    bins=10,min_val=minval,max_val=maxval,\
-                    save=True,savefolder=save_folder_name,\
-                    variable=plot_name,units=plot_units)
-   
-    if compare_reco:
+    for num in range(0,output_variables):
+
+        NN_index = num
+        if first_var == "energy":
+            true_index = num
+            name_index = num
+        if first_var == "zenith":
+            true_index = first_var_index
+            name_index = first_var_index
+        plot_name = plots_names[name_index]
+        plot_units = plots_units[name_index]
+        maxabs_factor = maxabs_factors[name_index]
+        maxval = maxvals[name_index]
+        minval = minvals[name_index]
+        use_frac = use_fractions[name_index]
+        bins = bins_array[name_index]
+        print("Plotting %s at position %i in true test output and %i in NN test output"%(plot_name, true_index,NN_index))
+        
+        plot_2D_prediction(Y_test_use[:,true_index]*maxabs_factor,\
+                            Y_test_predicted[:,NN_index]*maxabs_factor,\
+                            save,save_folder_name,bins=bins,\
+                            minval=minval,maxval=maxval,cut_truth=True,axis_square=True,\
+                            variable=plot_name,units=plot_units)
+        plot_2D_prediction(Y_test_use[:,true_index]*maxabs_factor, Y_test_predicted[:,NN_index]*maxabs_factor,\
+                            save,save_folder_name,bins=bins,\
+                            minval=None,maxval=None,\
+                            variable=plot_name,units=plot_units)
         plot_single_resolution(Y_test_use[:,true_index]*maxabs_factor,\
-                   Y_test_predicted[:,NN_index]*maxabs_factor,\
-                   use_old_reco = True, old_reco = reco_test_use[:,true_index],\
-                   minaxis=-maxval,maxaxis=maxval,bins=bins,
-                   save=save,savefolder=save_folder_name,\
-                   variable=plot_name,units=plot_units, reco_name=reco_name)
-        plot_single_resolution(Y_test_use[:,true_index]*maxabs_factor,\
-                   Y_test_predicted[:,NN_index]*maxabs_factor,\
-                   use_old_reco = True, old_reco = reco_test_use[:,true_index],\
-                   use_fraction=True,bins=bins,maxaxis=2.,minaxis=-2.,\
-                   save=save,savefolder=save_folder_name,\
-                   variable=plot_name,units=plot_units)
+                       Y_test_predicted[:,NN_index]*maxabs_factor,\
+                       minaxis=-maxval,maxaxis=maxval,bins=bins,
+                       save=save,savefolder=save_folder_name,\
+                       variable=plot_name,units=plot_units)
         plot_bin_slices(Y_test_use[:,true_index]*maxabs_factor, Y_test_predicted[:,NN_index]*maxabs_factor,\
-                    old_reco = reco_test_use[:,true_index],\
-                    use_fraction = use_frac,\
-                    bins=10,min_val=minval,max_val=maxval,\
-                    save=True,savefolder=save_folder_name,\
-                    variable=plot_name,units=plot_units, epochs = epoch,reco_name=reco_name)
-    if first_var == "energy" and num ==0:
-        plot_2D_prediction_fraction(Y_test_use[:,true_index]*maxabs_factor,\
-                        Y_test_predicted[:,NN_index]*maxabs_factor,\
-                        save,save_folder_name,bins=bins,axis_square=True,\
-                        minval=-2.,maxval=2,\
+                        use_fraction = False,\
+                        bins=10,min_val=minval,max_val=maxval,\
+                        save=True,savefolder=save_folder_name,\
                         variable=plot_name,units=plot_units)
-        plot_bin_slices(Y_test_use[:,true_index]*maxabs_factor, Y_test_predicted[:,NN_index]*maxabs_factor,\
-                    use_fraction = use_frac,\
-                    bins=10,min_val=minval,max_val=maxval,\
-                    save=True,savefolder=save_folder_name,\
-                    variable=plot_name,units=plot_units)
-        #plot_length_energy(Y_test_use, Y_test_predicted[:,NN_index]*maxabs_factor,\
-        #                    use_fraction=True,ebins=20,tbins=20,\
-        #                    emin=minvals[first_var_index], emax=maxvals[first_var_index],\
-        #                    tmin=0.,tmax=450.,tfactor=maxabs_factors[2],\
-        #                    savefolder=save_folder_name)
-    if num > 0 or first_var == "zenith":
-        plot_bin_slices(Y_test_use[:,true_index], Y_test_predicted[:,NN_index], \
-                       energy_truth=Y_test_use[:,0]*max_energy, \
-                       use_fraction = False, \
-                       bins=10,min_val=min_energy,max_val=max_energy,\
-                       save=True,savefolder=save_folder_name,\
-                       variable=plot_name,units=plot_units, epochs=epoch)
+       
         if compare_reco:
+            plot_single_resolution(Y_test_use[:,true_index]*maxabs_factor,\
+                       Y_test_predicted[:,NN_index]*maxabs_factor,\
+                       use_old_reco = True, old_reco = reco_test_use[:,true_index],\
+                       minaxis=-maxval,maxaxis=maxval,bins=bins,
+                       save=save,savefolder=save_folder_name,\
+                       variable=plot_name,units=plot_units, reco_name=reco_name)
+            plot_single_resolution(Y_test_use[:,true_index]*maxabs_factor,\
+                       Y_test_predicted[:,NN_index]*maxabs_factor,\
+                       use_old_reco = True, old_reco = reco_test_use[:,true_index],\
+                       use_fraction=True,bins=bins,maxaxis=2.,minaxis=-2.,\
+                       save=save,savefolder=save_folder_name,\
+                       variable=plot_name,units=plot_units)
+            plot_bin_slices(Y_test_use[:,true_index]*maxabs_factor, Y_test_predicted[:,NN_index]*maxabs_factor,\
+                        old_reco = reco_test_use[:,true_index],\
+                        use_fraction = use_frac,\
+                        bins=10,min_val=minval,max_val=maxval,\
+                        save=True,savefolder=save_folder_name,\
+                        variable=plot_name,units=plot_units, epochs = epoch,reco_name=reco_name)
+        if first_var == "energy" and num ==0:
+            plot_2D_prediction_fraction(Y_test_use[:,true_index]*maxabs_factor,\
+                            Y_test_predicted[:,NN_index]*maxabs_factor,\
+                            save,save_folder_name,bins=bins,axis_square=True,\
+                            minval=-2.,maxval=2,\
+                            variable=plot_name,units=plot_units)
+            plot_bin_slices(Y_test_use[:,true_index]*maxabs_factor, Y_test_predicted[:,NN_index]*maxabs_factor,\
+                        use_fraction = use_frac,\
+                        bins=10,min_val=minval,max_val=maxval,\
+                        save=True,savefolder=save_folder_name,\
+                        variable=plot_name,units=plot_units)
+            #plot_length_energy(Y_test_use, Y_test_predicted[:,NN_index]*maxabs_factor,\
+            #                    use_fraction=True,ebins=20,tbins=20,\
+            #                    emin=minvals[first_var_index], emax=maxvals[first_var_index],\
+            #                    tmin=0.,tmax=450.,tfactor=maxabs_factors[2],\
+            #                    savefolder=save_folder_name)
+        if num > 0 or first_var == "zenith":
             plot_bin_slices(Y_test_use[:,true_index], Y_test_predicted[:,NN_index], \
-                       energy_truth=Y_test_use[:,0]*max_energy, \
-                       old_reco = reco_test_use[:,true_index],\
-                       use_fraction = False, \
-                       bins=10,min_val=min_energy,max_val=max_energy,\
-                       save=True,savefolder=save_folder_name,\
-                       variable=plot_name,units=plot_units, epochs = epoch,reco_name=reco_name)
+                           energy_truth=Y_test_use[:,0]*max_energy, \
+                           use_fraction = False, \
+                           bins=10,min_val=min_energy,max_val=max_energy,\
+                           save=True,savefolder=save_folder_name,\
+                           variable=plot_name,units=plot_units, epochs=epoch)
+            if compare_reco:
+                plot_bin_slices(Y_test_use[:,true_index], Y_test_predicted[:,NN_index], \
+                           energy_truth=Y_test_use[:,0]*max_energy, \
+                           old_reco = reco_test_use[:,true_index],\
+                           use_fraction = False, \
+                           bins=10,min_val=min_energy,max_val=max_energy,\
+                           save=True,savefolder=save_folder_name,\
+                           variable=plot_name,units=plot_units, epochs = epoch,reco_name=reco_name)

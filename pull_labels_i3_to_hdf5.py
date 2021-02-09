@@ -12,12 +12,15 @@ parser.add_argument("-n", "--outname",default=None,
                     dest="outname", help="name of output file")
 parser.add_argument("-o", "--outdir",type=str,default='/mnt/home/micall12/LowEnergyNeuralNetwork/output_plots/',
                     dest="output_dir", help="path of ouput file")
+parser.add_argument("--variable",type=str,default="energy",
+                    dest="variable", help="name of variable that was predicted")
 args = parser.parse_args()
 
 input_file = args.input_file
 save_folder_name=args.output_dir
+variable = args.variable
 if args.outname is None:
-    output_name = "prediction_values" #input_file.split("/")[-1]
+    output_name = "prediction_values_%s"%variable #input_file.split("/")[-1]
 else:
     output_name = args.outname
 outdir = args.output_dir
@@ -40,8 +43,8 @@ def read_i3_files(filenames_list):
             if frame.Stop == icetray.I3Frame.Physics:
 
                 #CNN Prediction
-                cnn_energy = frame['FLERCNN_energy'].value
-                output_cnn.append( np.array( [float(cnn_energy)])) #Keeping like this in case additional values are predicted in future
+                cnn_prediction = frame['FLERCNN_%s'%variable].value
+                output_cnn.append( np.array( [float(cnn_prediction)])) #Keeping like this in case additional values are predicted in future
 
                 #Truth 
                 nu = frame["I3MCTree"][0]
@@ -107,6 +110,8 @@ def read_i3_files(filenames_list):
                     reco_casc_energy = frame['L7_reconstructed_cascade_energy'].value
                     reco_track_energy = frame['L7_reconstructed_track_energy'].value
                     reco_em_casc_energy = frame['L7_reconstructed_em_cascade_energy'].value
+                    reco_pid_full = frame['L7_PIDClassifier_FullSky_ProbTrack'].value
+                    reco_pid_up = frame['L7_PIDClassifier_Upgoing_ProbTrack'].value
                 except:
                     reco_energy = np.nan
                     reco_zenith = np.nan
@@ -120,7 +125,9 @@ def read_i3_files(filenames_list):
                     reco_casc_energy = np.nan
                     reco_track_energy = np.nan
                     reco_em_casc_energy = np.nan
-                output_reco_labels.append( np.array([ float(reco_energy), float(reco_zenith), float(reco_azimuth), float(reco_time), float(reco_x), float(reco_y), float(reco_z), float(reco_length), float(reco_track_energy), float(reco_casc_energy), float(reco_em_casc_energy), float(reco_zenith) ]) )
+                    reco_pid_full = np.nan
+                    reco_pid_up = np.nan
+                output_reco_labels.append( np.array([ float(reco_energy), float(reco_zenith), float(reco_azimuth), float(reco_time), float(reco_x), float(reco_y), float(reco_z), float(reco_length), float(reco_track_energy), float(reco_casc_energy), float(reco_em_casc_energy), float(reco_zenith), float(reco_pid_full), float(reco_pid_up) ]) )
 
                 #Additional Info
                 coin_muon = frame['L7_CoincidentMuon_bool'].value > 0

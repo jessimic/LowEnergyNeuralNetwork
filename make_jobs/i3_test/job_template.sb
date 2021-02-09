@@ -11,6 +11,6 @@
 
 ########### Command Lines to Run ##################
 
-singularity exec -B /mnt/scratch/micall12:/mnt/scratch/micall12 --nv /mnt/research/IceCube/Software/icetray_stable-tensorflow.sif sh -c '/usr/local/icetray/env-shell.sh python /mnt/home/micall12/LowEnergyNeuralNetwork/CNN_Test_i3.py -i @@file@@ -o /mnt/research/IceCube/jmicallef/FLERCNN_i3_output/ --model_name energy_numu_flat_1_500_level6_cleanedpulses_IC19_CC_20000evtperbin_lrEpochs50 -e 152 --cleaned True'
+singularity exec -B /mnt/scratch/micall12:/mnt/scratch/micall12 --nv /mnt/research/IceCube/Software/icetray_stable-tensorflow.sif sh -c '/usr/local/icetray/env-shell.sh python /mnt/home/micall12/LowEnergyNeuralNetwork/CNN_Test_i3.py -i @@file@@ -o /mnt/research/IceCube/jmicallef/FLERCNN_i3_output/ --model_name @@model_name@@ --variable @@variable@@ -e @@epoch@@ --factor @@factor@@ --cleaned True'
 
 exit $?
