@@ -1,0 +1,28 @@
+Using TensorFlow backend.
+WARNING:tensorflow:From /usr/local/lib/python2.7/dist-packages/tensorflow/python/ops/resource_variable_ops.py:435: colocate_with (from tensorflow.python.framework.ops) is deprecated and will be removed in a future version.
+Instructions for updating:
+Colocations handled automatically by placer.
+2021-02-05 16:47:05.066257: I tensorflow/core/platform/cpu_feature_guard.cc:141] Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2 AVX512F FMA
+2021-02-05 16:47:05.291576: I tensorflow/compiler/xla/service/service.cc:150] XLA service 0x55a9c1df0fb0 executing computations on platform CUDA. Devices:
+2021-02-05 16:47:05.291946: I tensorflow/compiler/xla/service/service.cc:158]   StreamExecutor device (0): Tesla V100-SXM2-32GB, Compute Capability 7.0
+2021-02-05 16:47:05.307722: I tensorflow/core/platform/profile_utils/cpu_utils.cc:94] CPU Frequency: 2400000000 Hz
+2021-02-05 16:47:05.308216: I tensorflow/compiler/xla/service/service.cc:150] XLA service 0x55a9c1603590 executing computations on platform Host. Devices:
+2021-02-05 16:47:05.308473: I tensorflow/compiler/xla/service/service.cc:158]   StreamExecutor device (0): <undefined>, <undefined>
+2021-02-05 16:47:05.308783: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1433] Found device 0 with properties: 
+name: Tesla V100-SXM2-32GB major: 7 minor: 0 memoryClockRate(GHz): 1.53
+pciBusID: 0000:3b:00.0
+totalMemory: 31.75GiB freeMemory: 31.45GiB
+2021-02-05 16:47:05.308931: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1512] Adding visible gpu devices: 0
+2021-02-05 16:47:05.310882: I tensorflow/core/common_runtime/gpu/gpu_device.cc:984] Device interconnect StreamExecutor with strength 1 edge matrix:
+2021-02-05 16:47:05.311106: I tensorflow/core/common_runtime/gpu/gpu_device.cc:990]      0 
+2021-02-05 16:47:05.311233: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1003] 0:   N 
+2021-02-05 16:47:05.311541: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1115] Created TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:0 with 30591 MB memory) -> physical GPU (device: 0, name: Tesla V100-SXM2-32GB, pci bus id: 0000:3b:00.0, compute capability: 7.0)
+2021-02-05 16:47:09.366199: I tensorflow/stream_executor/dso_loader.cc:152] successfully opened CUDA library libcublas.so.10.0 locally
+Predicting: class,
+Output transformation scale factor: 1.00.,
+Using model: /mnt/home/micall12/LowEnergyNeuralNetwork/output_plots/PID_level6_cleanedpulses_IC19_E5to200_30000evtperbin_sigmoid_binarycross_lrEpochs50/PID_level6_cleanedpulses_IC19_E5to200_30000evtperbin_sigmoid_binarycross_lrEpochs50_192epochs_model.hdf5
+Writing to /mnt/research/IceCube/jmicallef/FLERCNN_i3_output/NuE_genie_129999_000050_lev_FLERCNN_class.i3.zst
+reading file: /mnt/research/IceCube/jmicallef/simulation/level6/129999/NuE_genie_129999_000050_level6.zst
+((263, 8, 60, 5), (263, 19, 60, 5))
+Time to run CNN Test on 263 events: 7.592760 seconds
+Total time: 9.130237

@@ -108,7 +108,7 @@ def new_transform(full_data_set):
         if variable_index == 0:
             #data_transformed = transform_charge(data_list)
             data_transformed = data_list
-            print("currently not transforming charge")
+            #print("currently not transforming charge")
         elif variable_index == 1 or variable_index == 2:
             data_transformed = transform_time(data_list)
             #print("doing time")
@@ -187,7 +187,7 @@ def TransformData(full_data_set,low_stats=None,high_stats=None,scaler="MaxAbs"):
                     max_val = high_stats[data_index]
                 else:
                     max_val = high_stats
-            print("Scaling by %f"%max_val)
+            #print("Scaling by %f"%max_val)
             data_scaled = data_list/float(max_val)
         
         else:
@@ -196,7 +196,7 @@ def TransformData(full_data_set,low_stats=None,high_stats=None,scaler="MaxAbs"):
 
         data_scaled = np.array(data_scaled)
 
-        print("Working on index %i of %i"%(data_index,full_data_set.shape[-1]))
+        #print("Working on index %i of %i"%(data_index,full_data_set.shape[-1]))
         transformed_data_set[...,data_index] = data_scaled.reshape(full_data_set.shape[:-1])
 
     return transformed_data_set

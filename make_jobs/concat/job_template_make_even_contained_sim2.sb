@@ -1,0 +1,17 @@
+#!/bin/bash --login
+
+########### SBATCH Lines for Resource Request ##########
+
+#SBATCH --time=00:59:00             # limit of wall clock time - how long the job will run (same as -t)
+#SBATCH --nodes=1                 # number of different nodes - could be an exact number or a range of nodes (same as -N)
+#SBATCH --mem-per-cpu=200G            # memory required per allocated CPU (or core) - amount of memory (in bytes)
+#SBATCH --job-name make_contained_even_events    # you can give your job a name for easier identification (same as -J)
+
+########### Command Lines to Run ##########
+
+source /mnt/home/micall12/setup_anaconda.sh
+
+python /mnt/home/micall12/LowEnergyNeuralNetwork/flatten_energy_distribution.py -i NuMu_140000_000???_level2_sim2A.zst_contained_lt100_vertexDC_IC19.hdf5 -o NuMu_140000_level2_uncleaned_cleanedpulsesonly_vertexDC_IC19_contained_sim2A_ --emax 100 --emin 5 --max_per_bin 31588 --cuts CC --shuffle False --num_out 1
+
+exit $?
+

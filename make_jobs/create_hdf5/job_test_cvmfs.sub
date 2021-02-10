@@ -1,0 +1,17 @@
+#!/bin/bash --login
+
+########### SBATCH Lines for Resource Request ##########
+
+#SBATCH --time=00:59:00             # limit of wall clock time - how long the job will run (same as -t)
+#SBATCH --nodes=1                 # number of different nodes - could be an exact number or a range of nodes (same as -N)
+#SBATCH --mem=30G            # memory required per allocated CPU (or core) - amount of memory (in bytes)
+#SBATCH --job-name @@name@@      # you can give your job a name for easier identification (same as -J)
+#SBATCH --output @@log@@
+
+########### Command Lines to Run ##################
+eval `/cvmfs/icecube.opensciencegrid.org/py3-v4.1.0/setup.sh`
+
+/cvmfs/icecube.opensciencegrid.org/py3-v4.1.0/RHEL_7_x86_64/metaprojects/combo/stable/env-shell.sh \
+python /mnt/home/micall12/LowEnergyNeuralNetwork/create_training_file_perDOM_nocuts.py -i /mnt/research/IceCube/jmicallef/simulation/149999/NuMu_149999_000001_level2.zst -n NuMu_149999_000001_level2.zst --emax 200
+
+exit $?

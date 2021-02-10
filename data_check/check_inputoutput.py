@@ -74,14 +74,25 @@ do_input = args.no_input
 file_was_transformed = args.transformed
 
 f = h5py.File(input_file, 'r')
-if file_was_transformed:
+try:
     Y_test = f['Y_test'][:]
+except:
+    try:
+        Y_test = f['Y_test_use'][:]
+    except:
+        Y_test = f['labels'][:]
+    
+try:
     X_test_DC = f['X_test_DC'][:]
     X_test_IC = f['X_test_IC'][:]
-else:
-    Y_test = f['labels'][:]
-    X_test_DC = f['features_DC'][:]
-    X_test_IC = f['features_IC'][:]
+except:
+    try:
+        X_test_DC = f['features_DC'][:]
+        X_test_IC = f['features_IC'][:]
+    except:
+        print("No input features in file")
+        X_test_DC = np.array([np.nan])
+        X_test_IC = np.array([np.nan]) 
 
 try:
     Y_train = f['Y_train'][:]
@@ -112,12 +123,12 @@ except:
     reco_validate = None
 
 try:
-    weights_test = f['weights_test']
+    weights_test = f['weights_test'][:]
 except:
     wegiths_test = None
 try:
-    weights_train = f['weights_train']
-    weights_validate = f['weights_validate']
+    weights_train = f['weights_train'][:]
+    weights_validate = f['weights_validate'][:]
 except:
     weights_train = None
     weightsvalidate = None
@@ -157,7 +168,8 @@ else:
 print(Y_labels.shape,X_DC.shape,X_IC.shape)
 print(len(output_factors))
 
-if reco_test is not None:
+reco_labels = reco_test
+if reco_train is not None:
     reco_labels = np.concatenate((reco_test,reco_train,reco_validate))
 
 # Apply Cuts
@@ -170,31 +182,32 @@ if do_cuts:
     Y_labels = Y_labels[all_cuts]
     X_DC = X_DC[all_cuts]
     X_IC = X_IC[all_cuts]
-    if reco_test is not None:
+    if reco_labels is not None:
         reco_labels = reco_labels[all_cuts]
 
 
-def plot_output(Y_values,outdir,filenumber=None,names=output_names,transform=output_factors):
+def plot_output(Y_values,outdir,filenumber=None,names=output_names,transform=output_factors,weights=None):
     if file_was_transformed:
         units = ["(GeV)", "", "(m)", "(s)", "(m)", "(m)", "(m)", "(rad)", "(rad)"]
     else:
         units = ["(GeV)", "", "(rad)", "(s)", "(m)", "(m)", "(m)", "(m)", "(rad)"]
     
     plt.figure()
-    plt.hist(Y_values[:,0]*transform[0],bins=100);
+    plt.hist(Y_values[:,0]*transform[0],bins=100,weights=weights);
     plt.title("%s Distribution"%names[0],fontsize=25)
     plt.xlabel("%s %s"%(names[0],units[0]),fontsize=15)
     plt.xticks(fontsize=15)
     plt.yticks(fontsize=15)
+    #plt.yscale('log')
     if filenum:
         filenum_name = "_%s"%filenum
     else:
         filenum_name = ""
     #plt.savefig("%s/Output_%s%s.png"%(outdir,names[0].replace(" ", ""),filenum_name))
-    plt.savefig("%s/Output_Energy%s.png"%(outdir,filenum_name))
+    plt.savefig("%s/Output_Energy%s.png"%(outdir,filenum_name),bbox_inches='tight')
     
     plt.figure()
-    plt.hist(Y_values[:,1]*transform[1],bins=100);
+    plt.hist(Y_values[:,1]*transform[1],bins=100,weights=weights);
     plt.title("%s Distribution"%names[1],fontsize=25)
     plt.xlabel("%s %s"%(names[1],units[1]),fontsize=15)
     plt.xticks(fontsize=15)
@@ -204,11 +217,25 @@ def plot_output(Y_values,outdir,filenumber=None,names=output_names,transform=out
     else:
         filenum_name = ""
     #plt.savefig("%s/Output_%s%s.png"%(outdir,names[1].replace(" ", ""),filenum_name))
-    plt.savefig("%s/Output_CosZenith%s.png"%(outdir,filenum_name))
+    plt.savefig("%s/Output_CosZenith%s.png"%(outdir,filenum_name),bbox_inches='tight')
+    
+    plt.figure()
+    plt.hist(Y_values[:,2]*transform[2],bins=100,weights=weights);
+    plt.title("%s Distribution"%names[2],fontsize=25)
+    plt.xlabel("%s %s"%(names[2],units[2]),fontsize=15)
+    plt.xticks(fontsize=15)
+    plt.yticks(fontsize=15)
+    plt.yscale('log')
+    if filenum:
+        filenum_name = "_%s"%filenum
+    else:
+        filenum_name = ""
+    #plt.savefig("%s/Output_%s%s.png"%(outdir,names[1].replace(" ", ""),filenum_name))
+    plt.savefig("%s/Output_TrackLength%s.png"%(outdir,filenum_name),bbox_inches='tight')
 
     if Y_values.shape[-1] == 13:
         plt.figure()
-        plt.hist(Y_values[:,12],bins=100);
+        plt.hist(Y_values[:,12],bins=100,weights=weights);
         plt.title("Zenith Distribution",fontsize=25)
         plt.xlabel("Zenith %s"%(units[-1]),fontsize=15)
         plt.xticks(fontsize=15)
@@ -218,7 +245,7 @@ def plot_output(Y_values,outdir,filenumber=None,names=output_names,transform=out
         else:
             filenum_name = ""
         #plt.savefig("%s/Output_%s%s.png"%(outdir,names[12].replace(" ", ""),filenum_name))
-        plt.savefig("%s/Output_Zenith%s.png"%(outdir,filenum_name))
+        plt.savefig("%s/Output_Zenith%s.png"%(outdir,filenum_name),bbox_inches='tight')
 
 
     row_index = 0
@@ -236,7 +263,7 @@ def plot_output(Y_values,outdir,filenumber=None,names=output_names,transform=out
         else:
             values = Y_values[:,i]*transform[i]
             a_name = names[i]
-        ax[row_index, col_index].hist(values,bins=100);
+        ax[row_index, col_index].hist(values,bins=100,weights=weights);
         ax[row_index, col_index].set_title("%s Distribution"%a_name,fontsize=15)
         ax[row_index, col_index].set_xlabel("%s %s"%(a_name,units[i]),fontsize=15)
         #ax[row_index, col_index].set_xticks(fontsize=15)
@@ -251,7 +278,7 @@ def plot_output(Y_values,outdir,filenumber=None,names=output_names,transform=out
         filenum_name = "_%s"%filenum
     else:
         filenum_name = ""
-    plt.savefig("%s/AllOutput_%s.png"%(outdir,filenum_name))
+    plt.savefig("%s/AllOutput%s.png"%(outdir,filenum_name))
     
     num_events = Y_values.shape[0]
     flavor = list(Y_values[:,9])
@@ -303,7 +330,7 @@ def plot_input(X_values_DC,X_values_IC,outdir,filenumber=None,transform=input_fa
         max_range = max(max(DC_data),max(IC_data))
         #plt.figure()
         ax[row_index, col_index].hist(IC_data,log=True,bins=100,range=[min_range,max_range],color='g',label=IC_label,alpha=0.5);
-        ax[row_index, col_index].hist(DC_data,log=True,bins=100,range=[min_range,max_range],color='b',label=DC_label,alpha=0.5);
+        #ax[row_index, col_index].hist(DC_data,log=True,bins=100,range=[min_range,max_range],color='b',label=DC_label,alpha=0.5);
         ax[row_index, col_index].set_title(name[i],fontsize=15)
         ax[row_index, col_index].set_xlabel(name[i],fontsize=15)
         ax[row_index, col_index].legend(fontsize=15)
@@ -320,8 +347,9 @@ def plot_input(X_values_DC,X_values_IC,outdir,filenumber=None,transform=input_fa
     plt.savefig("%s/AllInput_%s.png"%(outdir,filenum_name))
 
 if do_output:
-    plot_output(Y_labels,outdir,filenumber=filenum,names=output_names)
-    if reco_test is not None:
-        plot_output(reco_labels,outdir,filenumber="%s_reco"%filenum)
+    plot_output(Y_labels,outdir,filenumber=filenum,names=output_names,weights=None) #weights=weights_test[:,8]/1510.
+    print("HARD CODED WEIGHTS!!!!!!!!!!!!")
+    #if reco_test is not None:
+    #    plot_output(reco_labels,outdir,filenumber="%s_reco"%filenum)
 if do_input:
     plot_input(X_DC,X_IC,outdir,filenumber=filenum,transform=input_factors)

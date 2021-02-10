@@ -2,9 +2,9 @@
 
 ########### SBATCH Lines for Resource Request ##########
 
-#SBATCH --time=00:59:00             # limit of wall clock time - how long the job will run (same as -t)
+#SBATCH --time=00:29:00             # limit of wall clock time - how long the job will run (same as -t)
 #SBATCH --nodes=1                 # number of different nodes - could be an exact number or a range of nodes (same as -N)
-#SBATCH --mem=15G            # memory required per allocated CPU (or core) - amount of memory (in bytes)
+#SBATCH --mem=5G            # memory required per allocated CPU (or core) - amount of memory (in bytes)
 #SBATCH --job-name @@name@@      # you can give your job a name for easier identification (same as -J)
 #SBATCH --output @@log@@
 
@@ -12,6 +12,6 @@
 
 source ~/setup_combo_stable.sh
 
-python /mnt/home/micall12/LowEnergyNeuralNetwork/create_training_file_perDOM_nocuts.py -i @@file@@ -n @@name@@ --emax 200 --reco True --reco_type pegleg
+python /mnt/home/micall12/LowEnergyNeuralNetwork/create_training_file_perDOM_nocuts.py -i @@file@@ -n @@name@@ --emax 200 --reco True --reco_type retro --check_filters
 
 exit $?

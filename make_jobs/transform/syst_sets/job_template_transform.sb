@@ -1,0 +1,29 @@
+#!/bin/bash --login
+
+########### SBATCH Lines for Resource Request ##########
+
+#SBATCH --time=00:59:00             # limit of wall clock time - how long the job will run (same as -t)
+#SBATCH --nodes=1                 # number of different nodes - could be an exact number or a range of nodes (same as -N)
+#SBATCH --mem-per-cpu=100G            # memory required per allocated CPU (or core) - amount of memory (in bytes)
+#SBATCH --job-name syst_transform    # you can give your job a name for easier identification (same as -J)
+
+########### Command Lines to Run ##########
+
+INDIR=/mnt/home/micall12/LowEnergyNeuralNetwork
+SYST=$1
+EMIN=1
+EMAX=10000
+NUMOUT=1
+VERTEX=all_start
+CUT=CC
+MAX_FILES=100
+
+source /mnt/home/micall12/setup_anaconda.sh
+
+echo python $INDIR/cut_concat_transform_separate_files.py -i oscNext_genie_level6.5_v02.00_pass2.${SYST}.* -n oscNext_genie_level6.5_v02.00_pass2.${SYST}.IC19. -c $CUT -r True --emax $EMAX --emin $EMIN --trans_output True --shuffle True --tmax 200.0 --efactor 100. --start $VERTEX --num_out $NUMOUT --max_count $MAX_FILES --test_only
+
+python $INDIR/cut_concat_transform_separate_files.py -i oscNext_genie_level6.5_v02.00_pass2.${SYST}.* -n oscNext_genie_level6.5_v02.00_pass2.${SYST}.IC19. -c $CUT -r True --emax $EMAX --emin $EMIN --trans_output True --shuffle True --tmax 200.0 --efactor 100. --start $VERTEX --num_out $NUMOUT --max_count $MAX_FILES --test_only
+
+
+exit $?
+

@@ -1,0 +1,14 @@
+Using TensorFlow backend.
+Predicting: class,
+Output transformation scale factor: 1.00.,
+Using model: /mnt/home/micall12/LowEnergyNeuralNetwork/output_plots/PID_level6_cleanedpulses_IC19_E5to200_30000evtperbin_sigmoid_binarycross_lrEpochs50/PID_level6_cleanedpulses_IC19_E5to200_30000evtperbin_sigmoid_binarycross_lrEpochs50_192epochs_model.hdf5
+Writing to /mnt/research/IceCube/jmicallef/FLERCNN_i3_output/oscNext_genie_level7_v02.00_pass2.120000.000405_FLERCNN_class.i3.zst
+reading file: /mnt/research/IceCube/jmicallef/official_oscnext/oscNext_genie_level7_v02.00_pass2.120000.000405.i3.zst
+Traceback (most recent call last):
+  File "/mnt/home/micall12/LowEnergyNeuralNetwork/CNN_Test_i3.py", line 394, in <module>
+    test_write(event_file_names, model_name, output_dir, output_name, factor=scale_factor, model_type=variable)
+  File "/mnt/home/micall12/LowEnergyNeuralNetwork/CNN_Test_i3.py", line 350, in test_write
+    DC_array, IC_near_DC_array, header_array = read_files(a_file)
+  File "/mnt/home/micall12/LowEnergyNeuralNetwork/CNN_Test_i3.py", line 321, in read_files
+    skipped_triggers +=1
+UnboundLocalError: local variable 'skipped_triggers' referenced before assignment

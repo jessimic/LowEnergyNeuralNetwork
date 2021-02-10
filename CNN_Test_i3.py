@@ -269,7 +269,7 @@ def apply_transform(features_DC, features_IC, labels=None, energy_factor=100., t
 
 def cnn_test(features_DC, features_IC, load_model_name, output_variables=1,DC_drop_value=0.2,IC_drop_value=0.2,connected_drop_value=0.2,model_type="energy"):
     if model_type == "class":
-        from cnn_classification_model import make_network
+        from cnn_model_classification import make_network
     else:
         from cnn_model import make_network
     

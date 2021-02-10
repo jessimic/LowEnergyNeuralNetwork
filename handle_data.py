@@ -238,4 +238,4 @@ def SplitTrainTest(features_DC,features_IC,labels,reco=None,weights=None,use_old
         X_validate_IC_raw = None
         Y_validate_raw = None
 
-    return X_train_DC_raw, X_train_IC_raw, Y_train_raw,  X_test_DC_raw, X_test_IC_raw, Y_test_raw, X_validate_DC_raw, X_validate_IC_raw, Y_validate_raw, reco_train_raw, reco_test_raw, reco_validate_raw, reco_train_raw, reco_test_raw, weights_validate_raw
+    return X_train_DC_raw, X_train_IC_raw, Y_train_raw,  X_test_DC_raw, X_test_IC_raw, Y_test_raw, X_validate_DC_raw, X_validate_IC_raw, Y_validate_raw, reco_train_raw, reco_test_raw, reco_validate_raw, weights_train_raw, weights_test_raw, weights_validate_raw

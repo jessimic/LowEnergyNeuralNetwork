@@ -1,0 +1,19 @@
+#!/bin/bash --login
+
+########### SBATCH Lines for Resource Request ##########
+
+#SBATCH --time=03:59:00             # limit of wall clock time - how long the job will run (same as -t)
+#SBATCH --nodes=1                 # number of different nodes - could be an exact number or a range of nodes (same as -N)
+#SBATCH --mem-per-cpu=500G            # memory required per allocated CPU (or core) - amount of memory (in bytes)
+#SBATCH --job-name make_uncontained_even_events    # you can give your job a name for easier identification (same as -J)
+
+########### Command Lines to Run ##########
+
+INDIR=/mnt/home/micall12/LowEnergyNeuralNetwork
+
+source /mnt/home/micall12/setup_anaconda.sh
+
+python $INDIR/cut_concat_transform_separate_files.py -i Nu*_1?0000_level2_IC19_lt100_CC_all_start_all_end_flat_95bins_10000evtperbin_file0?.hdf5.hdf5 -o NuE_NuMu_level2_IC19_all_start_all_end_flat_95bins_10000evtperbin_ -c CC --emax 100 --emin 5 --shuffle True --trans_output True --tmax 200.0 --num_out 2
+
+exit $?
+

@@ -9,9 +9,15 @@ job_scripts_DNN_tests/*
 __pycache__/*
 output_plots/*
 .ipynb_checkpoints/*
+processed_files/*
+illume_output_plots/*
+slurm/*
+job_logs/*
+logs/*
 
 #Don't want to upload all the data files
 *.hdf5
+*.i3
 
 #Don't save outfile logs from jobs
 *.out

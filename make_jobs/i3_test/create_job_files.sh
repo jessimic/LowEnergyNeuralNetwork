@@ -3,7 +3,10 @@
 #INPUTFILES="/mnt/scratch/micall12/oscnext_official/149999/oscNext_genie_level7_v02.00_pass2.149999.*.i3.zst"
 #INPUTFILES="/mnt/scratch/micall12/oscnext_official/169999/oscNext_genie_level7_v02.00_pass2.169999.*.i3.zst"
 #INPUTFILES="/mnt/research/IceCube/jmicallef/FLERCNN_i3_output/oscNext_genie_level7_v02.00_pass2.149999.00????_FLERCNN.i3.zst"
-INPUTFILES="/mnt/research/IceCube/jmicallef/official_oscnext/oscNext_genie_level7_v02.00_pass2.140000.*.i3.zst"
+#INPUTFILES="/mnt/research/IceCube/jmicallef/official_oscnext/oscNext_genie_level7_v02.00_pass2.140000.*.i3.zst"
+#INPUTFILES="/mnt/research/IceCube/jmicallef/official_oscnext/oscNext_genie_level7_v02.00_pass2.120000.*.i3.zst"
+#INPUTFILES="/mnt/research/IceCube/le_osc/forJessie/L6/NuMu_genie_149999_0[0,1]????_*.zst"
+INPUTFILES="/mnt/research/IceCube/jmicallef/simulation/level6/129999/NuE_genie_129999_00*.zst"
 FILEPATH=/mnt/home/micall12/LowEnergyNeuralNetwork/make_jobs/i3_test
 LOG_FOLDER=$FILEPATH/logs
 JOB_FOLDER=$FILEPATH/slurm

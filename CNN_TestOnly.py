@@ -162,7 +162,7 @@ from keras.callbacks import EarlyStopping
 from keras.callbacks import ModelCheckpoint
 
 if first_var == "class":
-    from cnn_classification_model import make_network
+    from cnn_model_classification import make_network
 else:
     from cnn_model import make_network
 model_DC = make_network(X_test_DC_use,X_test_IC_use,output_variables,DC_drop_value,IC_drop_value,connected_drop_value)

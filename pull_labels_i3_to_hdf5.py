@@ -130,15 +130,25 @@ def read_i3_files(filenames_list):
                 output_reco_labels.append( np.array([ float(reco_energy), float(reco_zenith), float(reco_azimuth), float(reco_time), float(reco_x), float(reco_y), float(reco_z), float(reco_length), float(reco_track_energy), float(reco_casc_energy), float(reco_em_casc_energy), float(reco_zenith), float(reco_pid_full), float(reco_pid_up) ]) )
 
                 #Additional Info
-                coin_muon = frame['L7_CoincidentMuon_bool'].value > 0
-                prob_nu = frame['L7_MuonClassifier_Upgoing_ProbNu'].value
-                prob_nu2 = frame['L7_MuonClassifier_FullSky_ProbNu'].value
-                true_ndoms = frame['IC2018_LE_L3_Vars']['NchCleaned']
+                try:
+                    coin_muon = frame['L7_CoincidentMuon_bool'].value > 0
+                    prob_nu = frame['L7_MuonClassifier_Upgoing_ProbNu'].value
+                    prob_nu2 = frame['L7_MuonClassifier_FullSky_ProbNu'].value
+                    true_ndoms = frame['IC2018_LE_L3_Vars']['NchCleaned']
+                    n_top15 = frame['L7_CoincidentMuon_Variables']['n_top15']
+                    n_outer = frame['L7_CoincidentMuon_Variables']['n_outer']
+                    fit_success = ( "retro_crs_prefit__fit_status" in frame ) and (frame["retro_crs_prefit__fit_status"] == 0)
+                except:
+                    coin_muon = np.nan
+                    prob_nu = np.nan
+                    prob_nu2 = np.nan
+                    true_ndoms = np.nan
+                    n_top15 = np.nan
+                    n_outer = np.nan
+                    fit_success = np.nan
+
                 noise_class = frame['L4_NoiseClassifier_ProbNu'].value
                 nhit_doms = frame['L5_SANTA_DirectPulsesHitMultiplicity'].n_hit_doms
-                n_top15 = frame['L7_CoincidentMuon_Variables']['n_top15']
-                n_outer = frame['L7_CoincidentMuon_Variables']['n_outer']
-                fit_success = ( "retro_crs_prefit__fit_status" in frame ) and (frame["retro_crs_prefit__fit_status"] == 0)
                 # Check for 8 or more hits
                 cleaned_ice_pulses = dataclasses.I3RecoPulseSeriesMap.from_frame(frame,'SRTTWOfflinePulsesDC')
                 count_cleaned_pulses = 0

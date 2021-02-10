@@ -1,0 +1,17 @@
+Using TensorFlow backend.
+Predicting: class,
+Output transformation scale factor: 1.00.,
+Using model: /mnt/home/micall12/LowEnergyNeuralNetwork/output_plots/PID_level6_cleanedpulses_IC19_E5to200_30000evtperbin_sigmoid_binarycross_lrEpochs50/PID_level6_cleanedpulses_IC19_E5to200_30000evtperbin_sigmoid_binarycross_lrEpochs50_192epochs_model.hdf5
+Writing to /mnt/research/IceCube/jmicallef/FLERCNN_i3_output/NuMu_genie_149999_000573_lev_FLERCNN_class.i3.zst
+reading file: /mnt/research/IceCube/le_osc/forJessie/L6/NuMu_genie_149999_000573_level6.zst
+((0,), (0,))
+Traceback (most recent call last):
+  File "/mnt/home/micall12/LowEnergyNeuralNetwork/CNN_Test_i3.py", line 394, in <module>
+    test_write(event_file_names, model_name, output_dir, output_name, factor=scale_factor, model_type=variable)
+  File "/mnt/home/micall12/LowEnergyNeuralNetwork/CNN_Test_i3.py", line 356, in test_write
+    prediction = cnn_test(DC_array, IC_near_DC_array, model_name,model_type=model_type)
+  File "/mnt/home/micall12/LowEnergyNeuralNetwork/CNN_Test_i3.py", line 276, in cnn_test
+    model_DC = make_network(features_DC,features_IC, output_variables, DC_drop_value, IC_drop_value,connected_drop_value)
+  File "/mnt/home/micall12/LowEnergyNeuralNetwork/cnn_classification_model.py", line 28, in make_network
+    strings = X_DC.shape[1]
+IndexError: tuple index out of range

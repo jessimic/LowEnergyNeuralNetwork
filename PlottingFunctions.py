@@ -311,7 +311,7 @@ def plot_distributions(truth,reco=None,save=False,savefolder=None,old_reco=None,
 
 def plot_2D_prediction(truth, nn_reco, \
                         save=False,savefolder=None,weights=None,syst_set="",\
-                        bins=60,minval=None,maxval=None,\
+                        bins=60,minval=None,maxval=None, switch_axis=False,\
                         cut_truth = False, axis_square =False, zmax=None,log=True,
                         variable="Energy", units = "(GeV)", epochs=None,reco_name="CNN"):
     """
@@ -378,6 +378,10 @@ def plot_2D_prediction(truth, nn_reco, \
         ymin = min(nn_reco)
         xmax = max(truth)
         ymax = max(nn_reco)
+    if switch_axis:
+        xmin, ymin = ymin, xmin
+        xmax, ymax = ymax, xmax
+
 
     if weights is None:
         cmin = 1
@@ -386,15 +390,22 @@ def plot_2D_prediction(truth, nn_reco, \
  
     plt.figure(figsize=(10,7))
     if log:
-        cts,xbin,ybin,img = plt.hist2d(truth, nn_reco, bins=bins,range=[[xmin,xmax],[ymin,ymax]],\
-                        cmap='viridis_r', norm=colors.LogNorm(), weights=weights, cmax=zmax, cmin=cmin)
+        if switch_axis:
+            cts,xbin,ybin,img = plt.hist2d(nn_reco, truth, bins=bins,range=[[xmin,xmax],[ymin,ymax]], cmap='viridis_r', norm=colors.LogNorm(), weights=weights, cmax=zmax, cmin=cmin)
+        else:
+            cts,xbin,ybin,img = plt.hist2d(truth, nn_reco, bins=bins,range=[[xmin,xmax],[ymin,ymax]],cmap='viridis_r', norm=colors.LogNorm(), weights=weights, cmax=zmax, cmin=cmin)
     else:
-        cts,xbin,ybin,img = plt.hist2d(truth, nn_reco, bins=bins,range=[[xmin,xmax],[ymin,ymax]],\
-                        cmap='viridis_r', weights=weights, cmax=zmax, cmin=cmin)
+        if switch_axis:
+            cts,xbin,ybin,img = plt.hist2d(nn_reco, truth, bins=bins,range=[[xmin,xmax],[ymin,ymax]],cmap='viridis_r', weights=weights, cmax=zmax, cmin=cmin)
+        else:
+            cts,xbin,ybin,img = plt.hist2d(truth, nn_reco, bins=bins,range=[[xmin,xmax],[ymin,ymax]],cmap='viridis_r', weights=weights, cmax=zmax, cmin=cmin)
     cbar = plt.colorbar()
     cbar.ax.set_ylabel('counts', rotation=90)
     plt.xlabel("True Neutrino %s %s"%(variable,units),fontsize=20)
     plt.ylabel("%s Reconstructed %s %s"%(reco_name,variable,units),fontsize=20)
+    if switch_axis:
+        plt.ylabel("True Neutrino %s %s"%(variable,units),fontsize=20)
+        plt.xlabel("%s Reconstructed %s %s"%(reco_name,variable,units),fontsize=20)
     title = "%s vs Truth for %s %s"%(reco_name,variable,syst_set)
     if weights is not None:
         title += " Weighted"
@@ -410,7 +421,10 @@ def plot_2D_prediction(truth, nn_reco, \
     else:
         plt.plot([minplotline,maxplotline],[minplotline,maxplotline],'k:',label="1:1")
     
-    x, y, y_l, y_u = find_contours_2D(truth,nn_reco,xbin,weights=weights)
+    if switch_axis:
+        x, y, y_l, y_u = find_contours_2D(nn_reco,truth,xbin,weights=weights)
+    else:
+        x, y, y_l, y_u = find_contours_2D(nn_reco,truth,xbin,weights=weights)
 
     plt.plot(x,y,color='r',label='Median')
     plt.plot(x,y_l,color='r',label='68% band',linestyle='dashed')
@@ -426,6 +440,8 @@ def plot_2D_prediction(truth, nn_reco, \
         nocut_name ="_nolim"
     if zmax:
         nocut_name += "_zmax%i"%zmax    
+    if switch_axis:
+        nocut_name +="_SwitchedAxis"
     if save:
         plt.savefig("%sTruth%sReco%s_2DHist%s%s.png"%(savefolder,reco_name,variable,syst_set,nocut_name),bbox_inches='tight')
     plt.close()
@@ -1060,6 +1076,8 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
     reco_name = reco_name.replace(" ","")
     variable = variable.replace(" ","")
     savename = "%sResolutionSlices"%variable
+    if vs_predict:
+        savename +="VsPredict"
     if use_fraction:
         savename += "Frac"
     if weights is not None:
@@ -1067,7 +1085,6 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
     if energy_truth is not None:
         xvar_no_space = xvariable.replace(" ","")
         savename += "_%sBinned"%xvar_no_space
-        plt.xlabel("True %s %s"%(xvariable,xunits),fontsize=20)
     if old_reco is not None:
         savename += "_Compare%sReco"%reco_name
     if type(ylim) is not None:
@@ -1189,7 +1206,7 @@ def plot_rms_slices(truth, nn_reco, energy_truth=None, use_fraction = False,  \
     #    title += " at %i Epochs"%epochs
     plt.title(title,fontsize=25)
     
-    print(rms_all,rms_reco_all)
+    #print(rms_all,rms_reco_all)
     
     reco_name = reco_name.replace(" ","")
     variable = variable.replace(" ","")

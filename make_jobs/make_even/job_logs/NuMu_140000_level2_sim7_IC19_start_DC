@@ -1,0 +1,13 @@
+Keeping CC event types
+Saving PEGLEG info: False 
+Bin size: 1.000000 GeV 
+Max Count Per Bin: 30000 events 
+Energy Range: 5.000000 - 150.000000 
+Starting cut: start_DC 
+Ending cut: all_end 
+Shuffling: False 
+Keeping event types: CC
+Traceback (most recent call last):
+  File "/mnt/home/micall12/LowEnergyNeuralNetwork/flatten_energy_distribution.py", line 98, in <module>
+    assert event_file_names,"No files loaded, please check path."
+AssertionError: No files loaded, please check path.

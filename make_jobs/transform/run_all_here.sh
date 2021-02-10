@@ -1,6 +1,7 @@
 #!/bin/bash
+FILES=transform_emax??0_file?.sb
 
-for ((i=0;i<30;i++));
+for FILE in $FILES;
 do
-    sbatch run_subfile_transform.sb $i
+    sbatch $FILE
 done

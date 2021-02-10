@@ -48,7 +48,7 @@ if infile2:
     assert (data2[emin_index+1,1]-data2[emin_index,1])==bin_size,"Need to resize bins for input file 2"
 
 plt.figure(figsize=(10,8))
-plt.title("Events Binned by 1 GeV",fontsize=20)
+plt.title("%s Events Binned by %i GeV"%(name,bin_size),fontsize=20)
 plt.bar(plot_range, energy_count, alpha=0.5, width=1, align='edge')
 plt.xlabel("energy (GeV)",fontsize=20)
 plt.xticks(fontsize=15)
@@ -62,21 +62,21 @@ plt.savefig("%s/%s.png"%(outplots_dir,plot_name))
 
 if infile2:
     plt.figure(figsize=(10,8))
-    plt.title("Events Binned by 1 GeV",fontsize=20)
+    plt.title("%s Events Binned by %s GeV"%(name2,bin_size),fontsize=20)
     plt.bar(plot_range, energy_count2, alpha=0.5, width=1, align='edge')
     plt.xlabel("energy (GeV)",fontsize=20)
     plt.xticks(fontsize=15)
     plt.yticks(fontsize=15)
     plt.ylabel("number of events",fontsize=20)
+    plot_name="%sEnergyDistribution_%imin_%imax_%iGeVbins"%(name2,emin,emax,bin_size)
     if ymax:
         plt.ylim(0,int(ymax))
         plot_name+="_ylim"
-    plot_name="%sEnergyDistribution_%imin_%imax_%iGeVbins"%(name2,emin,emax,bin_size)
     plt.savefig("%s/%s.png"%(outplots_dir,plot_name))
         
     ratio = energy_count2/energy_count
     plt.figure(figsize=(10,8))
-    plt.title("Ratio of Events Binned by 1 GeV",fontsize=20)
+    plt.title("Ratio of %s/%s Events Binned by %i GeV"%(name2,name,bin_size),fontsize=20)
     plt.bar(plot_range, ratio, alpha=0.5, width=1, align='edge')
     plt.xlabel("energy (GeV)",fontsize=20)
     plt.xticks(fontsize=15)
