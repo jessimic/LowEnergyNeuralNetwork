@@ -14,6 +14,9 @@ illume_output_plots/*
 slurm/*
 job_logs/*
 logs/*
+make_jobs/make_even/job_logs/*
+make_jobs/i3_test/slurm/*
+make_jobs/i3_test/logs/*
 
 #Don't want to upload all the data files
 *.hdf5
