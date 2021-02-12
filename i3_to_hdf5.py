@@ -17,7 +17,7 @@ import numpy as np
 import h5py
 import argparse
 
-from icecube import icetray, dataio, dataclasses
+from icecube import icetray, dataio, dataclasses, sim_services
 from I3Tray import I3Units
 
 from collections import OrderedDict
@@ -357,7 +357,8 @@ def read_files(filename_list, use_old_reco, check_filters, true_name, reco_type)
                         continue
 
                 # GET TRUTH LABELS
-                nu = frame["I3MCTree"][0]
+                tree = frame["I3MCTree"]
+                nu = tree[0]
                 
                 if true_name:
                     nu_check = frame[true_name]
@@ -383,6 +384,24 @@ def read_files(filename_list, use_old_reco, check_filters, true_name, reco_type)
                 isOther = not isCC and not isNC
                 L4_NoiseClassifier_ProbNu = frame['L4_NoiseClassifier_ProbNu'].value
                
+                # Find EM equivalent energy
+                total_daughter_energy = 0
+                em_equiv_daughter_energy = 0
+                for particle in tree.get_daughters(nu.id):
+                    # Do not scale neutrinos 
+                    if (particle.type == dataclasses.I3Particle.NuMu or particle.type == dataclasses.I3Particle.NuMuBar \
+                    or particle.type == dataclasses.I3Particle.NuE or particle.type == dataclasses.I3Particle.NuEBar\
+                    or particle.type == dataclasses.I3Particle.NuTau or particle.type == dataclasses.I3Particle.NuTauBar):
+                        EM_equivalent_scale = 0
+                    # Do not scale mu or tau
+                    elif (particle.type == dataclasses.I3Particle.MuPlus or particle.type == dataclasses.I3Particle.MuMinus \
+                    or particle.type == dataclasses.I3Particle.TauPlus or particle.type == dataclasses.I3Particle.TauMinus):
+                        EM_equivalent_scale = 1.0
+                    else:
+                        EM_equivalent_scale = sim_services.ShowerParameters(particle.type, particle.energy).emScale
+                    
+                    total_daughter_energy += particle.energy
+                    em_equiv_daughter_energy += particle.energy*EM_equivalent_scale
 
 
                 if use_old_reco:
@@ -496,8 +515,8 @@ def read_files(filename_list, use_old_reco, check_filters, true_name, reco_type)
                     continue
 
                 # regression variables
-                # OUTPUT: [ nu energy, nu zenith, nu azimuth, nu time, nu x, nu y, nu z, track length (0 for cascade), isTrack, flavor, type (anti = 1), isCC, nu zenith (will not be transformed to cos zenith)]
-                output_labels.append( np.array([ float(nu_energy), float(nu_zenith), float(nu_azimuth), float(nu_time), float(nu_x), float(nu_y), float(nu_z), float(track_length), float(isTrack), float(neutrino_type), float(particle_type), float(isCC), float(nu_zenith) ]) )
+                # OUTPUT: [ nu energy, nu zenith, nu azimuth, nu time, nu x, nu y, nu z, track length (0 for cascade), isTrack, flavor, type (anti = 1), isCC, nu zenith (will not be transformed to cos zenith), total daughter particle energy, total EM equivalent energy from daughter particles ]
+                output_labels.append( np.array([ float(nu_energy), float(nu_zenith), float(nu_azimuth), float(nu_time), float(nu_x), float(nu_y), float(nu_z), float(track_length), float(isTrack), float(neutrino_type), float(particle_type), float(isCC), float(nu_zenith), float(total_daughter_energy), float(em_equiv_daughter_energy) ]) )
 
                 if use_old_reco:
                     output_reco_labels.append( np.array([ float(reco_energy), float(reco_zenith), float(reco_azimuth), float(reco_time), float(reco_x), float(reco_y), float(reco_z), float(reco_length), float(reco_track_energy), float(reco_casc_energy), float(reco_em_casc_energy), float(reco_zenith) ]) )

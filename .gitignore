@@ -17,6 +17,10 @@ logs/*
 make_jobs/make_even/job_logs/*
 make_jobs/i3_test/slurm/*
 make_jobs/i3_test/logs/*
+compare_12640_12643_12663_12603_12600/*
+make_jobs/finalize_retro/job_scripts/*
+make_jobs/flatten_energy/job_logs/*
+make_jobs/flatten_energy/PID/job_logs/*
 
 #Don't want to upload all the data files
 *.hdf5

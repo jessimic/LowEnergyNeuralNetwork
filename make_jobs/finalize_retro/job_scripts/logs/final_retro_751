@@ -1,9 +1,0 @@
-FATAL (icetray): problems opening file '/mnt/scratch/micall12/oscnext_official/140003/oscNext_genie_level6_v02.00_pass2.140003.000751.i3.zst' for reading.  Check permissions, paths. (open.cxx:93 in void I3::dataio::open(boost::iostreams::filtering_istream&, const string&))
-ERROR (I3Module): reader: Exception thrown (I3Module.cxx:123 in void I3Module::Do(void (I3Module::*)()))
-Cannot find /mnt/scratch/micall12/oscnext_official/140003/oscNext_genie_level6_v02.00_pass2.140003.000751.i3.zst
-Traceback (most recent call last):
-  File "/mnt/home/micall12/LowEnergyNeuralNetwork/data_cuts/RunL7.py", line 63, in <module>
-    tray.Execute()
-  File "/cvmfs/icecube.opensciencegrid.org/users/Oscillation/software/oscNext_meta/releases/V01-00-04/build__py2-v3.1.1__osgvo-el7/lib/I3Tray.py", line 256, in Execute
-    super(I3Tray, self).Execute()
-RuntimeError: problems opening file '/mnt/scratch/micall12/oscnext_official/140003/oscNext_genie_level6_v02.00_pass2.140003.000751.i3.zst' for reading.  Check permissions, paths. (in void I3::dataio::open(boost::iostreams::filtering_istream&, const string&))

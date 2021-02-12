@@ -11,9 +11,9 @@ SYST_SET=0150
 #INPUTFILES="/mnt/scratch/micall12/oscnext_official/14${SYST_SET}/oscNext_genie_level6.5*"
 #INPUTFILES="/mnt/scratch/micall12/oscnext_official/149999_v2/oscNext_genie_level6.5*"
 #INPUTFILES="/mnt/research/IceCube/le_osc/forJessie/L6/NuMu_genie_149999_*.zst"
-INPUTFILES="/mnt/research/IceCube/jmicallef/simulation/level6/149999/NuMu_genie_149999_04*.zst"
+INPUTFILES="/mnt/research/IceCube/jmicallef/simulation/level6/129999/NuE_genie_129999_*.zst"
 FILEPATH=/mnt/scratch/micall12/training_files
-LOG_FOLDER=$FILEPATH/job_logs/Feb3_149999
+LOG_FOLDER=$FILEPATH/job_logs/Feb11_129999
 
 [ ! -d $LOG_FOLDER ] && mkdir $LOG_FOLDER
 [ ! -d $LOG_FOLDER/slurm ] && mkdir $LOG_FOLDER/slurm

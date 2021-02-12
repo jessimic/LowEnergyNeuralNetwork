@@ -330,7 +330,7 @@ def plot_input(X_values_DC,X_values_IC,outdir,filenumber=None,transform=input_fa
         max_range = max(max(DC_data),max(IC_data))
         #plt.figure()
         ax[row_index, col_index].hist(IC_data,log=True,bins=100,range=[min_range,max_range],color='g',label=IC_label,alpha=0.5);
-        #ax[row_index, col_index].hist(DC_data,log=True,bins=100,range=[min_range,max_range],color='b',label=DC_label,alpha=0.5);
+        ax[row_index, col_index].hist(DC_data,log=True,bins=100,range=[min_range,max_range],color='b',label=DC_label,alpha=0.5);
         ax[row_index, col_index].set_title(name[i],fontsize=15)
         ax[row_index, col_index].set_xlabel(name[i],fontsize=15)
         ax[row_index, col_index].legend(fontsize=15)
