@@ -10,17 +10,17 @@
 ########### Command Lines to Run ##########
 
 INDIR=/mnt/home/micall12/LowEnergyNeuralNetwork
-INFILE=$1
-NAME=$2
-MAX=$3
-CUTS=$4
-NUMOUT=1
+INFILE=PID_NuXX_genie_269999_??k_level6.zst_cleanedpulses_transformed_IC19lt200_all_all_start_all_end_flat_195bins_15000evtperbin.hdf5
+NAME=PID_Cascades_genie_level6_cleanedpulses_transformed_IC19_
+MAX=15000
+CUTS="all"
+NUMOUT=6
 
 source /mnt/home/micall12/setup_anaconda.sh
 
-echo python $INDIR/flatten_energy_distribution.py -i $INFILE -d /mnt/scratch/micall12/training_files/newMC_16Dec/ -o ${NAME} --emax 200 --emin 5 --max_per_bin $MAX --cuts ${CUTS} --shuffle --num_out $NUMOUT --transformed 
+echo python $INDIR/flatten_energy_distribution.py -i $INFILE -d /mnt/scratch/micall12/training_files/newMC_EMequiv/ -o ${NAME} --emax 200 --emin 5 --max_per_bin $MAX --cuts ${CUTS} --shuffle --num_out $NUMOUT --transformed 
 
-python $INDIR/flatten_energy_distribution.py -i $INFILE -o ${NAME} -d /mnt/scratch/micall12/training_files/newMC_16Dec/ --emax 200 --emin 5 --max_per_bin $MAX --cuts ${CUTS} --shuffle --num_out $NUMOUT --transformed
+python $INDIR/flatten_energy_distribution.py -i $INFILE -o ${NAME} -d /mnt/scratch/micall12/training_files/newMC_EMequiv/ --emax 200 --emin 5 --max_per_bin $MAX --cuts ${CUTS} --shuffle --num_out $NUMOUT --transformed
 
 exit $?
 

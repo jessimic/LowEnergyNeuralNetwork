@@ -1,6 +1,6 @@
 #!/bin/bash
 
-FILES="flatten_NuE*.sb "
+FILES="flatten_NuEMu*.sb "
 
 for f in $FILES
 do

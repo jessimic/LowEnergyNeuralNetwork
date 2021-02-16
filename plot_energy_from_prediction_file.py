@@ -201,7 +201,7 @@ binss = [199, 199, 199, 95, 199, 95, 199, 199, 95]
 syst_bins = [20, 20, 20, 10, 20, 10, 20, 20, 10]
 save_base_name = save_folder_name
 
-for cut_index in [4, 7]: #range(1,len(cut_list)):
+for cut_index in [8]: #range(1,len(cut_list)):
     cuts = cut_list[cut_index]
     folder_name = cut_names[cut_index]
     minval = minvals[cut_index]
@@ -255,6 +255,11 @@ for cut_index in [4, 7]: #range(1,len(cut_list)):
                        use_old_reco = True, old_reco = retro_energy[cuts],\
                        minaxis=-maxval, maxaxis=maxval, bins=bins,\
                        save=save, savefolder=save_folder_name,\
+                       variable=plot_name, units=plot_units, reco_name="Retro")
+    plot_single_resolution(true_energy[cuts], cnn_energy[cuts], weights=true_weights,\
+                       use_old_reco = True, old_reco = retro_energy[cuts],\
+                       minaxis=-2, maxaxis=2, bins=bins,\
+                       save=save, savefolder=save_folder_name,use_fraction=True,\
                        variable=plot_name, units=plot_units, reco_name="Retro")
     
     plot_bin_slices(true_energy[cuts], cnn_energy[cuts], weights=true_weights,  
