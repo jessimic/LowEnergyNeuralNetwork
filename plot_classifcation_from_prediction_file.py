@@ -13,7 +13,7 @@ import matplotlib
 matplotlib.rc('xtick', labelsize=20)
 matplotlib.rc('ytick', labelsize=20)
 import matplotlib.pyplot as plt
-from sklearn.metrics import roc_curve, auc, roc_auc_score
+from sklearn.metrics import roc_curve, auc, roc_auc_score, recall_score
 from sklearn.metrics import confusion_matrix
 
 parser = argparse.ArgumentParser()
@@ -143,18 +143,29 @@ from PlottingFunctionsClassification import plot_classification_hist
 
 #All events
 best_threshold = ROC(true_isTrack,cnn_predict,mask=None,mask_name="",save=save,save_folder_name=save_folder)
-#confusion_matrix(true_isTrack, cnn_predict, best_threshold, mask=None, mask_name="", weights=None,save=save, save_folder_name=save_folder)
-#confusion_matrix(true_isTrack, cnn_predict, best_threshold, mask=None, mask_name="", weights=weights,save=save, save_folder_name=save_folder)
+confusion_matrix(true_isTrack, cnn_predict, best_threshold, mask=None, mask_name="", weights=None,save=save, save_folder_name=save_folder)
+confusion_matrix(true_isTrack, cnn_predict, best_threshold, mask=None, mask_name="", weights=weights,save=save, save_folder_name=save_folder)
 plot_classification_hist(true_isTrack,cnn_predict,mask=None,mask_name="", variable="Classification",units="",bins=50,log=False,save=save,save_folder_name=save_folder)
 
-do_energy_range = True
-if do_energy_range:
+do_energy_auc = True
+if do_energy_auc:
 # Energy vs AUC
     energy_auc = []
-    energy_range = np.arange(5,200, 1)
+    energy_thres = []
+    energy_recall = []
+    energy_range = np.arange(5,200, 1.)
     for energy_bin in energy_range:
         current_mask = np.logical_and(true_energy > energy_bin, true_energy < energy_bin + 1)
+        
         energy_auc.append(roc_auc_score(true_isTrack[current_mask], cnn_predict[current_mask]))
+        
+        best_threshold = ROC(true_isTrack,cnn_predict,mask=current_mask,mask_name="",save=False,save_folder_name=save_folder)
+        energy_thres.append(best_threshold[0])
+        
+        predictionCascade = cnn_predict < best_threshold
+        predictionTrack = cnn_predict >= best_threshold
+        energy_recall.append(recall_score(predictionCascade[current_mask], predictionTrack[current_mask]))
+
 
     plt.figure(figsize=(10,7))
     plt.title("AUC vs. True Energy",fontsize=25)
@@ -162,16 +173,33 @@ if do_energy_range:
     plt.xlabel("True Energy (GeV)",fontsize=20)
     plt.plot(energy_range, energy_auc, 'b-')
     plt.savefig("%sAUCvsEnergy.png"%(save_folder))
-
+    
+    plt.figure(figsize=(10,7))
+    plt.title("Thres vs. True Energy",fontsize=25)
+    plt.ylabel("Threshold",fontsize=20)
+    plt.xlabel("True Energy (GeV)",fontsize=20)
+    plt.plot(energy_range, energy_thres, 'b-')
+    plt.savefig("%sThresvsEnergy.png"%(save_folder))
+    
+    plt.figure(figsize=(10,7))
+    plt.title("Sensitivity vs. True Energy",fontsize=25)
+    plt.ylabel("Sensitivity TP/(TP + FN)",fontsize=20)
+    plt.xlabel("True Energy (GeV)",fontsize=20)
+    plt.plot(energy_range, energy_thres, 'b-')
+    plt.savefig("%SensvsEnergy.png"%(save_folder))
+    
+do_energy_range = False
+if do_energy_range:
 #Break down energy range
-    step_size = 50
-    energy_steps = np.arange(0.,200.,step_size)
+    step_size = 20
+    energy_steps = np.arange(5.,200.,step_size)
     for energy_start in energy_steps:
         energy_end = energy_start + step_size
         current_mask = np.logical_and(true_energy > energy_start, true_energy < energy_end)
         current_name = "Energy_%ito%iGeV"%(energy_start,energy_end)
         plot_classification_hist(true_isTrack,cnn_predict,mask=current_mask,mask_name=current_name, variable="Classification",units="",bins=50,log=False,save=save,save_folder_name=save_folder)
-        ROC(true_isTrack,cnn_predict,mask=current_mask,mask_name=current_name,save=save,save_folder_name=save_folder)
+        best_threshold = ROC(true_isTrack,cnn_predict,mask=current_mask,mask_name=current_name,save=save,save_folder_name=save_folder)
+        best_threshold = best_threshold[0]
         confusion_matrix(true_isTrack, cnn_predict, best_threshold, mask=current_mask, mask_name=current_name, weights=None,save=save, save_folder_name=save_folder)
         confusion_matrix(true_isTrack, cnn_predict, best_threshold, mask=current_mask, mask_name=current_name, weights=weights,save=save, save_folder_name=save_folder)
 

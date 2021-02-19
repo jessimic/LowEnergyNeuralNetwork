@@ -21,7 +21,12 @@ compare_12640_12643_12663_12603_12600/*
 make_jobs/finalize_retro/job_scripts/*
 make_jobs/flatten_energy/job_logs/*
 make_jobs/flatten_energy/PID/job_logs/*
+make_jobs/flatten_energy/PID/core
+outdated/make_even/job_logs/*
 data_files/*
+
+#Kill all core files
+*core*
 
 #Don't want to upload all the data files
 *.hdf5

@@ -180,13 +180,13 @@ if do_cuts:
         reco_labels = reco_labels[all_cuts]
 
 
-def plot_output(Y_values,outdir,filenumber=None,names=output_names,transform=output_factors,weights=None):
+def plot_output(Y_values,outdir,filenumber=None,names=output_names,weights=None, which_energy=0,energy_transform=1.,e_type=""):
     if file_was_transformed:
         units = ["(GeV)", "", "(m)", "(s)", "(m)", "(m)", "(m)", "(rad)", "(rad)"]
     else:
         units = ["(GeV)", "", "(rad)", "(s)", "(m)", "(m)", "(m)", "(m)", "(rad)"]
     
-    energy = Y_values[:,0]*transform[0]
+    energy = Y_values[:,which_energy]*energy_transform
 
     maskTrack = Y_values[:,8] == 1
     maskCascade = Y_values[:,8] == 0
@@ -207,7 +207,7 @@ def plot_output(Y_values,outdir,filenumber=None,names=output_names,transform=out
 
     plt.figure()
     plt.hist([energy[maskCC],energy[maskNC]],bins=195,range=[5,200],color=["orange","blue"],label=["CC","NC"],weights=weights,stacked=True);
-    plt.suptitle("CC vs NC Energy Distribution",fontsize=20)
+    plt.suptitle("CC vs NC %s Energy"%e_type,fontsize=20)
     plt.title("CC: %i events (%.2f), NC: %i events (%.2f)"%(sum(maskCC),sum(maskCC)/num_events,sum(maskNC),sum(maskNC)/num_events),fontsize=15)
     plt.xlabel("%s %s"%(names[0],units[0]),fontsize=15)
     plt.xticks(fontsize=15)
@@ -218,12 +218,12 @@ def plot_output(Y_values,outdir,filenumber=None,names=output_names,transform=out
         filenum_name = "_%s"%filenum
     else:
         filenum_name = ""
-    plt.savefig("%s/Output_CCNCEnergy%s.png"%(outdir,filenum_name),bbox_inches='tight')
+    plt.savefig("%s/Output_CCNC%sEnergy%s.png"%(outdir,e_type,filenum_name),bbox_inches='tight')
 
 
     plt.figure()
     plt.hist([energy[maskNuE],energy[maskNuMu]],bins=195,range=[5,200],color=["orange","blue"],label=["NuE","NuMu"],weights=weights,stacked=True);
-    plt.suptitle("NuE vs NuMu Energy Distribution",fontsize=20)
+    plt.suptitle("NuE vs NuMu %s Energy"%e_type,fontsize=20)
     plt.title("NuE: %i events (%.2f), NuMu: %i events (%.2f)"%(sum(maskNuE),sum(maskNuE)/num_events,sum(maskNuMu),sum(maskNuMu)/num_events),fontsize=15)
     plt.xlabel("%s %s"%(names[0],units[0]),fontsize=15)
     plt.xticks(fontsize=15)
@@ -234,11 +234,11 @@ def plot_output(Y_values,outdir,filenumber=None,names=output_names,transform=out
         filenum_name = "_%s"%filenum
     else:
         filenum_name = ""
-    plt.savefig("%s/Output_NuENuMuEnergy%s.png"%(outdir,filenum_name),bbox_inches='tight')
+    plt.savefig("%s/Output_NuENuMu%sEnergy%s.png"%(outdir,e_type,filenum_name),bbox_inches='tight')
     
     plt.figure()
     plt.hist([energy[maskTrack],energy[maskCascade]],bins=195,range=[5,200],color=["orange","blue"],label=["Track","Cascade"],weights=weights,stacked=True);
-    plt.suptitle("Track vs Cascade Energy Distribution",fontsize=20)
+    plt.suptitle("Track vs Cascade %s Energy"%e_type,fontsize=20)
     plt.title("Track: %i events (%.2f), Cascade: %i events (%.2f)"%(sum(maskTrack),sum(maskTrack)/num_events,sum(maskCascade),sum(maskCascade)/num_events),fontsize=12)
     plt.xlabel("%s %s"%(names[0],units[0]),fontsize=15)
     plt.xticks(fontsize=15)
@@ -249,9 +249,124 @@ def plot_output(Y_values,outdir,filenumber=None,names=output_names,transform=out
         filenum_name = "_%s"%filenum
     else:
         filenum_name = ""
-    plt.savefig("%s/Output_TrackCascadeEnergy%s.png"%(outdir,filenum_name),bbox_inches='tight')
+    plt.savefig("%s/Output_TrackCascade%sEnergy%s.png"%(outdir,e_type,filenum_name),bbox_inches='tight')
 
-plot_output(Y_labels,outdir,filenumber=filenum,names=output_names,weights=None) #weights=weights_test[:,8]/1510.
-    #print("HARD CODED WEIGHTS!!!!!!!!!!!!")
-    #if reco_test is not None:
-    #    plot_output(reco_labels,outdir,filenumber="%s_reco"%filenum)
+
+def plot_2output(Y_values,outdir,filenumber=None,names=output_names,weights=None,energy_transform=1.):
+    if file_was_transformed:
+        units = ["(GeV)", "", "(m)", "(s)", "(m)", "(m)", "(m)", "(rad)", "(rad)"]
+    else:
+        units = ["(GeV)", "", "(rad)", "(s)", "(m)", "(m)", "(m)", "(m)", "(rad)"]
+    
+    energy = Y_values[:,0]*energy_transform
+    em_energy = Y_values[:,14]*1.
+
+    maskTrack = Y_values[:,8] == 1
+    maskCascade = Y_values[:,8] == 0
+    maskCC = Y_values[:,11] == 1
+    maskNC = Y_values[:,11] == 0
+    maskNuE = Y_values[:,9] == 12
+    maskNuMu = Y_values[:,9] == 14
+
+    num_events = Y_values.shape[0]
+    flavor = list(Y_values[:,9])
+    print("Fraction NuMu: %f"%(flavor.count(14)/num_events))
+    print("Fraction Track: %f"%(sum(Y_values[:,8])/num_events))
+    print("Fraction Antineutrino: %f"%(sum(Y_values[:,10])/num_events))
+    print("Fraction CC: %f"%(sum(Y_values[:,11])/num_events))
+
+    #data1, bins1 = plt.hist(energy[maskCC],bins=195,range=[5,200])
+    #data2, bins2 = plt.hist(energy[maskNC],bins=195,range=[5,200])
+
+    plt.figure()
+    plt.hist(energy[maskCC],bins=195,range=[5,200],color="blue",label="Total",weights=weights,alpha=0.5);
+    plt.hist(em_energy[maskCC],bins=195,range=[5,200],color="orange",label="EM Equiv",weights=weights,alpha=0.5);
+    plt.suptitle("CC Energy Distributions",fontsize=20)
+    plt.title("CC: %i events (%.2f)"%(sum(maskCC),sum(maskCC)/num_events),fontsize=15)
+    plt.xlabel("%s %s"%(names[0],units[0]),fontsize=15)
+    plt.xticks(fontsize=15)
+    plt.yticks(fontsize=15)
+    #plt.yscale('log')
+    plt.legend(fontsize=15)
+    if filenum:
+        filenum_name = "_%s"%filenum
+    else:
+        filenum_name = ""
+    plt.savefig("%s/Output_CC_TotVsEM_Energy%s.png"%(outdir,filenum_name),bbox_inches='tight')
+
+    plt.figure()
+    plt.hist(energy[maskNC],bins=195,range=[5,200],color="blue",label="Total",weights=weights,alpha=0.5);
+    plt.hist(em_energy[maskNC],bins=195,range=[5,200],color="orange",label="EM Equiv",weights=weights,alpha=0.5);
+    plt.suptitle("NC Energy Distributions",fontsize=20)
+    plt.title("NC: %i events (%.2f)"%(sum(maskNC),sum(maskNC)/num_events),fontsize=15)
+    plt.xlabel("%s %s"%(names[0],units[0]),fontsize=15)
+    plt.xticks(fontsize=15)
+    plt.yticks(fontsize=15)
+    #plt.yscale('log')
+    plt.legend(fontsize=15)
+    if filenum:
+        filenum_name = "_%s"%filenum
+    else:
+        filenum_name = ""
+    plt.savefig("%s/Output_NC_TotVsEM_Energy%s.png"%(outdir,filenum_name),bbox_inches='tight')
+
+
+
+
+# 2D PLOTS
+def plot_2Doutput(Y_values,outdir,filenumber=None,names=output_names,weights=None,energy_transform=1.):
+    if file_was_transformed:
+        units = ["(GeV)", "", "(m)", "(s)", "(m)", "(m)", "(m)", "(rad)", "(rad)"]
+    else:
+        units = ["(GeV)", "", "(rad)", "(s)", "(m)", "(m)", "(m)", "(m)", "(rad)"]
+    
+    energy = Y_values[:,0]*energy_transform
+    em_energy = Y_values[:,14]*1.
+
+    maskTrack = Y_values[:,8] == 1
+    maskCascade = Y_values[:,8] == 0
+    maskCC = Y_values[:,11] == 1
+    maskNC = Y_values[:,11] == 0
+    maskNuE = Y_values[:,9] == 12
+    maskNuMu = Y_values[:,9] == 14
+
+    num_events = Y_values.shape[0]
+    flavor = list(Y_values[:,9])
+
+    plt.figure()
+    plt.hist2d(energy[maskCC],em_energy[maskCC],bins=100,range=[[5,200],[5,200]],weights=weights,cmap='viridis_r',cmin=0.0001);
+    cbar = plt.colorbar()
+    plt.suptitle("CC True vs EM Equiv Energy",fontsize=20)
+    plt.title("CC: %i events (%.2f)"%(sum(maskCC),sum(maskCC)/num_events),fontsize=15)
+    plt.xlabel("Incoming Neutrino Energy %s"%(units[0]),fontsize=15)
+    plt.xlabel("EM Equivalent Energy Daughters %s"%(units[0]),fontsize=15)
+    plt.xticks(fontsize=15)
+    plt.yticks(fontsize=15)
+    if filenum:
+        filenum_name = "_%s"%filenum
+    else:
+        filenum_name = ""
+    plt.savefig("%s/Output_2D_CC_TotVsEM_Energy%s.png"%(outdir,filenum_name),bbox_inches='tight')
+
+    plt.figure()
+    cts,xbin,ybin,img = plt.hist2d(energy[maskNC],em_energy[maskNC],bins=100,range=[[5,200],[5,200]],weights=weights,cmap='viridis_r',cmin=0.0001);
+    cbar = plt.colorbar()
+    plt.suptitle("NC True vs EM Equiv Energy",fontsize=20)
+    plt.title("NC: %i events (%.2f)"%(sum(maskNC),sum(maskNC)/num_events),fontsize=15)
+    plt.xlabel("Incoming Neutrino Energy %s"%(units[0]),fontsize=15)
+    plt.xlabel("EM Equivalent Energy Daughters %s"%(units[0]),fontsize=15)
+    plt.xticks(fontsize=15)
+    plt.yticks(fontsize=15)
+    if filenum:
+        filenum_name = "_%s"%filenum
+    else:
+        filenum_name = ""
+    plt.savefig("%s/Output_2D_NC_TotVsEM_Energy%s.png"%(outdir,filenum_name),bbox_inches='tight')
+
+#plot_output(Y_labels,outdir,filenumber=filenum,names=output_names,weights=None,which_energy=0,energy_transform=output_factors[0]) #weights=weights_test[:,8]/1510.
+#plot_output(Y_labels,outdir,filenumber=filenum,names=output_names,weights=None,which_energy=14,energy_transform=1.,e_type="EMEquiv")
+#plot_output(Y_labels,outdir,filenumber=filenum,names=output_names,weights=None,which_energy=13,energy_transform=1.,e_type="Daughter")
+
+#plot_2output(Y_labels,outdir,filenumber=filenum,names=output_names,weights=None,energy_transform=output_factors[0]) #weights=weights_test[:,8]/1510.
+
+plot_2Doutput(Y_labels,outdir,filenumber=filenum,names=output_names,weights=None,energy_transform=output_factors[0]) #weights=weights_test[:,8]/1510.

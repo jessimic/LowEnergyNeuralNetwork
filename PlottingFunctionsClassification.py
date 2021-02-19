@@ -2,9 +2,10 @@ import matplotlib
 matplotlib.rc('xtick', labelsize=20)
 matplotlib.rc('ytick', labelsize=20)
 import matplotlib.pyplot as plt
-from sklearn.metrics import roc_curve, auc, roc_auc_score
+from sklearn.metrics import roc_curve, auc, roc_auc_score, recall_score
 from sklearn.metrics import confusion_matrix
 import numpy as np
+import os
 
 def plot_classification_hist(truth,prediction,mask=None,mask_name="", variable="Classification",units="",bins=50,log=False,save=True,save_folder_name=None,weights=None):
 
@@ -47,6 +48,7 @@ def plot_classification_hist(truth,prediction,mask=None,mask_name="", variable="
 def ROC(truth, prediction,mask=None,mask_name="",save=True,save_folder_name=None):
 
     if mask is not None:
+        print(sum(mask)/len(truth))
         truth = truth[mask]
         prediction = prediction[mask]
         save_folder_name += mask_name.replace(" ","") + "/"
@@ -54,9 +56,13 @@ def ROC(truth, prediction,mask=None,mask_name="",save=True,save_folder_name=None
                     os.mkdir(save_folder_name)
 
     fpr, tpr, thresholds = roc_curve(truth, prediction)
-    #print(fpr ,'\n \n', tpr,'\n \n', thresholds)
+    tnr = 1 - fpr #true negative rate
+    fnr = 1 - tpr #false nagtive rate
     auc = roc_auc_score(truth, prediction)
-    print('AUC: %.3f' % auc)
+    sumrates = tnr + tpr
+    best_index = np.where(sumrates == max(sumrates))
+    best_thres = thresholds[best_index]
+    print('AUC: %.3f' % auc,"best sumrates: %.3f"%max(sumrates),best_thres, "BEST THRES IS PROBS BROKEN")
 
     # ROC Curve
     fig, ax = plt.subplots(figsize=(10,7))
@@ -69,11 +75,6 @@ def ROC(truth, prediction,mask=None,mask_name="",save=True,save_folder_name=None
     ax.set_xlabel('False Positive Rate',fontsize=20)
     ax.set_ylabel('True Positive Rate',fontsize=20)
     ax.set_title('ROC Curve',fontsize=25)
-    tnr = 1 - fpr #true negative rate
-    sumrates = tnr + tpr
-    best_index = np.where(sumrates == max(sumrates))
-    best_thres = thresholds[best_index]
-    print(best_thres)
     #ax.plot(fpr[best_index],tpr[best_index],marker="*",markersize=10)
     props = dict(boxstyle='round', facecolor='blue', alpha=0.3)
     ax.text(0.1, 0.95, r'AUC:%.3f'%auc, transform=ax.transAxes, fontsize=20,
@@ -82,6 +83,8 @@ def ROC(truth, prediction,mask=None,mask_name="",save=True,save_folder_name=None
     if save:
         plt.savefig("%sROC.png"%(save_folder_name))
     plt.close()
+
+    return best_thres
 
 def confusion_matrix(truth, prediction, best_thres, mask=None, mask_name="", weights=None,save=True, save_folder_name=None):
     if mask is not None:
@@ -116,4 +119,5 @@ def confusion_matrix(truth, prediction, best_thres, mask=None, mask_name="", wei
             color="w", ha="center", va="center", fontweight="bold",fontsize=20)
     if save:
         plt.savefig("%s%sConfusionMaxtrix.png"%(save_folder_name,name),bbox_inches='tight')
+
     plt.close()

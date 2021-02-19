@@ -10,14 +10,14 @@
 
 ########## Command Lines to Run ##########
 
-INPUT="PID_TracksCascades_genie_level6_cleanedpulses_transformed_IC19__E5to200_all_all_start_all_end_flat_195bins_30000evtperbin_file*.hdf5"
+INPUT="PID_TracksCascades_genie_level6_cleanedpulses_transformed_IC19__E5to200_all_all_start_all_end_flat_195bins_30000evtperbin_file??.hdf5"
 INDIR="/mnt/research/IceCube/jmicallef/DNN_files/"
 OUTDIR="/mnt/home/micall12/LowEnergyNeuralNetwork"
 NUMVAR=1
 LR_EPOCH=50
 LR_DROP=0.1
 LR=0.001
-OUTNAME="PID_level6_cleanedpulses_E5to200_flat_195bins_30000evtperbin_BinaryCrossEntropy2"
+OUTNAME="PID_level6_cleanedpulses_IC19_E5to200_30000evtperbin_sigmoid_binarycross_LRe-3DROPe-1EPOCHS50"
 
 START=0
 END=300
@@ -28,10 +28,10 @@ do
     
     case $EPOCH in
     0)
-        singularity exec -B /mnt/home/micall12:/mnt/home/micall12 -B /mnt/research/IceCube:/mnt/research/IceCube --nv /mnt/research/IceCube/Software/icetray_stable-tensorflow.sif python ${OUTDIR}/CNN_Classification.py --input_files $INPUT --path $INDIR --output_dir $OUTDIR --name $OUTNAME -e $STEP --start $EPOCH --variables $NUMVAR --first_variable class --lr $LR --lr_epoch $LR_EPOCH --lr_drop $LR_DROP
+        singularity exec -B /mnt/home/micall12:/mnt/home/micall12 -B /mnt/research/IceCube:/mnt/research/IceCube --nv /mnt/research/IceCube/Software/icetray_stable-tensorflow.sif python ${OUTDIR}/CNN_Training.py --input_files $INPUT --path $INDIR --output_dir $OUTDIR --name $OUTNAME -e $STEP --start $EPOCH --variables $NUMVAR --first_variable class --lr $LR --lr_epoch $LR_EPOCH --lr_drop $LR_DROP
     ;;
     *)
-        singularity exec -B /mnt/home/micall12:/mnt/home/micall12 -B /mnt/research/IceCube:/mnt/research/IceCube --nv /mnt/research/IceCube/Software/icetray_stable-tensorflow.sif python ${OUTDIR}/CNN_Classification.py --input_files $INPUT --path $INDIR --output_dir $OUTDIR --name $OUTNAME -e $STEP --start $EPOCH --variables $NUMVAR --model $MODELNAME --first_variable class --lr $LR --lr_epoch $LR_EPOCH --lr_drop $LR_DROP
+        singularity exec -B /mnt/home/micall12:/mnt/home/micall12 -B /mnt/research/IceCube:/mnt/research/IceCube --nv /mnt/research/IceCube/Software/icetray_stable-tensorflow.sif python ${OUTDIR}/CNN_Training.py --input_files $INPUT --path $INDIR --output_dir $OUTDIR --name $OUTNAME -e $STEP --start $EPOCH --variables $NUMVAR --model $MODELNAME --first_variable class --lr $LR --lr_epoch $LR_EPOCH --lr_drop $LR_DROP
     ;;
     esac
 done

@@ -6,16 +6,18 @@
 #INPUTFILES="/mnt/research/IceCube/jmicallef/official_oscnext/oscNext_genie_level7_v02.00_pass2.140000.*.i3.zst"
 #INPUTFILES="/mnt/research/IceCube/jmicallef/official_oscnext/oscNext_genie_level7_v02.00_pass2.120000.*.i3.zst"
 #INPUTFILES="/mnt/research/IceCube/le_osc/forJessie/L6/NuMu_genie_149999_0[0,1]????_*.zst"
-INPUTFILES="/mnt/research/IceCube/jmicallef/simulation/level6/129999/NuE_genie_129999_00*.zst"
+#INPUTFILES="/mnt/research/IceCube/jmicallef/simulation/level6/129999/NuE_genie_129999_00*.zst"
+INPUTFILES="/mnt/research/IceCube/jmicallef/official_oscnext/level6/oscNext_genie_level6_v02.00_pass2.140000.000001.i3.zst"
+#INPUTFILES="/mnt/research/IceCube/jmicallef/official_oscnext/newGCD/NuMu_genie_140000_000000_level6.zst"
 FILEPATH=/mnt/home/micall12/LowEnergyNeuralNetwork/make_jobs/i3_test
 LOG_FOLDER=$FILEPATH/logs
 JOB_FOLDER=$FILEPATH/slurm
 
 #Settings for test
-VARIABLE="class"
+VARIABLE="energy"
 FACTOR=1
-MODEL_NAME=PID_level6_cleanedpulses_IC19_E5to200_30000evtperbin_sigmoid_binarycross_lrEpochs50
-EPOCH=192
+MODEL_NAME=energy_numu_flat_1_500_level6_cleanedpulses_IC19_CC_20000evtperbin_lrEpochs50
+EPOCH=152
 
 [ ! -d $LOG_FOLDER ] && mkdir $LOG_FOLDER
 [ ! -d $JOB_FOLDER ] && mkdir $JOB_FOLDER

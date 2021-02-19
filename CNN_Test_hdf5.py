@@ -251,7 +251,7 @@ t1 = time.time()
 print("This took me %f seconds for %i events"%(((t1-t0)),Y_test_predicted.shape[0]))
 #print(X_test_DC_use.shape,X_test_IC_use.shape,Y_test_predicted.shape,Y_test_use.shape)
 
-print("Saving output file: %s/prediction_values_%s.hdf5"%save_folder_name,first_var)
+print("Saving output file: %s/prediction_values_%s.hdf5"%(save_folder_name,first_var))
 f = h5py.File("%s/prediction_values_%s.hdf5"%(save_folder_name,first_var), "w")
 f.create_dataset("Y_test_use", data=Y_test_use)
 f.create_dataset("Y_predicted", data=Y_test_predicted)

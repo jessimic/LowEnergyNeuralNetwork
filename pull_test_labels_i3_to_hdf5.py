@@ -1,6 +1,6 @@
 import numpy as np
 import h5py
-from icecube import icetray, dataio, dataclasses, simclasses, recclasses
+from icecube import icetray, dataio, dataclasses, simclasses, recclasses, sim_services
 from I3Tray import I3Units
 import argparse
 import glob
