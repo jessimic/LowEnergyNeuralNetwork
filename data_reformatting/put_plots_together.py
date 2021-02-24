@@ -9,7 +9,7 @@ parser.add_argument("-f", "--filename",type=str,default=None,
                     dest="filename", help="name of plot png that you want to grab, including .png")
 parser.add_argument("-i", "--input_folder",type=str,default=None,
                     dest="input_folder", help="name of folder in output_plots")
-parser.add_argument("-d","--dir",type=str,default="/home/users/jmicallef/LowEnergyNeuralNetwork/output_plots/",
+parser.add_argument("-d","--dir",type=str,default="/mnt/home/micall12/LowEnergyNeuralNetwork/output_plots/",
                     dest="outplots_dir", help="path to output plots directory (including it)")
 parser.add_argument("--test_type",type=str,default="oscnext",
                     dest="test_type", help="name of subfolder (oscnext or dragon) to pull from")
@@ -43,9 +43,14 @@ if epoch_list is None:
     epoch_name = test_type
 else:
     image = {}
-    for epoch in epoch_list:
-        epoch_name = "%s_%iepochs"%(test_type,int(epoch))
-        epoch_path = main_path + epoch_name + "/" + plot
+    #for epoch in epoch_list:
+        #epoch_name = "%s_%iepochs"%(test_type,int(epoch))
+        #epoch_path = main_path + epoch_name + "/" + plot
+    energy_ranges = [5, 10, 20, 30, 40, 60, 80, 100, 150, 200]
+    for e_index in range(0,len(energy_ranges)-1):
+        start = energy_ranges[e_index]
+        end = energy_ranges[e_index + 1]
+        epoch_path = main_path + "/oscnext_flat_192epochs/ClassificationHist_Energy%ito%iGeV.png"%(start,end) 
         with cbook.get_sample_data(epoch_path) as image_file:
             image = plt.imread(image_file)        
         if rows > 1 and cols > 1:
@@ -62,5 +67,6 @@ else:
             col_index +=1
 plt.subplots_adjust(wspace=0.05, hspace=0.05)
  
-outname = main_path + plot[:-4] + "_compare%iplots.png"%len(epoch_list)
+#outname = main_path + plot[:-4] + "_compare%iplots.png"%len(epoch_list)
+outname = main_path + "/oscnext_flat_192epochs/ClassificationHist_compare%iplots.png"%(len(energy_ranges)-1)
 plt.savefig(outname,dpi=800)

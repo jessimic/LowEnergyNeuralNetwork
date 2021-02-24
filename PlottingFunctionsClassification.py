@@ -15,9 +15,9 @@ def plot_classification_hist(truth,prediction,mask=None,mask_name="", variable="
         prediction = prediction[mask]
         if weights is not None:
             weights = weights[mask]
-        save_folder_name += mask_name.replace(" ","") + "/"
-        if os.path.isdir(save_folder_name) != True:
-                    os.mkdir(save_folder_name)
+        #save_folder_name += mask_name.replace(" ","") + "/"
+        #if os.path.isdir(save_folder_name) != True:
+        #            os.mkdir(save_folder_name)
 
     maskTrack = truth == 1
     maskCascade = truth == 0
@@ -31,7 +31,7 @@ def plot_classification_hist(truth,prediction,mask=None,mask_name="", variable="
     else:
         weights_track = None
         weights_cascade = None
-    plt.title("%s %s Distribution"%(name,variable),fontsize=25)
+    plt.title("%s %s %s"%(name,variable,mask_name),fontsize=25)
     plt.xlabel("%s %s"%(variable,units),fontsize=20)
     if log:
         plt.yscale("log")
@@ -41,8 +41,11 @@ def plot_classification_hist(truth,prediction,mask=None,mask_name="", variable="
     plt.legend(fontsize=20)
 
     name += "%s"%(variable.replace(" ",""))
+    end = "Hist"
+    if mask is not None:
+        end += "_%s"%(mask_name.replace(" ",""))
     if save:
-        plt.savefig("%s%sHist.png"%(save_folder_name,name))
+        plt.savefig("%s%s%s.png"%(save_folder_name,name,end))
     plt.close()
 
 def ROC(truth, prediction,mask=None,mask_name="",save=True,save_folder_name=None):
@@ -51,9 +54,9 @@ def ROC(truth, prediction,mask=None,mask_name="",save=True,save_folder_name=None
         print(sum(mask)/len(truth))
         truth = truth[mask]
         prediction = prediction[mask]
-        save_folder_name += mask_name.replace(" ","") + "/"
-        if os.path.isdir(save_folder_name) != True:
-                    os.mkdir(save_folder_name)
+        #save_folder_name += mask_name.replace(" ","") + "/"
+        #if os.path.isdir(save_folder_name) != True:
+        #            os.mkdir(save_folder_name)
 
     fpr, tpr, thresholds = roc_curve(truth, prediction)
     tnr = 1 - fpr #true negative rate
@@ -74,14 +77,17 @@ def ROC(truth, prediction,mask=None,mask_name="",save=True,save_folder_name=None
     ax.set_ylim([0.0, 1.0])
     ax.set_xlabel('False Positive Rate',fontsize=20)
     ax.set_ylabel('True Positive Rate',fontsize=20)
-    ax.set_title('ROC Curve',fontsize=25)
+    ax.set_title('ROC Curve %s'%mask_name,fontsize=25)
     #ax.plot(fpr[best_index],tpr[best_index],marker="*",markersize=10)
     props = dict(boxstyle='round', facecolor='blue', alpha=0.3)
     ax.text(0.1, 0.95, r'AUC:%.3f'%auc, transform=ax.transAxes, fontsize=20,
             verticalalignment='top', bbox=props)
 
+    end = "ROC"
+    if mask is not None:
+        end += "_%s"%mask_name.replace(" ","")
     if save:
-        plt.savefig("%sROC.png"%(save_folder_name))
+        plt.savefig("%s%s.png"%(save_folder_name,end))
     plt.close()
 
     return best_thres

@@ -143,11 +143,17 @@ from PlottingFunctionsClassification import plot_classification_hist
 
 #All events
 best_threshold = ROC(true_isTrack,cnn_predict,mask=None,mask_name="",save=save,save_folder_name=save_folder)
-confusion_matrix(true_isTrack, cnn_predict, best_threshold, mask=None, mask_name="", weights=None,save=save, save_folder_name=save_folder)
-confusion_matrix(true_isTrack, cnn_predict, best_threshold, mask=None, mask_name="", weights=weights,save=save, save_folder_name=save_folder)
+#confusion_matrix(true_isTrack, cnn_predict, best_threshold, mask=None, mask_name="", weights=None,save=save, save_folder_name=save_folder)
+#confusion_matrix(true_isTrack, cnn_predict, best_threshold, mask=None, mask_name="", weights=weights,save=save, save_folder_name=save_folder)
 plot_classification_hist(true_isTrack,cnn_predict,mask=None,mask_name="", variable="Classification",units="",bins=50,log=False,save=save,save_folder_name=save_folder)
 
-do_energy_auc = True
+#plt.figure(figsize=(10,7))
+#plt.title("Threshold",fontsize=25)
+#plt.xlabel("True Energy (GeV)",fontsize=20)
+#plt.plot(energy_range, energy_thres, 'b-')
+#plt.savefig("%sThresvsEnergy.png"%(save_folder))
+
+do_energy_auc = False
 if do_energy_auc:
 # Energy vs AUC
     energy_auc = []
@@ -188,18 +194,18 @@ if do_energy_auc:
     plt.plot(energy_range, energy_thres, 'b-')
     plt.savefig("%SensvsEnergy.png"%(save_folder))
     
-do_energy_range = False
+do_energy_range = True
 if do_energy_range:
-#Break down energy range
-    step_size = 20
-    energy_steps = np.arange(5.,200.,step_size)
-    for energy_start in energy_steps:
-        energy_end = energy_start + step_size
+    #Break down energy range
+    energy_ranges = [5, 10, 20, 30, 40, 60, 80, 100, 150, 200]
+    for e_index in range(0,len(energy_ranges)-1):
+        energy_start = energy_ranges[e_index]
+        energy_end = energy_ranges[e_index+1]
         current_mask = np.logical_and(true_energy > energy_start, true_energy < energy_end)
-        current_name = "Energy_%ito%iGeV"%(energy_start,energy_end)
+        current_name = "Energy %i to %i GeV"%(energy_start,energy_end)
         plot_classification_hist(true_isTrack,cnn_predict,mask=current_mask,mask_name=current_name, variable="Classification",units="",bins=50,log=False,save=save,save_folder_name=save_folder)
         best_threshold = ROC(true_isTrack,cnn_predict,mask=current_mask,mask_name=current_name,save=save,save_folder_name=save_folder)
-        best_threshold = best_threshold[0]
-        confusion_matrix(true_isTrack, cnn_predict, best_threshold, mask=current_mask, mask_name=current_name, weights=None,save=save, save_folder_name=save_folder)
-        confusion_matrix(true_isTrack, cnn_predict, best_threshold, mask=current_mask, mask_name=current_name, weights=weights,save=save, save_folder_name=save_folder)
+        #best_threshold = best_threshold[0]
+        #confusion_matrix(true_isTrack, cnn_predict, best_threshold, mask=current_mask, mask_name=current_name, weights=None,save=save, save_folder_name=save_folder)
+        #confusion_matrix(true_isTrack, cnn_predict, best_threshold, mask=current_mask, mask_name=current_name, weights=weights,save=save, save_folder_name=save_folder)
 
