@@ -23,12 +23,18 @@ parser.add_argument("-o", "--outdir",type=str,default='/mnt/home/micall12/LowEne
                     dest="output_dir", help="path of ouput file")
 parser.add_argument("--efactor",type=float,default=1.,
                     dest="efactor", help="change if you want to multiply true energy by a factor (if transformed)")
+parser.add_argument("--numu",type=float,default=1518.,
+                    dest="numu", help="number of numu files")
+parser.add_argument("--nue",type=float,default=602.,
+                    dest="nue", help="number of nue files")
 parser.add_argument("--no_old_reco", default=False,action='store_true',
                         dest='no_old_reco',help="no old reco")
 args = parser.parse_args()
 
 input_file = args.input_file
 efactor = args.efactor
+numu_files = args.numu
+nue_files = args.nue
 no_old_reco = args.no_old_reco
 save_folder = args.output_dir
 save = True
@@ -96,7 +102,14 @@ if info is not None:
 
 #weights
 if weights is not None:
-    weights = np.array(weights[:,8])/1519
+    weights = np.array(weights[:,8])
+    #modify by number of files
+    mask_numu = np.array(truth[:,9]) == 14
+    mask_nue = np.array(truth[:,9]) == 12
+    if sum(mask_numu) > 1:
+        weights[mask_numu] = weights[mask_numu]/numu_files
+    if sum(mask_nue) > 1:
+        weights[mask_nue] = weights[mask_nue])/nue_files
 
 variable = "Classification"
 units = ""
@@ -153,7 +166,7 @@ plot_classification_hist(true_isTrack,cnn_predict,mask=None,mask_name="", variab
 #plt.plot(energy_range, energy_thres, 'b-')
 #plt.savefig("%sThresvsEnergy.png"%(save_folder))
 
-do_energy_auc = False
+do_energy_auc = True
 if do_energy_auc:
 # Energy vs AUC
     energy_auc = []
@@ -165,12 +178,12 @@ if do_energy_auc:
         
         energy_auc.append(roc_auc_score(true_isTrack[current_mask], cnn_predict[current_mask]))
         
-        best_threshold = ROC(true_isTrack,cnn_predict,mask=current_mask,mask_name="",save=False,save_folder_name=save_folder)
-        energy_thres.append(best_threshold[0])
+        #best_threshold = ROC(true_isTrack,cnn_predict,mask=current_mask,mask_name="",save=False,save_folder_name=save_folder)
+        #energy_thres.append(best_threshold[0])
         
-        predictionCascade = cnn_predict < best_threshold
-        predictionTrack = cnn_predict >= best_threshold
-        energy_recall.append(recall_score(predictionCascade[current_mask], predictionTrack[current_mask]))
+        #predictionCascade = cnn_predict < best_threshold
+        #predictionTrack = cnn_predict >= best_threshold
+        #energy_recall.append(recall_score(predictionCascade[current_mask], predictionTrack[current_mask]))
 
 
     plt.figure(figsize=(10,7))
@@ -180,19 +193,19 @@ if do_energy_auc:
     plt.plot(energy_range, energy_auc, 'b-')
     plt.savefig("%sAUCvsEnergy.png"%(save_folder))
     
-    plt.figure(figsize=(10,7))
-    plt.title("Thres vs. True Energy",fontsize=25)
-    plt.ylabel("Threshold",fontsize=20)
-    plt.xlabel("True Energy (GeV)",fontsize=20)
-    plt.plot(energy_range, energy_thres, 'b-')
-    plt.savefig("%sThresvsEnergy.png"%(save_folder))
+    #plt.figure(figsize=(10,7))
+    #plt.title("Thres vs. True Energy",fontsize=25)
+    #plt.ylabel("Threshold",fontsize=20)
+    #plt.xlabel("True Energy (GeV)",fontsize=20)
+    #plt.plot(energy_range, energy_thres, 'b-')
+    #plt.savefig("%sThresvsEnergy.png"%(save_folder))
     
-    plt.figure(figsize=(10,7))
-    plt.title("Sensitivity vs. True Energy",fontsize=25)
-    plt.ylabel("Sensitivity TP/(TP + FN)",fontsize=20)
-    plt.xlabel("True Energy (GeV)",fontsize=20)
-    plt.plot(energy_range, energy_thres, 'b-')
-    plt.savefig("%SensvsEnergy.png"%(save_folder))
+    #plt.figure(figsize=(10,7))
+    #plt.title("Sensitivity vs. True Energy",fontsize=25)
+    #plt.ylabel("Sensitivity TP/(TP + FN)",fontsize=20)
+    #plt.xlabel("True Energy (GeV)",fontsize=20)
+    #plt.plot(energy_range, energy_thres, 'b-')
+    #plt.savefig("%SensvsEnergy.png"%(save_folder))
     
 do_energy_range = True
 if do_energy_range:
