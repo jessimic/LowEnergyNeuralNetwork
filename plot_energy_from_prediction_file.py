@@ -31,19 +31,42 @@ f.close()
 del f
 
 cnn_energy = np.array(predict[:,0])
+try:
+    cnn_class = np.array(predict[:,1])
+except:
+    pass
+  
+#Truth
 true_energy = np.array(truth[:,0])
-retro_energy = np.array(reco[:,0])
-retro_zenith = np.array(reco[:,1])
-retro_time = np.array(reco[:,3])
+em_equiv_energy = np.array(truth[:,14])
 true_x = np.array(truth[:,4])
 true_y = np.array(truth[:,5])
 true_z = np.array(truth[:,6])
 true_CC = np.array(truth[:,11])
-weights = np.array(weights[:,8])
+true_isTrack = np.array(truth[:,8])
+true_neutrino = np.array(truth[:,9],dtype=int)
+isNuMu = true_neutrino == 14
+isNuE = true_neutrino == 12
+if sum(isNuMu) == len(true_neutrino):
+    all_NuMu = True
+else:
+    all_NuMu = False
+
+# Retro
+retro_energy = np.array(reco[:,0])
+retro_zenith = np.array(reco[:,1])
+retro_time = np.array(reco[:,3])
+retro_PID_full = np.array(reco[:,12])
+retro_PID_up = np.array(reco[:,13])
 reco_x = np.array(reco[:,4])
 reco_y = np.array(reco[:,5])
 reco_z = np.array(reco[:,6])
 retro_coszen = np.cos(retro_zenith)
+
+#Wegiths
+weights = np.array(weights[:,8])
+
+#Additional info
 prob_nu = info[:,1]
 coin_muon = info[:,0]
 true_ndoms = info[:,2]
@@ -54,6 +77,7 @@ n_top15 = info[:,6]
 n_outer = info[:,7]
 prob_nu2 = info[:,8]
 hits8 = info[:,9]
+
 check_energy_gt5 = true_energy > 5.
 assert sum(check_energy_gt5)>0, "No events > 5 GeV in true energy, is this transformed?"
 
@@ -150,6 +174,9 @@ from PlottingFunctions import plot_2D_prediction
 from PlottingFunctions import plot_single_resolution
 from PlottingFunctions import plot_bin_slices
 from PlottingFunctions import plot_rms_slices
+from PlottingFunctionsClassification import ROC
+from PlottingFunctionsClassification import confusion_matrix
+from PlottingFunctionsClassification import plot_classification_hist
 
 save=True
 if save ==True:
@@ -193,15 +220,16 @@ print(sum(weights[np.logical_and(maskANA,maskCC)]))
 #plot_vs_Energy(true_energy[maskCC],true_ndoms[maskCC],weights=weights[maskCC],bins=100,savefolder=save_folder_name)
 #plot_vs_Energy(true_energy[maskCC],true_ndoms[maskCC],weights=weights[maskCC],xmax=300,bins=100,savefolder=save_folder_name)
 
-cut_list = [maskNONE, maskANA, maskCC, np.logical_and(maskE, maskCC), np.logical_and(maskANA, maskCC), np.logical_and(maskCNNE, maskCC), np.logical_and(maskE2, maskCC),np.logical_and(maskHits8,maskCC), np.logical_and(np.logical_and(maskCNNE, maskCC),maskHits8)]
-cut_names = ["WeightedNoCuts", "WeightedRetroCuts", "WeightedNoCuts_CC", "WeightedE5100_CC", "WeightedRetroCuts_CC", "WeightedCNNE5100_CC", "WeightedE1200_CC", "WeightedHits8_CC", "WeightedCNNE5100_Hits8CC"]
-minvals = [1, 1, 1, 5, 1, 5, 1, 1, 5]
-maxvals = [200, 200, 200, 100, 200, 100, 200, 200, 100]
-binss = [199, 199, 199, 95, 199, 95, 199, 199, 95]
-syst_bins = [20, 20, 20, 10, 20, 10, 20, 20, 10]
+
+cut_list = [maskNONE, maskANA, maskCC, np.logical_and(maskE, maskCC), np.logical_and(maskANA, maskCC), np.logical_and(maskCNNE, maskCC), np.logical_and(maskE2, maskCC),np.logical_and(maskHits8,maskCC), np.logical_and(np.logical_and(maskCNNE, maskCC),maskHits8), np.logical_and(maskCNNE,maskHits8)]
+cut_names = ["WeightedNoCuts", "WeightedRetroCuts", "WeightedNoCuts_CC", "WeightedE5100_CC", "WeightedRetroCuts_CC", "WeightedCNNE5100_CC", "WeightedE1200_CC", "WeightedHits8_CC", "WeightedCNNE5100_Hits8CC", "WeightedCNNE5100_Hits8"]
+minvals = [1, 1, 1, 5, 1, 5, 1, 1, 5,5]
+maxvals = [200, 200, 200, 100, 200, 100, 200, 200, 100,100]
+binss = [199, 199, 199, 95, 199, 95, 199, 199, 95,95]
+syst_bins = [20, 20, 20, 10, 20, 10, 20, 20, 10,10]
 save_base_name = save_folder_name
 
-for cut_index in [8]: #range(1,len(cut_list)):
+for cut_index in [4,5,7]: #range(1,len(cut_list)):
     cuts = cut_list[cut_index]
     folder_name = cut_names[cut_index]
     minval = minvals[cut_index]
@@ -209,6 +237,10 @@ for cut_index in [8]: #range(1,len(cut_list)):
     bins = binss[cut_index]
     syst_bin = syst_bins[cut_index]
     true_weights = weights[cuts]/1510.
+    if cut_index == 2 or cut_index == 4:
+        reco_class = retro_PID_up
+    else:
+        reco_class = retro_PID_full
 
     print("Working on %s"%folder_name)
 
@@ -235,21 +267,29 @@ for cut_index in [8]: #range(1,len(cut_list)):
     plot_distributions(true_z[cuts], reco_z[cuts],\
                                 save=save, savefolder=save_folder_name, weights=true_weights,\
                                 cnn_name = "Retro", variable="Z Vertex", units= "(m)",log=True)
-    
+    switch = False 
     plot_2D_prediction(true_energy[cuts], cnn_energy[cuts],weights=true_weights,\
-                            save=save, savefolder=save_folder_name,bins=bins, switch_axis=True,
+                            save=save, savefolder=save_folder_name,bins=bins, switch_axis=switch,
                             variable=plot_name, units=plot_units, reco_name="CNN")
     plot_2D_prediction(true_energy[cuts], retro_energy[cuts], weights=true_weights,
-                            save=save, savefolder=save_folder_name,bins=bins,switch_axis=True,\
+                            save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
                             variable=plot_name, units=plot_units, reco_name="Retro")
     plot_2D_prediction(true_energy[cuts], cnn_energy[cuts],weights=true_weights,\
-                            save=save, savefolder=save_folder_name,bins=bins,switch_axis=True,\
+                            save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
                             minval=minval, maxval=maxval, cut_truth=True, axis_square=True,\
                             variable=plot_name, units=plot_units, reco_name="CNN")
     plot_2D_prediction(true_energy[cuts], retro_energy[cuts], weights=true_weights,
-                            save=save, savefolder=save_folder_name,bins=bins,switch_axis=True,\
+                            save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
                             minval=minval, maxval=maxval, cut_truth=True, axis_square=True,\
                             variable=plot_name, units=plot_units, reco_name="Retro")
+    plot_2D_prediction(em_equiv_energy[cuts], cnn_energy[cuts],weights=true_weights,\
+                            save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
+                            minval=minval, maxval=maxval, cut_truth=True, axis_square=True,\
+                            variable=plot_name, units=plot_units, reco_name="CNN",variable_type="EM Equiv")
+    plot_2D_prediction(em_equiv_energy[cuts], retro_energy[cuts], weights=true_weights,
+                            save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
+                            minval=minval, maxval=maxval, cut_truth=True, axis_square=True,\
+                            variable=plot_name, units=plot_units, reco_name="Retro", variable_type = "EM Equiv")
     
     plot_single_resolution(true_energy[cuts], cnn_energy[cuts], weights=true_weights,\
                        use_old_reco = True, old_reco = retro_energy[cuts],\
@@ -287,7 +327,11 @@ for cut_index in [8]: #range(1,len(cut_list)):
     #                use_fraction = True, bins=syst_bin, min_val=0, max_val=maxval*3,\
     #                save=save, savefolder=save_folder_name,\
     #                variable=plot_name, units=plot_units, reco_name="Retro")
-   
+    
+    if all_NuMu and (cut_index < 2 or cut_index == 9):
+        best_threshold = ROC(true_isTrack,cnn_class,mask=cuts,mask_name="",reco=reco_class,save=save,save_folder_name=save_folder_name)
+    plot_classification_hist(true_isTrack,cnn_class,reco=reco_class,mask=cuts,mask_name="", variable="Classification",units="",bins=50,log=False,save=save,save_folder_name=save_folder_name)
+
 
  
 """

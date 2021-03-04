@@ -92,10 +92,10 @@ def find_contours_2D(x_values,y_values,xbins,weights=None,c1=16,c2=84):
                 r2 = wq.quantile(y_values[mask],weights[mask],c2/100.)
                 m = wq.median(y_values[mask],weights[mask])
         else:
-            print(i,'empty bin')
-            r1 = 0
-            m = 0
-            r2 = 0
+            #print(i,'empty bin')
+            r1 = numpy.nan
+            m = numpy.nan
+            r2 = numpy.nan
         median_save.append(m)
         r1_save.append(r1)
         r2_save.append(r2)
@@ -313,7 +313,8 @@ def plot_2D_prediction(truth, nn_reco, \
                         save=False,savefolder=None,weights=None,syst_set="",\
                         bins=60,minval=None,maxval=None, switch_axis=False,\
                         cut_truth = False, axis_square =False, zmax=None,log=True,
-                        variable="Energy", units = "(GeV)", epochs=None,reco_name="CNN"):
+                        variable="Energy", units = "(GeV)", epochs=None,\
+                        variable_type="True", reco_name="CNN"):
     """
     Plot testing set reconstruction vs truth
     Recieves:
@@ -401,12 +402,12 @@ def plot_2D_prediction(truth, nn_reco, \
             cts,xbin,ybin,img = plt.hist2d(truth, nn_reco, bins=bins,range=[[xmin,xmax],[ymin,ymax]],cmap='viridis_r', weights=weights, cmax=zmax, cmin=cmin)
     cbar = plt.colorbar()
     cbar.ax.set_ylabel('counts', rotation=90)
-    plt.xlabel("True Neutrino %s %s"%(variable,units),fontsize=20)
+    plt.xlabel("%s %s %s"%(variable_type,variable,units),fontsize=20)
     plt.ylabel("%s Reconstructed %s %s"%(reco_name,variable,units),fontsize=20)
     if switch_axis:
-        plt.ylabel("True Neutrino %s %s"%(variable,units),fontsize=20)
+        plt.ylabel("%s %s %s"%(variable_type,variable,units),fontsize=20)
         plt.xlabel("%s Reconstructed %s %s"%(reco_name,variable,units),fontsize=20)
-    title = "%s vs Truth for %s %s"%(reco_name,variable,syst_set)
+    title = "%s vs %s for %s %s"%(reco_name,variable_type,variable,syst_set)
     if weights is not None:
         title += " Weighted"
     if epochs:
@@ -424,7 +425,7 @@ def plot_2D_prediction(truth, nn_reco, \
     if switch_axis:
         x, y, y_l, y_u = find_contours_2D(nn_reco,truth,xbin,weights=weights)
     else:
-        x, y, y_l, y_u = find_contours_2D(nn_reco,truth,xbin,weights=weights)
+        x, y, y_l, y_u = find_contours_2D(truth,nn_reco,xbin,weights=weights)
 
     plt.plot(x,y,color='r',label='Median')
     plt.plot(x,y_l,color='r',label='68% band',linestyle='dashed')
@@ -433,6 +434,7 @@ def plot_2D_prediction(truth, nn_reco, \
     
     reco_name = reco_name.replace(" ","")
     variable = variable.replace(" ","")
+    variable_type = variable_type.replace(" ","")
     nocut_name = ""
     if weights is not None:
         nocut_name="Weighted"
@@ -443,7 +445,7 @@ def plot_2D_prediction(truth, nn_reco, \
     if switch_axis:
         nocut_name +="_SwitchedAxis"
     if save:
-        plt.savefig("%sTruth%sReco%s_2DHist%s%s.png"%(savefolder,reco_name,variable,syst_set,nocut_name),bbox_inches='tight')
+        plt.savefig("%s%s%sReco%s_2DHist%s%s.png"%(savefolder,variable_type,reco_name,variable,syst_set,nocut_name),bbox_inches='tight')
     plt.close()
 
 def plot_2D_prediction_fraction(truth, nn_reco, \

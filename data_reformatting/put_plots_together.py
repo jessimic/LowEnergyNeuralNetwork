@@ -25,6 +25,8 @@ main_path = args.outplots_dir + args.input_folder + "/"
 plot = args.filename
 epoch_list = args.epochs
 test_type = args.test_type
+sub_name = "L7_official"
+plot_name = "ROC"
 
 rows = args.rows
 cols = args.cols
@@ -50,7 +52,7 @@ else:
     for e_index in range(0,len(energy_ranges)-1):
         start = energy_ranges[e_index]
         end = energy_ranges[e_index + 1]
-        epoch_path = main_path + "/oscnext_flat_192epochs/ClassificationHist_Energy%ito%iGeV.png"%(start,end) 
+        epoch_path = main_path + "/%s/%s_Energy%ito%iGeV.png"%(sub_name,plot_name,start,end) 
         with cbook.get_sample_data(epoch_path) as image_file:
             image = plt.imread(image_file)        
         if rows > 1 and cols > 1:
@@ -68,5 +70,5 @@ else:
 plt.subplots_adjust(wspace=0.05, hspace=0.05)
  
 #outname = main_path + plot[:-4] + "_compare%iplots.png"%len(epoch_list)
-outname = main_path + "/oscnext_flat_192epochs/ClassificationHist_compare%iplots.png"%(len(energy_ranges)-1)
+outname = main_path + "/%s/%s_compare%iplots.png"%(sub_name,plot_name,len(energy_ranges)-1)
 plt.savefig(outname,dpi=800)

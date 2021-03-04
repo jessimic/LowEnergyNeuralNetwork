@@ -82,8 +82,8 @@ if reco is not None:
     reco_y = np.array(reco[:,5])
     reco_z = np.array(reco[:,6])
     retro_coszen = np.cos(retro_zenith)
-    retro_PID_all =  np.array(reco[:,8])
-    retro_PID_up =  np.array(reco[:,9])
+    retro_PID_all =  np.array(reco[:,12])
+    retro_PID_up =  np.array(reco[:,13])
     reco_r = np.sqrt( (reco_x - x_origin)**2 + (reco_y - y_origin)**2 )
 
 #additional
@@ -109,7 +109,7 @@ if weights is not None:
     if sum(mask_numu) > 1:
         weights[mask_numu] = weights[mask_numu]/numu_files
     if sum(mask_nue) > 1:
-        weights[mask_nue] = weights[mask_nue])/nue_files
+        weights[mask_nue] = weights[mask_nue]/nue_files
 
 variable = "Classification"
 units = ""
@@ -155,28 +155,87 @@ from PlottingFunctionsClassification import confusion_matrix
 from PlottingFunctionsClassification import plot_classification_hist
 
 #All events
-best_threshold = ROC(true_isTrack,cnn_predict,mask=None,mask_name="",save=save,save_folder_name=save_folder)
+do_general_plots = False
+if do_general_plots:
+    mask_here = maskHits8
+    mask_name_here = "L7"
+
+    best_threshold = ROC(true_isTrack,cnn_predict,mask=mask_here,mask_name=mask_name_here,reco=retro_PID_all,save=save,save_folder_name=save_folder)
+    plot_classification_hist(true_isTrack,cnn_predict,mask=mask_here,mask_name="", variable="CNN Classification",units="",bins=50,log=False,save=save,save_folder_name=save_folder)
+    plot_classification_hist(true_isTrack,cnn_predict,mask=mask_here,mask_name="", variable="CNN Classification",units="",weights=weights,bins=50,log=False,save=save,save_folder_name=save_folder)
+    plot_classification_hist(true_isTrack,retro_PID_all,mask=mask_here,mask_name="", variable="L7_PIDClassifier_AllSky_ProbTrack",units="",weights=weights,bins=50,log=False,save=save,save_folder_name=save_folder)
 #confusion_matrix(true_isTrack, cnn_predict, best_threshold, mask=None, mask_name="", weights=None,save=save, save_folder_name=save_folder)
 #confusion_matrix(true_isTrack, cnn_predict, best_threshold, mask=None, mask_name="", weights=weights,save=save, save_folder_name=save_folder)
-plot_classification_hist(true_isTrack,cnn_predict,mask=None,mask_name="", variable="Classification",units="",bins=50,log=False,save=save,save_folder_name=save_folder)
 
-#plt.figure(figsize=(10,7))
-#plt.title("Threshold",fontsize=25)
-#plt.xlabel("True Energy (GeV)",fontsize=20)
-#plt.plot(energy_range, energy_thres, 'b-')
-#plt.savefig("%sThresvsEnergy.png"%(save_folder))
+    mask_here = maskANA
+    mask_name_here = "Analysis Cuts"
+    print(retro_PID_up[:10])
+    best_threshold = ROC(true_isTrack,cnn_predict,mask=mask_here,mask_name=mask_name_here,reco=retro_PID_up,save=save,save_folder_name=save_folder)
+    plot_classification_hist(true_isTrack,cnn_predict,mask=mask_here,mask_name=mask_name_here, variable="CNN Classification",units="",bins=50,log=False,save=save,save_folder_name=save_folder)
+    plot_classification_hist(true_isTrack,cnn_predict,mask=mask_here,mask_name=mask_name_here, variable="CNN Classification",units="",weights=weights,bins=50,log=False,save=save,save_folder_name=save_folder)
+    plot_classification_hist(true_isTrack,retro_PID_up,mask=mask_here,mask_name=mask_name_here, variable="L7_PIDClassifier_Upgoing_ProbTrack",units="",weights=weights,bins=50,log=False,save=save,save_folder_name=save_folder)
 
-do_energy_auc = True
+find_10p_contam = True
+if find_10p_contam:
+    track_threshold = None
+    casc_threshold = None
+    desired_precision = 0.9
+    epsilon = 0.01
+    check = np.arange(0.9,0.00,-0.1)
+    for threshold in check:
+        predictionCascade = cnn_predict < threshold
+        predictionTrack = cnn_predict >= threshold
+        binary_prediction = cnn_predict
+        binary_prediction[predictionCascade] = 0
+        binary_prediction[predictionTrack] = 1
+        trueCascade = true_isTrack == 0
+        trueTrack = true_isTrack == 1
+        TP = sum(np.logical_and(predictionTrack, trueTrack))
+        FP = sum(np.logical_and(predictionTrack, trueCascade))
+        TN = sum(np.logical_and(predictionCascade, trueCascade))
+        FN = sum(np.logical_and(predictionCascade, trueTrack))
+
+        precision_track = TP/(TP + FP)
+        sensitivity_track = TP/(TP + FN)
+        precision_casc = TN/(TN + FN)
+        sensitivity_casc = TN/(TN + FP)
+        accuracy = (TP + TN)/(TP + TN + FP + FN)
+
+        print(threshold,precision_track,precision_casc,accuracy)
+        if precision_track-desired_precision < epsilon:
+            track_threshold = threshold
+            track_psa = [precision_track, sensitivity_track, accuracy]
+            print("Track threshold %.f"%threshold, track_psa)
+        if precision_casc-desired_precision < epsilon:
+            casc_threshold = threshold
+            casc_psa = [precision_casc, sensitivity_casc, accuracy]
+            print("Casc threshold %.f"%threshold, casc_psa)
+        if track_threshold is not None and casc_threshold is not None:
+            break
+
+do_energy_auc = False
 if do_energy_auc:
 # Energy vs AUC
     energy_auc = []
+    reco_energy_auc = []
     energy_thres = []
     energy_recall = []
     energy_range = np.arange(5,200, 1.)
+    
+    a_mask = maskHits8
+    truth_Track = true_isTrack[a_mask]
+    cnn_array = cnn_predict[a_mask]
+    if reco is not None:
+        #reco_array = retro_PID_up[a_mask]
+        reco_array = retro_PID_all[a_mask]
+    AUC_title = "AUC vs. True Energy"
+    save_name_extra = ""
     for energy_bin in energy_range:
         current_mask = np.logical_and(true_energy > energy_bin, true_energy < energy_bin + 1)
         
-        energy_auc.append(roc_auc_score(true_isTrack[current_mask], cnn_predict[current_mask]))
+        energy_auc.append(roc_auc_score(truth_Track[current_mask], cnn_array[current_mask]))
+        if reco is not None:
+            reco_energy_auc.append(roc_auc_score(truth_Track[current_mask], reco_array[current_mask]))
         
         #best_threshold = ROC(true_isTrack,cnn_predict,mask=current_mask,mask_name="",save=False,save_folder_name=save_folder)
         #energy_thres.append(best_threshold[0])
@@ -187,11 +246,15 @@ if do_energy_auc:
 
 
     plt.figure(figsize=(10,7))
-    plt.title("AUC vs. True Energy",fontsize=25)
+    plt.title(AUC_title,fontsize=25)
     plt.ylabel("AUC",fontsize=20)
     plt.xlabel("True Energy (GeV)",fontsize=20)
-    plt.plot(energy_range, energy_auc, 'b-')
-    plt.savefig("%sAUCvsEnergy.png"%(save_folder))
+    plt.plot(energy_range, energy_auc, 'b-',label="CNN")
+    if reco is not None:
+        plt.plot(energy_range, reco_energy_auc, color="orange",linestyle="-",label="Retro")
+        plt.legend(loc="upper left",fontsize=20)
+        save_name_extra += "_compareRetro"
+    plt.savefig("%sAUCvsEnergy%s.png"%(save_folder,save_name_extra))
     
     #plt.figure(figsize=(10,7))
     #plt.title("Thres vs. True Energy",fontsize=25)
@@ -207,7 +270,7 @@ if do_energy_auc:
     #plt.plot(energy_range, energy_thres, 'b-')
     #plt.savefig("%SensvsEnergy.png"%(save_folder))
     
-do_energy_range = True
+do_energy_range = False
 if do_energy_range:
     #Break down energy range
     energy_ranges = [5, 10, 20, 30, 40, 60, 80, 100, 150, 200]

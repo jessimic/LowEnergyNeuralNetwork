@@ -14,11 +14,14 @@ parser.add_argument("-o", "--outdir",type=str,default='/mnt/home/micall12/LowEne
                     dest="output_dir", help="path of ouput file")
 parser.add_argument("--variable",type=str,default="energy",
                     dest="variable", help="name of variable that was predicted")
+parser.add_argument("--variable2",default=None,
+                    dest="variable2", help="name of variable that was predicted")
 args = parser.parse_args()
 
 input_file = args.input_file
 save_folder_name=args.output_dir
 variable = args.variable
+variable2 = args.variable2
 if args.outname is None:
     output_name = "prediction_values_%s"%variable #input_file.split("/")[-1]
 else:
@@ -44,7 +47,11 @@ def read_i3_files(filenames_list):
 
                 #CNN Prediction
                 cnn_prediction = frame['FLERCNN_%s'%variable].value
-                output_cnn.append( np.array( [float(cnn_prediction)])) #Keeping like this in case additional values are predicted in future
+                if variable2 is not None:
+                    cnn_prediction2 = frame['FLERCNN_%s'%variable2].value
+                    output_cnn.append( np.array( [float(cnn_prediction), float(cnn_prediction2) ]))
+                else:
+                    output_cnn.append( np.array( [float(cnn_prediction)])) #Keeping like this in case additional values are predicted in future
 
                 #Truth 
                 tree = frame["I3MCTree"]
