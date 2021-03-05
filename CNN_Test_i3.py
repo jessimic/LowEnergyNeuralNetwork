@@ -49,8 +49,18 @@ parser.add_argument("-e","--epochs",default=None,
                     dest="epochs", help="epoch number for model to use")
 parser.add_argument("-f","--factor", type=float, default=100.,
                     dest="factor", help="transformation factor to adjust output by")
-parser.add_argument("--cleaned",type=str,default="False",
+parser.add_argument("--cleaned",type=str,default="True",
                     dest="cleaned", help="True if wanted to use SRTTWOfflinePulsesDC")
+parser.add_argument("--model_name2",default=None,
+                    dest="model_name2", help="name of output folder where model is located")
+parser.add_argument("--epochs2",default=None,
+                    dest="epochs2", help="epoch number for model 2 to use")
+parser.add_argument("--variable2",type=str,default="class",
+                    dest="variable2", help="name of second variable to predict, class has specific unique function to run the classifier")
+parser.add_argument("--factor2", type=float, default=1.,
+                    dest="factor2", help="transformation factor to adjust output by")
+parser.add_argument("--charge_min", type=float, default=0.25,
+                    dest="charge_min", help="minimum charge pulse to keep, remove < this")
 args = parser.parse_args()
 
 input_file = args.input_file
@@ -60,17 +70,29 @@ if args.cleaned == "True" or args.cleaned == "true":
     use_cleaned_pulses = True
 else:
     use_cleaned_pulses = False
-scale_factor=args.factor
+charge_min = args.charge_min
 
 variable = args.variable
+scale_factor=args.factor
 model_name = args.model_name
 model_path = args.model_dir + args.model_name
 if args.epochs is None:
     model_name ="%s/%s_final_model.hdf5"%(model_path,model_name)
 else:
     model_name ="%s/%s_%sepochs_model.hdf5"%(model_path,model_name,args.epochs)
-
 print("Predicting: %s,\nOutput transformation scale factor: %.2f.,\nUsing model: %s"%(variable, scale_factor, model_name))
+
+variable2 = args.variable2
+scale_factor2=args.factor2
+model_name2 = args.model_name2
+model_path2 = args.model_dir + args.model_name2
+if model_name2 is not None:
+    if args.epochs2 is None:
+        model_name2 ="%s/%s_final_model.hdf5"%(model_path2,model_name2)
+    else:
+        model_name2 ="%s/%s_%sepochs_model.hdf5"%(model_path2,model_name2,args.epochs2)
+    print("ALSO Predicting: %s,\nOutput transformation scale factor: %.2f.,\nUsing model: %s"%(variable2, scale_factor2, model_name2))
+
 
 def get_observable_features(frame,low_window=-500,high_window=4000):
     """
@@ -165,7 +187,7 @@ def get_observable_features(frame,low_window=-500,high_window=4000):
                 charge = pulse.charge
 
                 #Cut any pulses < 0.25 PE
-                if charge < 0.25:
+                if charge < charge_min:
                     continue
                 
                 # Quantize pulse chargest to make all seasons appear the same
@@ -336,14 +358,17 @@ def read_files(filename):
     return  output_features_DC, output_features_IC, output_headers
 
 
-def test_write(filename_list, model_name,output_dir, output_name, factor=100.,model_type="energy"):
+def test_write(filename_list, model_name,output_dir, output_name, model_name2=None,factor=100.,model_type="energy",model_type2="class",factor2=1.):
 
 
     for a_file in filename_list:
         if output_name is None:
             basename = a_file.split("/")[-1] 
             basename = basename[:-7]
-            output_name = str(basename) + "_FLERCNN_" + model_type
+            if model_name2 is not None:
+                output_name = str(basename) + "_FLERCNN_" + model_type + "_" + model_type2
+            else:
+                output_name = str(basename) + "_FLERCNN_" + model_type
         outfile = dataio.I3File(output_dir+output_name+".i3.zst",'w')
         print("Writing to %s"%(output_dir+output_name+".i3.zst"))
         
@@ -356,6 +381,12 @@ def test_write(filename_list, model_name,output_dir, output_name, factor=100.,mo
         prediction = cnn_test(DC_array, IC_near_DC_array, model_name,model_type=model_type)
         t1 = time.time()
         print("Time to run CNN Test on %i events: %f seconds"%(DC_array.shape[0],t1-t0))
+        if model_name2 is not None:
+            t0 = time.time()
+            prediction2 = cnn_test(DC_array, IC_near_DC_array, model_name2,model_type=model_type2)
+            t1 = time.time()
+            print("Time to run CNN Test 2 on %i events: %f seconds"%(DC_array.shape[0],t1-t0))
+
             
         index = 0
         event_file = dataio.I3File(a_file)
@@ -379,6 +410,12 @@ def test_write(filename_list, model_name,output_dir, output_name, factor=100.,mo
                 key_name = "FLERCNN_%s"%model_type
                 adjusted_prediction = prediction[index][0]*factor
                 frame[key_name] = dataclasses.I3Double(adjusted_prediction)
+                if model_name2 is not None:
+                    assert model_type2 != model_type, "Rewriting key, need different names"
+                    key_name2 = "FLERCNN_%s"%model_type2
+                    adjusted_prediction2 = prediction2[index][0]*factor2
+                    frame[key_name2] = dataclasses.I3Double(adjusted_prediction2)
+
                 outfile.push(frame)
                 index +=1
             else:
@@ -391,7 +428,7 @@ import glob
 event_file_names = sorted(glob.glob(input_file))
 assert event_file_names,"No files loaded, please check path."
 time_start=time.time()
-test_write(event_file_names, model_name, output_dir, output_name, factor=scale_factor, model_type=variable)
+test_write(event_file_names, model_name, output_dir, output_name, factor=scale_factor, model_type=variable,model_name2=model_name2,model_type2=variable2,factor2=scale_factor2)
 time_end=time.time()
 print("Total time: %f"%(time_end-time_start))
 

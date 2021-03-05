@@ -20,6 +20,8 @@ args = parser.parse_args()
 input_file = args.input_file
 input_file2 = args.input_file2
 save_folder_name = args.output_dir
+numu_files = 1518.
+nue_files = 602.
 
 f = h5py.File(input_file, "r")
 truth = f["Y_test_use"][:]
@@ -44,13 +46,28 @@ except:
 f2.close()
 del f2
 
-cnn_energy = np.array(predict[:,0])*100
+cnn_energy = np.array(predict[:,0])
 true_energy = np.array(truth[:,0])
 true_CC = np.array(truth[:,11])
-cnn_energy2 = np.array(predict2[:,0])*100
+cnn_energy2 = np.array(predict2[:,0])
 true_energy2 = np.array(truth2[:,0])
 true_CC2 = np.array(truth2[:,11])
 
+weights = np.array(weights[:,8])
+weights2 = np.array(weights2[:,8])
+#modify by number of files
+mask_numu = np.array(truth[:,9]) == 14
+mask_nue = np.array(truth[:,9]) == 12
+mask_numu2 = np.array(truth2[:,9]) == 14
+mask_nue2 = np.array(truth2[:,9]) == 12
+if sum(mask_numu) > 1:
+    weights[mask_numu] = weights[mask_numu]/numu_files
+if sum(mask_numu2) > 1:
+    weights2[mask_numu2] = weights2[mask_numu2]/numu_files
+if sum(mask_nue) > 1:
+    weights[mask_nue] = weights[mask_nue]/nue_files
+if sum(mask_nue2) > 1:
+    weights2[mask_nue2] = weights2[mask_nue2]/nue_files
 
 #hits8 = info[:,9]
 check_energy_gt5 = true_energy > 5.
@@ -79,41 +96,66 @@ plot_name = "Energy"
 plot_units = "(GeV)"
 maxabs_factors = 100.
 
-cuts = true_CC == 1
-cuts2 = true_CC2 == 1
+c1 = true_CC == 1
+c1_2 = true_energy < 200.
+c2 = true_CC2 == 1
+c2_2 = true_energy2 < 200.
+cuts = np.logical_and(c1,c1_2)
+cuts2 = np.logical_and(c2,c2_2)
 save_base_name = save_folder_name
-minval = 0
-maxval = 100
+minval = 1
+maxval = 200
 bins = 100
 syst_bin = 20
-true_weights = None #weights[cuts]/1510.
+true_weights = None #weights[cuts] #weights[cuts]/1510.
+true_weights2 = None #weights2[cuts2] #weights[cuts]/1510.
 
 
 print(true_energy[cuts][:10], cnn_energy[cuts][:10])
 
-
+switch = False
 plot_2D_prediction(true_energy[cuts], cnn_energy[cuts],weights=true_weights,\
-                        save=save, savefolder=save_folder_name,bins=bins, switch_axis=True,
+                        save=save, savefolder=save_folder_name,bins=bins, switch_axis=switch,
                         variable=plot_name, units=plot_units, reco_name="old GCD")
-plot_2D_prediction(true_energy2[cuts2], cnn_energy2[cuts2], weights=true_weights,
-                        save=save, savefolder=save_folder_name,bins=bins,switch_axis=True,\
+plot_2D_prediction(true_energy2[cuts2], cnn_energy2[cuts2], weights=true_weights2,
+                        save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
                         variable=plot_name, units=plot_units, reco_name="new GCD")
 plot_2D_prediction(true_energy[cuts], cnn_energy[cuts],weights=true_weights,\
-                        save=save, savefolder=save_folder_name,bins=bins,switch_axis=True,\
+                        save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
+                        minval=minval, maxval=maxval, axis_square=True,\
+                        variable=plot_name, units=plot_units, reco_name="old GCD")
+plot_2D_prediction(true_energy2[cuts2], cnn_energy2[cuts2], weights=true_weights2,
+                        save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
+                        minval=minval, maxval=maxval, axis_square=True,\
+                        variable=plot_name, units=plot_units, reco_name="new GCD")
+switch = True
+plot_2D_prediction(true_energy[cuts], cnn_energy[cuts],weights=true_weights,\
+                        save=save, savefolder=save_folder_name,bins=bins, switch_axis=switch,
+                        variable=plot_name, units=plot_units, reco_name="old GCD")
+plot_2D_prediction(true_energy2[cuts2], cnn_energy2[cuts2], weights=true_weights2,
+                        save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
+                        variable=plot_name, units=plot_units, reco_name="new GCD")
+plot_2D_prediction(true_energy[cuts], cnn_energy[cuts],weights=true_weights,\
+                        save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
                         minval=minval, maxval=maxval, cut_truth=True, axis_square=True,\
                         variable=plot_name, units=plot_units, reco_name="old GCD")
-plot_2D_prediction(true_energy2[cuts2], cnn_energy2[cuts2], weights=true_weights,
-                        save=save, savefolder=save_folder_name,bins=bins,switch_axis=True,\
+plot_2D_prediction(true_energy2[cuts2], cnn_energy2[cuts2], weights=true_weights2,
+                        save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
                         minval=minval, maxval=maxval, cut_truth=True, axis_square=True,\
                         variable=plot_name, units=plot_units, reco_name="new GCD")
 
-plot_single_resolution(true_energy[cuts], cnn_energy[cuts], weights=true_weights,\
+plot_single_resolution(true_energy[cuts], cnn_energy[cuts], weights=true_weights,old_reco_weights=true_weights2,\
                    use_old_reco = True, old_reco = cnn_energy2[cuts2], old_reco_truth=true_energy2[cuts2],\
                    minaxis=-maxval, maxaxis=maxval, bins=bins,\
                    save=save, savefolder=save_folder_name,\
                    variable=plot_name, units=plot_units, reco_name="new GCD")
+plot_single_resolution(true_energy[cuts], cnn_energy[cuts], weights=true_weights,old_reco_weights=true_weights2,\
+                   use_old_reco = True, old_reco = cnn_energy2[cuts2], old_reco_truth=true_energy2[cuts2],\
+                   minaxis=-maxval, maxaxis=maxval, bins=bins,use_fraction=True,\
+                   save=save, savefolder=save_folder_name,\
+                   variable=plot_name, units=plot_units, reco_name="new GCD")
 
-plot_bin_slices(true_energy[cuts], cnn_energy[cuts], weights=true_weights,  
+plot_bin_slices(true_energy[cuts], cnn_energy[cuts], weights=true_weights, old_reco_weights=true_weights2,\
                     old_reco = cnn_energy2[cuts2],old_reco_truth=true_energy2[cuts2],\
                     use_fraction = True, bins=syst_bin, min_val=minval, max_val=maxval,\
                     save=save, savefolder=save_folder_name,\

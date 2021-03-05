@@ -334,34 +334,6 @@ def plot_2D_prediction(truth, nn_reco, \
         2D plot of True vs Reco
     """
 
-    """
-    if cut_truth:
-
-        if not minval:
-            minval = min(truth)
-        if not maxval:
-            maxval= max(truth)
-        mask1 = numpy.logical_and(truth >= minval, truth <= maxval)
-        name = "True %s [%.2f, %.2f]"%(variable,minval,maxval)
-
-    else:
-        if not minval:
-            minval = min([min(nn_reco),min(truth)])
-        if not maxval:
-            maxval= max([max(nn_reco),max(truth)])
-        mask1 = numpy.ones(len(truth),dtype=bool) 
-        #mask = numpy.logical_and(nn_reco >= minval, nn_reco <= maxval)
-        name = "%s %s [%.2f, %.2f]"%(reco_name,variable,minval,maxval)
-    
-    cutting = False
-    if axis_square:
-        mask2 = numpy.logical_and(nn_reco >= minval, nn_reco <= maxval)
-        overflow = abs(sum(mask1) - sum(mask2))
-        print("Axis overflow: ",overflow)
-        mask = numpy.logical_and(mask1, mask2)
-    else:
-        mask = mask1
-    """
     maxplotline = min([max(nn_reco),max(truth)])
     minplotline = max([min(nn_reco),min(truth)])
    
@@ -589,7 +561,8 @@ def plot_resolution_CCNC(truth_all_labels,truth,reco,save=False,savefolder=None,
 
 def plot_single_resolution(truth,nn_reco,weights=None, \
                            bins=100, use_fraction=False,\
-                           use_old_reco = False, old_reco=None,old_reco_truth=None,\
+                           use_old_reco = False, old_reco=None,\
+                           old_reco_truth=None,old_reco_weights=None,\
                            mintrue=None,maxtrue=None,\
                            minaxis=None,maxaxis=None,\
                            save=False,savefolder=None,
@@ -610,9 +583,12 @@ def plot_single_resolution(truth,nn_reco,weights=None, \
         1D histogram of Reco - True (or fractional)
         Can have two distributions of NN Reco Resolution vs Pegleg Reco Resolution
     """
-
+    weights_reco = old_reco_weights
     if weights is not None:
         import wquantiles as wq
+        if old_reco_weights is None:
+            weights_reco = numpy.array(weights)
+
     fig, ax = plt.subplots(figsize=(10,7))
 
     ## Assume old_reco truth is the same as test sample, option to set it otherwise
@@ -620,7 +596,6 @@ def plot_single_resolution(truth,nn_reco,weights=None, \
         truth2 = truth
     else:
         truth2 = old_reco_truth
-    weights_reco = weights 
     
     if use_fraction:
         nn_resolution = (nn_reco - truth)/truth
@@ -680,7 +655,7 @@ def plot_single_resolution(truth,nn_reco,weights=None, \
         if weights is not None:
             r1_old_reco = wq.quantile(old_reco_resolution,weights_reco,0.16)
             r2_old_reco = wq.quantile(old_reco_resolution,weights_reco,0.84)
-            median_old_reco = wq.median(nn_resolution,weights_reco)
+            median_old_reco = wq.median(old_reco_resolution,weights_reco)
         else:
             r1_old_reco, r2_old_reco = numpy.percentile(old_reco_resolution, [16,84])
             median_old_reco = numpy.median(old_reco_resolution)
@@ -942,7 +917,7 @@ def plot_systematic_slices(truth_dict, nn_reco_dict,\
     plt.close()
 
 def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
-                       use_fraction = False, old_reco=None,old_reco_truth=None, reco_energy_truth=None,\
+                       use_fraction = False, old_reco=None,old_reco_truth=None, reco_energy_truth=None,old_reco_weights=None,\
                        bins=10,min_val=0.,max_val=60., ylim = None,\
                        save=False,savefolder=None,vs_predict=False,\
                        variable="Energy",units="(GeV)",xvariable="Energy",xunits="(GeV)",\
@@ -962,8 +937,12 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
         Scatter plot with energy values on x axis (median of bin width)
         y axis has median of resolution with error bars containing 68% of resolution
     """
+    reco_weights = old_reco_weights
     if weights is not None:
         import wquantiles as wq
+        if reco_weights is None:
+            reco_weights = numpy.array(weights)
+
     nn_reco = numpy.array(nn_reco)
     truth = numpy.array(truth)
      ## Assume old_reco truth is the same as test sample, option to set it otherwise
@@ -1039,10 +1018,10 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
         err_to[i] = upper_lim
 
         if old_reco is not None:
-            if weights is not None:
-                lower_lim_reco = wq.quantile(resolution_reco[cut2],weights[cut2],0.16)
-                upper_lim_reco = wq.quantile(resolution_reco[cut2],weights[cut2],0.84)
-                median_reco = wq.median(resolution_reco[cut2],weights[cut2])
+            if reco_weights is not None:
+                lower_lim_reco = wq.quantile(resolution_reco[cut2],reco_weights[cut2],0.16)
+                upper_lim_reco = wq.quantile(resolution_reco[cut2],reco_weights[cut2],0.84)
+                median_reco = wq.median(resolution_reco[cut2],reco_weights[cut2])
             else:
                 lower_lim_reco = numpy.percentile(resolution_reco[cut2], left_tail_percentile)
                 upper_lim_reco = numpy.percentile(resolution_reco[cut2], right_tail_percentile)

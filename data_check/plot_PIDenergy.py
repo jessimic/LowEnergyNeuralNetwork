@@ -119,13 +119,13 @@ except:
 try:
     weights_test = f['weights_test'][:]
 except:
-    wegiths_test = None
+    weigths_test = None
 try:
     weights_train = f['weights_train'][:]
     weights_validate = f['weights_validate'][:]
 except:
     weights_train = None
-    weightsvalidate = None
+    weights_validate = None
 
 try:
     label_names = f['output_label_names'][:]
@@ -151,6 +151,7 @@ except:
 f.close()
 del f
 
+
 if Y_train is None: #Test only file
     Y_labels = Y_test
     X_DC = X_test_DC
@@ -165,6 +166,22 @@ print(len(output_factors))
 reco_labels = reco_test
 if reco_train is not None:
     reco_labels = np.concatenate((reco_test,reco_train,reco_validate))
+
+weights = weights_test
+if weights_train is not None:
+    weights = np.concatenate((weights_test,weights_train,weights_validate))
+if weights is not None: 
+    print("HARD CODING WEIGHTS")
+    weights = np.array(weights[:,8])
+    #modify by number of files
+    mask_numu = np.array(Y_labels[:,9]) == 14
+    mask_nue = np.array(Y_labels[:,9]) == 12
+    numu_files = 1518.
+    nue_files = 602.
+    if sum(mask_numu) > 1:
+        weights[mask_numu] = weights[mask_numu]/numu_files
+    if sum(mask_nue) > 1:
+        weights[mask_nue] = weights[mask_nue]/nue_files
 
 # Apply Cuts
 from handle_data import CutMask
@@ -206,7 +223,7 @@ def plot_output(Y_values,outdir,filenumber=None,names=output_names,weights=None,
     #data2, bins2 = plt.hist(energy[maskNC],bins=195,range=[5,200])
 
     plt.figure()
-    plt.hist([energy[maskCC],energy[maskNC]],bins=195,range=[5,200],color=["orange","blue"],label=["CC","NC"],weights=weights,stacked=True);
+    plt.hist([energy[maskCC],energy[maskNC]],bins=195,range=[5,200],color=["orange","blue"],label=["CC","NC"],weights=[weights[maskCC],weights[maskNC]],stacked=True);
     plt.suptitle("CC vs NC %s Energy"%e_type,fontsize=20)
     plt.title("CC: %i events (%.2f), NC: %i events (%.2f)"%(sum(maskCC),sum(maskCC)/num_events,sum(maskNC),sum(maskNC)/num_events),fontsize=15)
     plt.xlabel("%s %s"%(names[0],units[0]),fontsize=15)
@@ -222,7 +239,7 @@ def plot_output(Y_values,outdir,filenumber=None,names=output_names,weights=None,
 
 
     plt.figure()
-    plt.hist([energy[maskNuE],energy[maskNuMu]],bins=195,range=[5,200],color=["orange","blue"],label=["NuE","NuMu"],weights=weights,stacked=True);
+    plt.hist([energy[maskNuE],energy[maskNuMu]],bins=195,range=[5,200],color=["orange","blue"],label=["NuE","NuMu"],weights=[weights[maskNuE],weights[maskNuMu]],stacked=True);
     plt.suptitle("NuE vs NuMu %s Energy"%e_type,fontsize=20)
     plt.title("NuE: %i events (%.2f), NuMu: %i events (%.2f)"%(sum(maskNuE),sum(maskNuE)/num_events,sum(maskNuMu),sum(maskNuMu)/num_events),fontsize=15)
     plt.xlabel("%s %s"%(names[0],units[0]),fontsize=15)
@@ -237,7 +254,7 @@ def plot_output(Y_values,outdir,filenumber=None,names=output_names,weights=None,
     plt.savefig("%s/Output_NuENuMu%sEnergy%s.png"%(outdir,e_type,filenum_name),bbox_inches='tight')
     
     plt.figure()
-    plt.hist([energy[maskTrack],energy[maskCascade]],bins=195,range=[5,200],color=["orange","blue"],label=["Track","Cascade"],weights=weights,stacked=True);
+    plt.hist([energy[maskTrack],energy[maskCascade]],bins=195,range=[5,200],color=["orange","blue"],label=["Track","Cascade"],weights=[weights[maskTrack],weights[maskCascade]],stacked=True);
     plt.suptitle("Track vs Cascade %s Energy"%e_type,fontsize=20)
     plt.title("Track: %i events (%.2f), Cascade: %i events (%.2f)"%(sum(maskTrack),sum(maskTrack)/num_events,sum(maskCascade),sum(maskCascade)/num_events),fontsize=12)
     plt.xlabel("%s %s"%(names[0],units[0]),fontsize=15)
@@ -279,8 +296,8 @@ def plot_2output(Y_values,outdir,filenumber=None,names=output_names,weights=None
     #data2, bins2 = plt.hist(energy[maskNC],bins=195,range=[5,200])
 
     plt.figure()
-    plt.hist(energy[maskCC],bins=195,range=[5,200],color="blue",label="Total",weights=weights,alpha=0.5);
-    plt.hist(em_energy[maskCC],bins=195,range=[5,200],color="orange",label="EM Equiv",weights=weights,alpha=0.5);
+    plt.hist(energy[maskCC],bins=195,range=[5,200],color="blue",label="Total",weights=weights[maskCC],alpha=0.5);
+    plt.hist(em_energy[maskCC],bins=195,range=[5,200],color="orange",label="EM Equiv",weights=weights[maskCC],alpha=0.5);
     plt.suptitle("CC Energy Distributions",fontsize=20)
     plt.title("CC: %i events (%.2f)"%(sum(maskCC),sum(maskCC)/num_events),fontsize=15)
     plt.xlabel("%s %s"%(names[0],units[0]),fontsize=15)
@@ -295,8 +312,8 @@ def plot_2output(Y_values,outdir,filenumber=None,names=output_names,weights=None
     plt.savefig("%s/Output_CC_TotVsEM_Energy%s.png"%(outdir,filenum_name),bbox_inches='tight')
 
     plt.figure()
-    plt.hist(energy[maskNC],bins=195,range=[5,200],color="blue",label="Total",weights=weights,alpha=0.5);
-    plt.hist(em_energy[maskNC],bins=195,range=[5,200],color="orange",label="EM Equiv",weights=weights,alpha=0.5);
+    plt.hist(energy[maskNC],bins=195,range=[5,200],color="blue",label="Total",weights=weights[maskNC],alpha=0.5);
+    plt.hist(em_energy[maskNC],bins=195,range=[5,200],color="orange",label="EM Equiv",weights=weights[maskNC],alpha=0.5);
     plt.suptitle("NC Energy Distributions",fontsize=20)
     plt.title("NC: %i events (%.2f)"%(sum(maskNC),sum(maskNC)/num_events),fontsize=15)
     plt.xlabel("%s %s"%(names[0],units[0]),fontsize=15)
@@ -363,10 +380,10 @@ def plot_2Doutput(Y_values,outdir,filenumber=None,names=output_names,weights=Non
         filenum_name = ""
     plt.savefig("%s/Output_2D_NC_TotVsEM_Energy%s.png"%(outdir,filenum_name),bbox_inches='tight')
 
-#plot_output(Y_labels,outdir,filenumber=filenum,names=output_names,weights=None,which_energy=0,energy_transform=output_factors[0]) #weights=weights_test[:,8]/1510.
-#plot_output(Y_labels,outdir,filenumber=filenum,names=output_names,weights=None,which_energy=14,energy_transform=1.,e_type="EMEquiv")
-#plot_output(Y_labels,outdir,filenumber=filenum,names=output_names,weights=None,which_energy=13,energy_transform=1.,e_type="Daughter")
+plot_output(Y_labels,outdir,filenumber=filenum,names=output_names,weights=weights,which_energy=0,energy_transform=output_factors[0]) 
+plot_output(Y_labels,outdir,filenumber=filenum,names=output_names,weights=weights,which_energy=14,energy_transform=1.,e_type="EMEquiv")
+#plot_output(Y_labels,outdir,filenumber=filenum,names=output_names,weights=weights,which_energy=13,energy_transform=1.,e_type="Daughter")
 
-#plot_2output(Y_labels,outdir,filenumber=filenum,names=output_names,weights=None,energy_transform=output_factors[0]) #weights=weights_test[:,8]/1510.
+plot_2output(Y_labels,outdir,filenumber=filenum,names=output_names,weights=weights,energy_transform=output_factors[0])
 
-plot_2Doutput(Y_labels,outdir,filenumber=filenum,names=output_names,weights=None,energy_transform=output_factors[0]) #weights=weights_test[:,8]/1510.
+#plot_2Doutput(Y_labels,outdir,filenumber=filenum,names=output_names,weights=None,energy_transform=output_factors[0]) #weights=weights_test[:,8]/1510.

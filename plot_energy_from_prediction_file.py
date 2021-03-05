@@ -13,20 +13,38 @@ parser.add_argument("-i", "--input",type=str,default=None,
                     dest="input_file", help="path and name of the input file")
 parser.add_argument("-o", "--outdir",type=str,default='/mnt/home/micall12/LowEnergyNeuralNetwork/output_plots/',
                     dest="output_dir", help="path of ouput file")
+parser.add_argument("--numu",type=float,default=1518.,
+                    dest="numu", help="number of numu files")
+parser.add_argument("--nue",type=float,default=602.,
+                    dest="nue", help="number of nue files")
+parser.add_argument("--no_old_reco", default=False,action='store_true',
+                        dest='no_old_reco',help="no old reco")
 args = parser.parse_args()
 
 input_file = args.input_file
 save_folder_name = args.output_dir
+numu_files = args.numu
+nue_files = args.nue
 
 f = h5py.File(input_file, "r")
 truth = f["Y_test_use"][:]
 predict = f["Y_predicted"][:]
-reco = f["reco_test"][:]
-weights = f["weights_test"][:]
 try:
     info = f["additional_info"][:]
-except: 
+except:
     info = None
+if args.no_old_reco:
+    reco = None
+    weights = None
+else:
+    try:
+        reco = f["reco_test"][:]
+    except:
+        reco = None
+    try:
+        weights = f["weights_test"][:]
+    except:
+        weights = None
 f.close()
 del f
 
@@ -44,6 +62,9 @@ true_y = np.array(truth[:,5])
 true_z = np.array(truth[:,6])
 true_CC = np.array(truth[:,11])
 true_isTrack = np.array(truth[:,8])
+x_origin = np.ones((len(true_x)))*46.290000915527344
+y_origin = np.ones((len(true_y)))*-34.880001068115234
+true_r = np.sqrt( (true_x - x_origin)**2 + (true_y - y_origin)**2 )
 true_neutrino = np.array(truth[:,9],dtype=int)
 isNuMu = true_neutrino == 14
 isNuE = true_neutrino == 12
@@ -53,30 +74,42 @@ else:
     all_NuMu = False
 
 # Retro
-retro_energy = np.array(reco[:,0])
-retro_zenith = np.array(reco[:,1])
-retro_time = np.array(reco[:,3])
-retro_PID_full = np.array(reco[:,12])
-retro_PID_up = np.array(reco[:,13])
-reco_x = np.array(reco[:,4])
-reco_y = np.array(reco[:,5])
-reco_z = np.array(reco[:,6])
-retro_coszen = np.cos(retro_zenith)
-
-#Wegiths
-weights = np.array(weights[:,8])
+if reco is not None:
+    retro_energy = np.array(reco[:,0])
+    retro_zenith = np.array(reco[:,1])
+    retro_time = np.array(reco[:,3])
+    retro_PID_full = np.array(reco[:,12])
+    retro_PID_up = np.array(reco[:,13])
+    reco_x = np.array(reco[:,4])
+    reco_y = np.array(reco[:,5])
+    reco_z = np.array(reco[:,6])
+    retro_coszen = np.cos(retro_zenith)
+    reco_r = np.sqrt( (reco_x - x_origin)**2 + (reco_y - y_origin)**2 )
 
 #Additional info
-prob_nu = info[:,1]
-coin_muon = info[:,0]
-true_ndoms = info[:,2]
-fit_success = info[:,3]
-noise_class = info[:,4]
-nhit_doms = info[:,5]
-n_top15 = info[:,6]
-n_outer = info[:,7]
-prob_nu2 = info[:,8]
-hits8 = info[:,9]
+if info is not None:
+    prob_nu = info[:,1]
+    coin_muon = info[:,0]
+    true_ndoms = info[:,2]
+    fit_success = info[:,3]
+    noise_class = info[:,4]
+    nhit_doms = info[:,5]
+    n_top15 = info[:,6]
+    n_outer = info[:,7]
+    prob_nu2 = info[:,8]
+    hits8 = info[:,9]
+
+#weights
+if weights is not None:
+    weights = np.array(weights[:,8])
+    #modify by number of files
+    mask_numu = np.array(truth[:,9]) == 14
+    mask_nue = np.array(truth[:,9]) == 12
+    if sum(mask_numu) > 1:
+        weights[mask_numu] = weights[mask_numu]/numu_files
+    if sum(mask_nue) > 1:
+        weights[mask_nue] = weights[mask_nue]/nue_files
+
 
 check_energy_gt5 = true_energy > 5.
 assert sum(check_energy_gt5)>0, "No events > 5 GeV in true energy, is this transformed?"
@@ -186,6 +219,7 @@ plot_name = "Energy"
 plot_units = "(GeV)"
 maxabs_factors = 100.
 
+#True Masks
 maskNONE = true_energy > 0.
 assert sum(maskNONE)==len(true_energy), "Some true energy < 0? Check!" 
 maskCC = true_CC == 1
@@ -194,42 +228,49 @@ maskR = true_r < 90.
 maskDC = np.logical_and(maskZ,maskR)
 maskE = np.logical_and(true_energy > 5., true_energy < 100.)
 maskE2 = np.logical_and(true_energy > 1., true_energy < 200.)
+
+#CNN Masks
 maskCNNE = np.logical_and(cnn_energy > 5., cnn_energy < 100.)
-maskHits8 = hits8 == 1
-maskNu = prob_nu > 0.4
-maskNoise = noise_class > 0.95
-masknhit = nhit_doms > 2.5
-maskntop = n_top15 < 2.5
-masknouter = n_outer < 7.5
-maskRecoZ = np.logical_and(reco_z > -500., reco_z < -200.)
-maskRecoR = reco_r < 300.
-maskRecoDC = np.logical_and(maskRecoZ, maskRecoR)
-maskRetroZenith = np.cos(retro_zenith) <= 0.3
-maskRetroEnergy = np.logical_and(retro_energy >= 5., retro_energy <= 300.)
-maskRetroTime = retro_time < 14500.
-maskRetro = np.logical_and(np.logical_and(maskRetroZenith, maskRetroEnergy), maskRetroTime)
-maskHits = np.logical_and(np.logical_and(masknhit, maskntop), masknouter)
-maskClass = np.logical_and(maskNu,maskNoise)
-maskMC = np.logical_and(maskHits,maskClass)
-maskANA = np.logical_and(np.logical_and(np.logical_and(maskRecoDC,  maskRetro), maskMC),maskHits8)
-assert sum(maskANA)!=len(maskANA), "No events after ANA mask"
-#total=sum(maskNONE)
-#print("nu", "noise", "nhit", "ntop", "nouter", "recoZ", "recoR", "recoDC", "recoZenith", reco 
-print(sum(weights[np.logical_and(maskANA,maskCC)]))
+maskCNNE2 = np.logical_and(cnn_energy > 1., cnn_energy < 100.)
+
+#additional info Masks
+if info is not None:
+    maskHits8 = hits8 == 1
+    maskNu = prob_nu > 0.4
+    maskNoise = noise_class > 0.95
+    masknhit = nhit_doms > 2.5
+    maskntop = n_top15 < 2.5
+    masknouter = n_outer < 7.5
+    maskHits = np.logical_and(np.logical_and(masknhit, maskntop), masknouter)
+    maskClass = np.logical_and(maskNu,maskNoise)
+    maskMC = np.logical_and(maskHits,maskClass)
+
+#Retro Masks
+if reco is not None:
+    maskRecoZ = np.logical_and(reco_z > -500., reco_z < -200.)
+    maskRecoR = reco_r < 300.
+    maskRecoDC = np.logical_and(maskRecoZ, maskRecoR)
+    maskRetroZenith = np.cos(retro_zenith) <= 0.3
+    maskRetroEnergy = np.logical_and(retro_energy >= 5., retro_energy <= 300.)
+    maskRetroTime = retro_time < 14500.
+    maskRetro = np.logical_and(np.logical_and(maskRetroZenith, maskRetroEnergy), maskRetroTime)
+    maskANA = np.logical_and(np.logical_and(np.logical_and(maskRecoDC,  maskRetro), maskMC),maskHits8)
+    assert sum(maskANA)!=len(maskANA), "No events after ANA mask"
+    print(sum(weights[np.logical_and(maskANA,maskCC)]))
 
 #plot_vs_Energy(true_energy[maskCC],true_ndoms[maskCC],weights=weights[maskCC],bins=100,savefolder=save_folder_name)
 #plot_vs_Energy(true_energy[maskCC],true_ndoms[maskCC],weights=weights[maskCC],xmax=300,bins=100,savefolder=save_folder_name)
 
 
-cut_list = [maskNONE, maskANA, maskCC, np.logical_and(maskE, maskCC), np.logical_and(maskANA, maskCC), np.logical_and(maskCNNE, maskCC), np.logical_and(maskE2, maskCC),np.logical_and(maskHits8,maskCC), np.logical_and(np.logical_and(maskCNNE, maskCC),maskHits8), np.logical_and(maskCNNE,maskHits8)]
-cut_names = ["WeightedNoCuts", "WeightedRetroCuts", "WeightedNoCuts_CC", "WeightedE5100_CC", "WeightedRetroCuts_CC", "WeightedCNNE5100_CC", "WeightedE1200_CC", "WeightedHits8_CC", "WeightedCNNE5100_Hits8CC", "WeightedCNNE5100_Hits8"]
-minvals = [1, 1, 1, 5, 1, 5, 1, 1, 5,5]
-maxvals = [200, 200, 200, 100, 200, 100, 200, 200, 100,100]
-binss = [199, 199, 199, 95, 199, 95, 199, 199, 95,95]
-syst_bins = [20, 20, 20, 10, 20, 10, 20, 20, 10,10]
+cut_list = [maskNONE, maskANA, maskCC, np.logical_and(maskE, maskCC), np.logical_and(maskANA, maskCC), np.logical_and(maskCNNE, maskCC), np.logical_and(maskE2, maskCC),np.logical_and(maskHits8,maskCC), np.logical_and(np.logical_and(maskCNNE, maskCC),maskHits8), np.logical_and(maskCNNE,maskHits8), maskHits8, np.logical_and(np.logical_and(maskCNNE2, maskCC),maskHits8)]
+cut_names = ["WeightedNoCuts", "WeightedRetroCuts", "WeightedNoCuts_CC", "WeightedE5100_CC", "WeightedRetroCuts_CC", "WeightedCNNE5100_CC", "WeightedE1200_CC", "WeightedHits8_CC", "WeightedCNNE5100_Hits8CC", "WeightedCNNE5100_Hits8","WeightedHits8","WeightedCNN1100_Hits8CC"]
+minvals = [1, 1, 1, 5, 1, 5, 1, 1, 5, 5, 1, 1]
+maxvals = [200, 200, 200, 100, 200, 100, 200, 200, 100,100,200,100]
+binss = [199, 199, 199, 95, 199, 95, 199, 199, 95,95,199,99]
+syst_bins = [20, 20, 20, 10, 20, 10, 20, 20, 10,10,20,10]
 save_base_name = save_folder_name
 
-for cut_index in [4,5,7]: #range(1,len(cut_list)):
+for cut_index in [4,7,8,10,11]: #range(1,len(cut_list)):
     cuts = cut_list[cut_index]
     folder_name = cut_names[cut_index]
     minval = minvals[cut_index]
@@ -290,6 +331,21 @@ for cut_index in [4,5,7]: #range(1,len(cut_list)):
                             save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
                             minval=minval, maxval=maxval, cut_truth=True, axis_square=True,\
                             variable=plot_name, units=plot_units, reco_name="Retro", variable_type = "EM Equiv")
+    switch = True
+    plot_2D_prediction(true_energy[cuts], cnn_energy[cuts],weights=true_weights,\
+                            save=save, savefolder=save_folder_name,bins=bins, switch_axis=switch,
+                            variable=plot_name, units=plot_units, reco_name="CNN")
+    plot_2D_prediction(true_energy[cuts], retro_energy[cuts], weights=true_weights,
+                            save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
+                            variable=plot_name, units=plot_units, reco_name="Retro")
+    plot_2D_prediction(true_energy[cuts], cnn_energy[cuts],weights=true_weights,\
+                            save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
+                            minval=minval, maxval=maxval, cut_truth=True, axis_square=True,\
+                            variable=plot_name, units=plot_units, reco_name="CNN")
+    plot_2D_prediction(true_energy[cuts], retro_energy[cuts], weights=true_weights,
+                            save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
+                            minval=minval, maxval=maxval, cut_truth=True, axis_square=True,\
+                            variable=plot_name, units=plot_units, reco_name="Retro")
     
     plot_single_resolution(true_energy[cuts], cnn_energy[cuts], weights=true_weights,\
                        use_old_reco = True, old_reco = retro_energy[cuts],\
@@ -328,7 +384,7 @@ for cut_index in [4,5,7]: #range(1,len(cut_list)):
     #                save=save, savefolder=save_folder_name,\
     #                variable=plot_name, units=plot_units, reco_name="Retro")
     
-    if all_NuMu and (cut_index < 2 or cut_index == 9):
+    if all_NuMu and (cut_index < 2 or cut_index == 9 or cut_index == 10):
         best_threshold = ROC(true_isTrack,cnn_class,mask=cuts,mask_name="",reco=reco_class,save=save,save_folder_name=save_folder_name)
     plot_classification_hist(true_isTrack,cnn_class,reco=reco_class,mask=cuts,mask_name="", variable="Classification",units="",bins=50,log=False,save=save,save_folder_name=save_folder_name)
 

@@ -42,8 +42,8 @@ def plot_classification_hist(truth,prediction,reco=None,reco_mask=None,mask=None
         plt.yscale("log")
 
     if reco is not None:
-        plt.hist(reco[maskTrack], bins=bins,color='r',alpha=0.5,range=[0.,1.],weights=weights_track,label="True Retro Track");
-        plt.hist(reco[maskCascade], bins=bins,color='orange',alpha=0.5,range=[0.,1.],weights=weights_cascade,label="True Retro Cascade");
+        plt.hist(reco[maskTrack], bins=bins,color='r',alpha=1,range=[0.,1.],weights=weights_track,label="True Retro Track");
+        plt.hist(reco[maskCascade], bins=bins,color='orange',alpha=1,range=[0.,1.],weights=weights_cascade,label="True Retro Cascade");
         track_label = "True CNN Track"
         casc_label = "True CNN Cascade"
     else:

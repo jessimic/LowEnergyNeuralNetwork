@@ -175,7 +175,14 @@ if do_general_plots:
     plot_classification_hist(true_isTrack,cnn_predict,mask=mask_here,mask_name=mask_name_here, variable="CNN Classification",units="",weights=weights,bins=50,log=False,save=save,save_folder_name=save_folder)
     plot_classification_hist(true_isTrack,retro_PID_up,mask=mask_here,mask_name=mask_name_here, variable="L7_PIDClassifier_Upgoing_ProbTrack",units="",weights=weights,bins=50,log=False,save=save,save_folder_name=save_folder)
 
-find_10p_contam = True
+mask_here = np.logical_and(maskANA,np.logical_and(true_energy>20,true_energy<30))
+mask_name_here = "Energy 20-30 GeV, Analysis Cuts"
+plot_classification_hist(true_isTrack,cnn_predict,mask=mask_here,mask_name=mask_name_here, variable="CNN Classification",units="",weights=weights,bins=50,log=False,save=save,save_folder_name=save_folder)
+mask_here = np.logical_and(maskANA,np.logical_and(true_energy>20,true_energy<30))
+mask_name_here = "Energy 20-30 GeV, Analysis Cuts"
+plot_classification_hist(true_isTrack,retro_PID_up,mask=mask_here,mask_name=mask_name_here, variable="Retro Classification",units="",weights=weights,bins=50,log=False,save=save,save_folder_name=save_folder)
+
+find_10p_contam = False
 if find_10p_contam:
     track_threshold = None
     casc_threshold = None
@@ -213,7 +220,7 @@ if find_10p_contam:
         if track_threshold is not None and casc_threshold is not None:
             break
 
-do_energy_auc = False
+do_energy_auc = True
 if do_energy_auc:
 # Energy vs AUC
     energy_auc = []
@@ -222,13 +229,13 @@ if do_energy_auc:
     energy_recall = []
     energy_range = np.arange(5,200, 1.)
     
-    a_mask = maskHits8
+    a_mask = maskANA #maskHits8
     truth_Track = true_isTrack[a_mask]
     cnn_array = cnn_predict[a_mask]
     if reco is not None:
         #reco_array = retro_PID_up[a_mask]
         reco_array = retro_PID_all[a_mask]
-    AUC_title = "AUC vs. True Energy"
+    AUC_title = "AUC vs. True Energy - Analysis Cuts"
     save_name_extra = ""
     for energy_bin in energy_range:
         current_mask = np.logical_and(true_energy > energy_bin, true_energy < energy_bin + 1)
@@ -278,8 +285,8 @@ if do_energy_range:
         energy_start = energy_ranges[e_index]
         energy_end = energy_ranges[e_index+1]
         current_mask = np.logical_and(true_energy > energy_start, true_energy < energy_end)
-        current_name = "Energy %i to %i GeV"%(energy_start,energy_end)
-        plot_classification_hist(true_isTrack,cnn_predict,mask=current_mask,mask_name=current_name, variable="Classification",units="",bins=50,log=False,save=save,save_folder_name=save_folder)
+        current_name = "True Energy %i-%i GeV"%(energy_start,energy_end)
+        plot_classification_hist(true_isTrack,cnn_predict,mask=current_mask,mask_name=current_name, weights=weights, variable="CNN Classification",units="",bins=50,log=False,save=save,save_folder_name=save_folder)
         best_threshold = ROC(true_isTrack,cnn_predict,mask=current_mask,mask_name=current_name,save=save,save_folder_name=save_folder)
         #best_threshold = best_threshold[0]
         #confusion_matrix(true_isTrack, cnn_predict, best_threshold, mask=current_mask, mask_name=current_name, weights=None,save=save, save_folder_name=save_folder)

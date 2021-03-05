@@ -14,12 +14,6 @@ FILEPATH=/mnt/home/micall12/LowEnergyNeuralNetwork/make_jobs/i3_test
 LOG_FOLDER=$FILEPATH/logs
 JOB_FOLDER=$FILEPATH/slurm
 
-#Settings for test
-VARIABLE="energy"
-FACTOR=100
-MODEL_NAME=energy_numu_flat_1_500_level6_cleanedpulses_IC19_CC_20000evtperbin_lrEpochs50_extended
-EPOCH=152
-
 [ ! -d $LOG_FOLDER ] && mkdir $LOG_FOLDER
 [ ! -d $JOB_FOLDER ] && mkdir $JOB_FOLDER
 
@@ -30,11 +24,7 @@ do
     name=`basename $file`
     sed -e "s|@@file@@|${file}|g" \
         -e "s|@@log@@|${LOG_FOLDER}/$name.log|g" \
-        -e "s|@@model_name@@|${MODEL_NAME}|g" \
-        -e "s|@@epoch@@|${EPOCH}|g" \
-        -e "s|@@variable@@|${VARIABLE}|g" \
-        -e "s|@@factor@@|${FACTOR}|g" \
-        < job_template.sb > $JOB_FOLDER/${name}.sb
+        < quick_job.sb > $JOB_FOLDER/${name}.sb
     let COUNT=$COUNT+1
 done
 echo $COUNT
