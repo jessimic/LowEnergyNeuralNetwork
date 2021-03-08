@@ -64,7 +64,7 @@ def plot_resolution_from_dict(truth,reco,keylist,\
                     alpha=0.5, label="%s"%keyname);
 
             #Statistics
-            rms = get_RMS(resolution)
+            rms = get_RMS(resolution,weights)
             r1, r2 = np.percentile(resolution, [16,84])
 
             #textstr = '\n'.join((
@@ -101,9 +101,68 @@ LEERA_dict['Cascade EM'] = LEERA_EM
 LEERA_dict['Cascade Had'] = LEERA_Had
 LEERA_dict['Muon'] = LEERA_Mu
 keys = ['Cascade EM', 'Cascade Had', 'Muon']
-Finite_dict = {}
-Finite_dict["Finite Reco"] = Finite
-#keys = ["Finite Reco"]
-plot_resolution_from_dict(true,LEERA_dict,keys,\
-                            cut=None,weights=None,suptitle="LEERA Vertex",\
+variables = ["x", "y", "z"]
+print(LEERA_dict['Cascade EM'])
+eps = 1e-8
+for var in range(0,3):
+    delta1 = abs(LEERA_dict['Cascade EM'][:,var] - LEERA_dict['Cascade Had'][:,var])
+    delta2 = abs(LEERA_dict['Cascade EM'][:,var] - LEERA_dict['Muon'][:,var])
+    delta3 = abs(LEERA_dict['Muon'][:,var] - LEERA_dict['Cascade Had'][:,var])
+    check1 = delta1 > eps
+    check2 = delta1 > eps
+    check3 = delta1 > eps
+    assert sum(check1) == 0, "Casc EM - Had not small"
+    assert sum(check2) == 0, "Casc EM - Muon not small"
+    assert sum(check3) == 0, "Muon - Casc Had not small"
+
+passed_dict = {}
+passed_SANTA = SANTA_fit > 1
+passed_Finite = np.logical_not(np.isnan(Finite[:,0]))
+passed_LEERA = np.logical_not(np.isnan(LEERA_EM[:,0]))
+passed = np.logical_and(passed_SANTA,np.logical_and(passed_Finite,passed_LEERA))
+print("Passed SANTA = %.3f"%(sum(passed_SANTA)/len(passed_SANTA)))
+print("Passed LEERA = %.3f"%(sum(passed_LEERA)/len(passed_LEERA)))
+print("Passed Finite = %.3f"%(sum(passed_Finite)/len(passed_Finite)))
+passed_dict["Finite"] = Finite[passed]
+passed_dict["LEERA"] = LEERA_Had[passed]
+passed_dict["SANTA"] = SANTA[passed]
+passed_truth = true[passed]
+keys = ["Finite", "LEERA", "SANTA"]
+
+delta1 = np.isnan(passed_dict["Finite"])
+delta2 = np.isnan(passed_dict["LEERA"])
+delta3 = np.isnan(passed_dict["SANTA"])
+print(sum(delta1), "Finite has nans left")
+print(sum(delta2),"LEERA has nans left")
+print(sum(delta3), "SANTA")
+"""
+
+plot_resolution_from_dict(passed_truth,passed_dict,keys,\
+                            cut=None,weights=None,suptitle="All Passed SANTA Vertex",\
                             savefolder=save_folder,save=save,bins=100,use_fraction=False)
+"""
+reco_name = ["Finite", "SANTA", "LEERA"]
+final_vertex = Finite
+reco_type = np.zeros(len(final_vertex))
+final_vertex[passed_SANTA] = SANTA[passed_SANTA]
+reco_type[passed_SANTA] = 1  
+#final_vertex[passed_LEERA] = LEERA_Had[passed_LEERA]
+#reco_type[passed_LEERA] = 2
+delta1 = np.isnan(final_vertex)
+print(sum(delta1), "Finite has nans left")
+
+final_dict = {}
+final_dict["Mixed"] = final_vertex[passed_Finite]
+reco_type = reco_type[passed_Finite]
+final_truth = true[passed_Finite]
+num_finite = (reco_type == 0).sum()
+num_santa = (reco_type == 1).sum()
+#num_leera = (reco_type == 2).sum()
+#print("Finite: %i, SANTA: %i, LEERA: %i"%(num_finite,num_santa,num_leera))
+print("Finite: %i, SANTA: %i"%(num_finite,num_santa))
+
+plot_resolution_from_dict(final_truth,final_dict,["Mixed"],\
+                            cut=None,weights=None,suptitle="Finite SANTA",\
+                                                        savefolder=save_folder,save=save,bins=100,use_fraction=False)
+
+

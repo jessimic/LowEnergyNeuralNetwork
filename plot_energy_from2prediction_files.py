@@ -100,8 +100,8 @@ c1 = true_CC == 1
 c1_2 = true_energy < 200.
 c2 = true_CC2 == 1
 c2_2 = true_energy2 < 200.
-cuts = np.logical_and(c1,c1_2)
-cuts2 = np.logical_and(c2,c2_2)
+cuts = c1 #np.logical_and(c1,c1_2)
+cuts2 = c2 #np.logical_and(c2,c2_2)
 save_base_name = save_folder_name
 minval = 1
 maxval = 200
@@ -151,7 +151,7 @@ plot_single_resolution(true_energy[cuts], cnn_energy[cuts], weights=true_weights
                    variable=plot_name, units=plot_units, reco_name="new GCD")
 plot_single_resolution(true_energy[cuts], cnn_energy[cuts], weights=true_weights,old_reco_weights=true_weights2,\
                    use_old_reco = True, old_reco = cnn_energy2[cuts2], old_reco_truth=true_energy2[cuts2],\
-                   minaxis=-maxval, maxaxis=maxval, bins=bins,use_fraction=True,\
+                   minaxis=-2., maxaxis=2, bins=bins,use_fraction=True,\
                    save=save, savefolder=save_folder_name,\
                    variable=plot_name, units=plot_units, reco_name="new GCD")
 

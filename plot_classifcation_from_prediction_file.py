@@ -155,7 +155,7 @@ from PlottingFunctionsClassification import confusion_matrix
 from PlottingFunctionsClassification import plot_classification_hist
 
 #All events
-do_general_plots = False
+do_general_plots = True
 if do_general_plots:
     mask_here = maskHits8
     mask_name_here = "L7"
@@ -174,13 +174,6 @@ if do_general_plots:
     plot_classification_hist(true_isTrack,cnn_predict,mask=mask_here,mask_name=mask_name_here, variable="CNN Classification",units="",bins=50,log=False,save=save,save_folder_name=save_folder)
     plot_classification_hist(true_isTrack,cnn_predict,mask=mask_here,mask_name=mask_name_here, variable="CNN Classification",units="",weights=weights,bins=50,log=False,save=save,save_folder_name=save_folder)
     plot_classification_hist(true_isTrack,retro_PID_up,mask=mask_here,mask_name=mask_name_here, variable="L7_PIDClassifier_Upgoing_ProbTrack",units="",weights=weights,bins=50,log=False,save=save,save_folder_name=save_folder)
-
-mask_here = np.logical_and(maskANA,np.logical_and(true_energy>20,true_energy<30))
-mask_name_here = "Energy 20-30 GeV, Analysis Cuts"
-plot_classification_hist(true_isTrack,cnn_predict,mask=mask_here,mask_name=mask_name_here, variable="CNN Classification",units="",weights=weights,bins=50,log=False,save=save,save_folder_name=save_folder)
-mask_here = np.logical_and(maskANA,np.logical_and(true_energy>20,true_energy<30))
-mask_name_here = "Energy 20-30 GeV, Analysis Cuts"
-plot_classification_hist(true_isTrack,retro_PID_up,mask=mask_here,mask_name=mask_name_here, variable="Retro Classification",units="",weights=weights,bins=50,log=False,save=save,save_folder_name=save_folder)
 
 find_10p_contam = False
 if find_10p_contam:
@@ -220,7 +213,7 @@ if find_10p_contam:
         if track_threshold is not None and casc_threshold is not None:
             break
 
-do_energy_auc = True
+do_energy_auc = False
 if do_energy_auc:
 # Energy vs AUC
     energy_auc = []
@@ -229,7 +222,7 @@ if do_energy_auc:
     energy_recall = []
     energy_range = np.arange(5,200, 1.)
     
-    a_mask = maskANA #maskHits8
+    a_mask = maskHits8
     truth_Track = true_isTrack[a_mask]
     cnn_array = cnn_predict[a_mask]
     if reco is not None:

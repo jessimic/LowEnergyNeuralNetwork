@@ -7,7 +7,7 @@ from sklearn.metrics import confusion_matrix
 import numpy as np
 import os
 
-def plot_classification_hist(truth,prediction,reco=None,reco_mask=None,mask=None,mask_name="", variable="Classification",units="",bins=50,log=False,save=True,save_folder_name=None,weights=None):
+def plot_classification_hist(truth,prediction,reco=None,reco_mask=None,mask=None,mask_name="", variable="Classification",units="",bins=50,log=False,save=True,save_folder_name=None,weights=None,contamination=0.1):
 
     if mask is not None:
         print("Masking, using %f of input"%(sum(mask)/len(truth)))
@@ -26,8 +26,9 @@ def plot_classification_hist(truth,prediction,reco=None,reco_mask=None,mask=None
 
     maskTrack = truth == 1
     maskCascade = truth == 0
+    
 
-    plt.figure(figsize=(10,7))
+    fig,ax = plt.subplots(figsize=(10,7))
     name = ""
     if weights is not None:
         name += "Weighted"
@@ -36,22 +37,32 @@ def plot_classification_hist(truth,prediction,reco=None,reco_mask=None,mask=None
     else:
         weights_track = None
         weights_cascade = None
-    plt.title("%s %s %s"%(name,variable,mask_name),fontsize=25)
-    plt.xlabel("%s %s"%(variable,units),fontsize=20)
+    ax.set_title("%s %s %s"%(name,variable,mask_name),fontsize=25)
+    ax.set_xlabel("%s %s"%(variable,units),fontsize=20)
     if log:
-        plt.yscale("log")
+        ax.set_yscale("log")
 
     if reco is not None:
-        plt.hist(reco[maskTrack], bins=bins,color='r',alpha=1,range=[0.,1.],weights=weights_track,label="True Retro Track");
-        plt.hist(reco[maskCascade], bins=bins,color='orange',alpha=1,range=[0.,1.],weights=weights_cascade,label="True Retro Cascade");
+        ax.hist(reco[maskTrack], bins=bins,color='r',alpha=1,range=[0.,1.],weights=weights_track,label="True Retro Track");
+        ax.hist(reco[maskCascade], bins=bins,color='orange',alpha=1,range=[0.,1.],weights=weights_cascade,label="True Retro Cascade");
         track_label = "True CNN Track"
         casc_label = "True CNN Cascade"
     else:
         track_label = "True Track"
         casc_label = "True Cascade"
-    plt.hist(prediction[maskTrack], bins=bins,color='g',alpha=0.5,range=[0.,1.],weights=weights_track,label=track_label);
-    plt.hist(prediction[maskCascade], bins=bins,color='b',alpha=0.5,range=[0.,1.],weights=weights_cascade,label=casc_label);
-    plt.legend(fontsize=20)
+    ax.hist(prediction[maskTrack], bins=bins,color='g',alpha=0.5,range=[0.,1.],weights=weights_track,label=track_label);
+    ax.hist(prediction[maskCascade], bins=bins,color='b',alpha=0.5,range=[0.,1.],weights=weights_cascade,label=casc_label);
+    
+    fpr, tpr, thresholds = roc_curve(truth, prediction)
+    track_contam_index = (np.abs(fpr - contamination)).argmin()
+    threshold_track = thresholds[track_contam_index]
+    fnr = 1 - tpr #false nagtive rate
+    casc_contam_index = (np.abs(fnr - contamination)).argmin()
+    threshold_casc = thresholds[casc_contam_index]
+    ax.axvline(threshold_track,linewidth=3,color='green',label=r'10% Track Contamination')
+    ax.axvline(threshold_casc,linewidth=3,color='blue',label=r'10% Cascade Contamination')
+
+    ax.legend(fontsize=20)
 
     name += "%s"%(variable.replace(" ",""))
     end = "Hist"
@@ -63,7 +74,7 @@ def plot_classification_hist(truth,prediction,reco=None,reco_mask=None,mask=None
         plt.savefig("%s%s%s.png"%(save_folder_name,name,end))
     plt.close()
 
-def ROC(truth, prediction,reco=None,mask=None,mask_name="",reco_mask=None,save=True,save_folder_name=None,reco_name="Retro"):
+def ROC(truth, prediction,reco=None,mask=None,mask_name="",reco_mask=None,save=True,save_folder_name=None,reco_name="Retro",ideal_value=0.1):
 
     if mask is not None:
         print(sum(mask)/len(truth))
@@ -74,15 +85,17 @@ def ROC(truth, prediction,reco=None,mask=None,mask_name="",reco_mask=None,save=T
                 reco = reco[mask]
             else:
                 reco = reco[reco_mask]
-    print("Fraction of true tracks: %i"%(sum(truth)/len(truth)))
+    print("Fraction of true tracks: %.3f"%(sum(truth)/len(truth)))
     fpr, tpr, thresholds = roc_curve(truth, prediction)
-    tnr = 1 - fpr #true negative rate
-    fnr = 1 - tpr #false nagtive rate
-    auc = roc_auc_score(truth, prediction)
-    sumrates = tnr + tpr
-    best_index = np.where(sumrates == max(sumrates))
+    best_index = (np.abs(fpr - ideal_value)).argmin()
     best_thres = thresholds[best_index]
-    print('AUC: %.3f' % auc,"best sumrates: %.3f"%max(sumrates),best_thres, "BEST THRES IS PROBS BROKEN")
+    #tnr = 1 - fpr #true negative rate
+    #fnr = 1 - tpr #false nagtive rate
+    auc = roc_auc_score(truth, prediction)
+    #sumrates = tnr + tpr
+    #best_index = np.where(sumrates == max(sumrates))
+    #best_thres = thresholds[best_index]
+    print('AUC: %.3f' % auc,"best threshold %.3f"%best_thres, "BEST THRES IS PROBS BROKEN")
 
 
 
