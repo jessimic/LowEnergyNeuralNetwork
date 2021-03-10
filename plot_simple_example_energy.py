@@ -24,8 +24,14 @@ save_folder_name = args.output_dir
 f = h5py.File(input_file, "r")
 truth = f["Y_test_use"][:]
 predict = f["Y_predicted"][:]
-reco = f["reco_test"][:]
-weights = f["weights_test"][:]
+try:
+    reco = f["reco_test"][:]
+except:
+    reco = None
+try:
+    weights = f["weights_test"][:]
+except:
+    weights = None
 try:
     info = f["additional_info"][:]
 except: 
@@ -36,6 +42,21 @@ del f
 cnn_energy = np.array(predict[:,0])*100
 true_energy = np.array(truth[:,0])
 true_CC = np.array(truth[:,11])
+
+numu_files = 1519
+nue_files = 602
+#weights
+if weights is not None:
+    weights = np.array(weights[:,8])
+    #modify by number of files
+    mask_numu = np.array(truth[:,9]) == 14
+    mask_nue = np.array(truth[:,9]) == 12
+    if sum(mask_numu) > 1:
+        weights[mask_numu] = weights[mask_numu]/numu_files
+    if sum(mask_nue) > 1:
+        weights[mask_nue] = weights[mask_nue]/nue_files
+
+
 
 #hits8 = info[:,9]
 check_energy_gt5 = true_energy > 5.

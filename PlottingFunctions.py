@@ -314,7 +314,7 @@ def plot_2D_prediction(truth, nn_reco, \
                         bins=60,minval=None,maxval=None, switch_axis=False,\
                         cut_truth = False, axis_square =False, zmax=None,log=True,
                         variable="Energy", units = "(GeV)", epochs=None,\
-                        variable_type="True", reco_name="CNN"):
+                        variable_type="True", reco_name="CNN",new_labels=None,new_units=None):
     """
     Plot testing set reconstruction vs truth
     Recieves:
@@ -379,6 +379,9 @@ def plot_2D_prediction(truth, nn_reco, \
     if switch_axis:
         plt.ylabel("%s %s %s"%(variable_type,variable,units),fontsize=20)
         plt.xlabel("%s Reconstructed %s %s"%(reco_name,variable,units),fontsize=20)
+    if new_labels is not None:
+        plt.ylabel("%s %s"%(new_labels[0],new_units[0]),fontsize=20)
+        plt.xlabel("%s %s"%(new_labels[1],new_units[1]),fontsize=20)
     title = "%s vs %s for %s %s"%(reco_name,variable_type,variable,syst_set)
     if weights is not None:
         title += " Weighted"

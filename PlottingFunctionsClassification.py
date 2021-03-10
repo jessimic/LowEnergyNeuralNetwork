@@ -7,6 +7,19 @@ from sklearn.metrics import confusion_matrix
 import numpy as np
 import os
 
+def find_thresholds(truth,prediction,contamination=0.1):
+    
+    #Find 10% contamination track
+    fpr, tpr, thresholds = roc_curve(truth, prediction)
+    track_contam_index = (np.abs(fpr - contamination)).argmin()
+    threshold_track = thresholds[track_contam_index]
+    #Find 10% contamination cascade
+    fpr_c, tpr_c, thresholds_c = roc_curve(np.logical_not(truth), np.logical_not(prediction))
+    casc_contam_index = (np.abs(fpr_c - contamination)).argmin()
+    threshold_cascade = thresholds_c[casc_contam_index]
+
+    return threshold_track, threshold_cascade, [fpr[track_contam_index],tpr[track_contam_index]], [fpr_c[casc_contam_index], tpr[casc_contam_index]]
+
 def plot_classification_hist(truth,prediction,reco=None,reco_mask=None,mask=None,mask_name="", variable="Classification",units="",bins=50,log=False,save=True,save_folder_name=None,weights=None,contamination=0.1):
 
     if mask is not None:
@@ -53,12 +66,12 @@ def plot_classification_hist(truth,prediction,reco=None,reco_mask=None,mask=None
     ax.hist(prediction[maskTrack], bins=bins,color='g',alpha=0.5,range=[0.,1.],weights=weights_track,label=track_label);
     ax.hist(prediction[maskCascade], bins=bins,color='b',alpha=0.5,range=[0.,1.],weights=weights_cascade,label=casc_label);
     
-    fpr, tpr, thresholds = roc_curve(truth, prediction)
-    track_contam_index = (np.abs(fpr - contamination)).argmin()
-    threshold_track = thresholds[track_contam_index]
-    fnr = 1 - tpr #false nagtive rate
-    casc_contam_index = (np.abs(fnr - contamination)).argmin()
-    threshold_casc = thresholds[casc_contam_index]
+    #Plot contamination lines
+    threshold_track, threshold_casc, rates_t, rates_c = find_thresholds(truth, prediction, contamination)
+    binary_track = prediction > threshold_track
+    binary_casc = prediction < threshold_casc
+#    print("True Track Rate: %.2f, False Track Rate: %.2f"%)
+    print("Events predicted to be track: ", sum(binary_track), "number of true tracks there: ", sum(np.logical_and(maskTrack,binary_track)), "number of true cascades there: ", sum(np.logical_and(maskCascade,binary_track)))
     ax.axvline(threshold_track,linewidth=3,color='green',label=r'10% Track Contamination')
     ax.axvline(threshold_casc,linewidth=3,color='blue',label=r'10% Cascade Contamination')
 
@@ -74,7 +87,9 @@ def plot_classification_hist(truth,prediction,reco=None,reco_mask=None,mask=None
         plt.savefig("%s%s%s.png"%(save_folder_name,name,end))
     plt.close()
 
-def ROC(truth, prediction,reco=None,mask=None,mask_name="",reco_mask=None,save=True,save_folder_name=None,reco_name="Retro",ideal_value=0.1):
+    return threshold_track, threshold_casc
+
+def ROC(truth, prediction,reco=None,mask=None,mask_name="",reco_mask=None,save=True,save_folder_name=None,reco_name="Retro",contamination=0.1):
 
     if mask is not None:
         print(sum(mask)/len(truth))
@@ -86,20 +101,14 @@ def ROC(truth, prediction,reco=None,mask=None,mask_name="",reco_mask=None,save=T
             else:
                 reco = reco[reco_mask]
     print("Fraction of true tracks: %.3f"%(sum(truth)/len(truth)))
+    
+    # Find ROC Curve + Stats
     fpr, tpr, thresholds = roc_curve(truth, prediction)
-    best_index = (np.abs(fpr - ideal_value)).argmin()
-    best_thres = thresholds[best_index]
-    #tnr = 1 - fpr #true negative rate
-    #fnr = 1 - tpr #false nagtive rate
     auc = roc_auc_score(truth, prediction)
-    #sumrates = tnr + tpr
-    #best_index = np.where(sumrates == max(sumrates))
-    #best_thres = thresholds[best_index]
-    print('AUC: %.3f' % auc,"best threshold %.3f"%best_thres, "BEST THRES IS PROBS BROKEN")
+    threshold_track, threshold_casc, rates_t, rates_c = find_thresholds(truth, prediction, contamination)
+    print('AUC: %.3f' % auc,"best track threshold %.3f"%threshold_track)
 
-
-
-    # ROC Curve
+    # Plot ROC Curve
     fig, ax = plt.subplots(figsize=(10,7))
 
     ax.plot([0,1],[0,1],'k:',label="random")
@@ -115,15 +124,16 @@ def ROC(truth, prediction,reco=None,mask=None,mask_name="",reco_mask=None,save=T
     ax.set_xlabel('False Positive Rate',fontsize=20)
     ax.set_ylabel('True Positive Rate',fontsize=20)
     ax.set_title('ROC Curve %s'%mask_name,fontsize=25)
-    #ax.plot(fpr[best_index],tpr[best_index],marker="*",markersize=10)
+    ax.plot(rates_t[0],rates_t[1],"g*",markersize=10,label="10% Track Contamination")
+    ax.plot(rates_c[0],rates_c[1],"b*",markersize=10,label="10% Cascade Contamination")
     props = dict(boxstyle='round', facecolor='blue', alpha=0.3)
     ax.text(0.1, 0.95, r'CNN AUC:%.3f'%auc, transform=ax.transAxes, fontsize=20,
             verticalalignment='top', bbox=props)
     if reco is not None:
-        ax.legend(loc="lower right",fontsize=20)
         props = dict(boxstyle='round', facecolor='blue', alpha=0.3)
         ax.text(0.1, 0.85, r'%s AUC:%.3f'%(reco_name,auc_reco), 
             transform=ax.transAxes, fontsize=20, verticalalignment='top', bbox=props)
+    ax.legend(loc="lower right",fontsize=20)
 
     end = "ROC"
     if reco is not None:
@@ -134,9 +144,9 @@ def ROC(truth, prediction,reco=None,mask=None,mask_name="",reco_mask=None,save=T
         plt.savefig("%s%s.png"%(save_folder_name,end))
     plt.close()
 
-    return best_thres
+    return threshold_track, threshold_casc
 
-def confusion_matrix(truth, prediction, best_thres, mask=None, mask_name="", weights=None,save=True, save_folder_name=None):
+def confusion_matrix(truth, prediction, threshold, mask=None, mask_name="", weights=None,save=True, save_folder_name=None):
     if mask is not None:
         truth = truth[mask]
         prediction = prediction[mask]
@@ -144,13 +154,13 @@ def confusion_matrix(truth, prediction, best_thres, mask=None, mask_name="", wei
             weights = weights[mask]
 
     #Change to 0 or 1
-    predictionCascade = prediction < best_thres
-    predictionTrack = prediction >= best_thres
+    predictionCascade = prediction < threshold
+    predictionTrack = prediction >= threshold
     prediction[predictionCascade] = .5
     prediction[predictionTrack] = 1.5
     isTrack = truth == 1
     isCasc = truth == 0
-    truth[isCascade] = .5
+    truth[isCasc] = .5
     truth[isTrack] = 1.5
 
     fig, ax = plt.subplots()

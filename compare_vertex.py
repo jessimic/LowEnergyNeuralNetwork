@@ -15,8 +15,19 @@ weights = f['weights'][:]
 f.close()
 del f
 
+input_file2 = "/mnt/home/micall12/LowEnergyNeuralNetwork/output_plots/energy_numu_flat_1_500_level6_cleanedpulses_IC19_CC_20000evtperbin_lrEpochs50_extended/L7_148885/prediction_values_oldGCD.hdf5"
+f = h5py.File(input_file2, 'r')
+retro = f["reco_test"][:]
+retro_true = f["Y_test_use"][:]
+retro_weights = f["weights_test"][:]
+f.close()
+del f
+retro_weights = retro_weights[:,8]/9.
+
 save = True
 save_folder = '/mnt/home/micall12/LowEnergyNeuralNetwork/output_plots/Vertex_Test/'
+weights = weights/9.
+
 
 def get_RMS(resolution,weights=None):
     if weights is not None:
@@ -65,7 +76,12 @@ def plot_resolution_from_dict(truth,reco,keylist,\
 
             #Statistics
             rms = get_RMS(resolution,weights)
-            r1, r2 = np.percentile(resolution, [16,84])
+            if weights is not None:
+                import wquantiles as wq
+                r1 = wq.quantile(resolution,weights,0.16)
+                r2 = wq.quantile(resolution,weights,0.84)
+            else:
+                r1, r2 = np.percentile(resolution, [16,84])
 
             #textstr = '\n'.join((
             #r'%s' % (keyname),
@@ -108,15 +124,21 @@ for var in range(0,3):
     delta1 = abs(LEERA_dict['Cascade EM'][:,var] - LEERA_dict['Cascade Had'][:,var])
     delta2 = abs(LEERA_dict['Cascade EM'][:,var] - LEERA_dict['Muon'][:,var])
     delta3 = abs(LEERA_dict['Muon'][:,var] - LEERA_dict['Cascade Had'][:,var])
-    check1 = delta1 > eps
-    check2 = delta1 > eps
-    check3 = delta1 > eps
+    not_nan1 = np.logical_not(np.isnan(delta1))
+    not_nan2 = np.logical_not(np.isnan(delta2))
+    not_nan3 = np.logical_not(np.isnan(delta3))
+    check1 = delta1[not_nan1] > eps
+    check2 = delta2[not_nan2] > eps
+    check3 = delta3[not_nan3] > eps
+    #for i in range(0,len(check1)):
+    #    if check1 [i]!= 0:
+    #        print(check1[i], delta1[i], LEERA_dict['Cascade EM'][i,var], LEERA_dict['Cascade Had'][i,var])
     assert sum(check1) == 0, "Casc EM - Had not small"
     assert sum(check2) == 0, "Casc EM - Muon not small"
     assert sum(check3) == 0, "Muon - Casc Had not small"
 
 passed_dict = {}
-passed_SANTA = SANTA_fit > 1
+passed_SANTA = SANTA_fit > 0
 passed_Finite = np.logical_not(np.isnan(Finite[:,0]))
 passed_LEERA = np.logical_not(np.isnan(LEERA_EM[:,0]))
 passed = np.logical_and(passed_SANTA,np.logical_and(passed_Finite,passed_LEERA))
@@ -127,6 +149,7 @@ passed_dict["Finite"] = Finite[passed]
 passed_dict["LEERA"] = LEERA_Had[passed]
 passed_dict["SANTA"] = SANTA[passed]
 passed_truth = true[passed]
+passed_weights = weights[passed]
 keys = ["Finite", "LEERA", "SANTA"]
 
 delta1 = np.isnan(passed_dict["Finite"])
@@ -136,33 +159,46 @@ print(sum(delta1), "Finite has nans left")
 print(sum(delta2),"LEERA has nans left")
 print(sum(delta3), "SANTA")
 """
-
 plot_resolution_from_dict(passed_truth,passed_dict,keys,\
-                            cut=None,weights=None,suptitle="All Passed SANTA Vertex",\
+                            cut=None,weights=passed_weights,suptitle="All Passed SANTA Vertex",\
                             savefolder=save_folder,save=save,bins=100,use_fraction=False)
-"""
+
 reco_name = ["Finite", "SANTA", "LEERA"]
 final_vertex = Finite
 reco_type = np.zeros(len(final_vertex))
 final_vertex[passed_SANTA] = SANTA[passed_SANTA]
 reco_type[passed_SANTA] = 1  
-#final_vertex[passed_LEERA] = LEERA_Had[passed_LEERA]
-#reco_type[passed_LEERA] = 2
+santa_mix = np.copy(final_vertex)
+santa_type = np.copy(reco_type)
+final_vertex[passed_LEERA] = LEERA_Had[passed_LEERA]
+reco_type[passed_LEERA] = 2
 delta1 = np.isnan(final_vertex)
 print(sum(delta1), "Finite has nans left")
 
 final_dict = {}
-final_dict["Mixed"] = final_vertex[passed_Finite]
+final_dict["LEERA SANTA FINITE"] = final_vertex[passed_Finite]
 reco_type = reco_type[passed_Finite]
+final_dict["SANTA FINITE"] = santa_mix[passed_Finite]
+santa_type = santa_type[passed_Finite]
+
 final_truth = true[passed_Finite]
+final_weights = weights[passed_Finite]
 num_finite = (reco_type == 0).sum()
 num_santa = (reco_type == 1).sum()
-#num_leera = (reco_type == 2).sum()
-#print("Finite: %i, SANTA: %i, LEERA: %i"%(num_finite,num_santa,num_leera))
+num_leera = (reco_type == 2).sum()
+print("Finite: %i, SANTA: %i, LEERA: %i"%(num_finite,num_santa,num_leera))
+num_finite = (santa_type == 0).sum()
+num_santa = (santa_type == 1).sum()
 print("Finite: %i, SANTA: %i"%(num_finite,num_santa))
 
-plot_resolution_from_dict(final_truth,final_dict,["Mixed"],\
-                            cut=None,weights=None,suptitle="Finite SANTA",\
+plot_resolution_from_dict(final_truth,final_dict,["LEERA SANTA FINITE","SANTA FINITE"],\
+                            cut=None,weights=final_weights,suptitle="Compare Mixed",\
                                                         savefolder=save_folder,save=save,bins=100,use_fraction=False)
-
-
+"""
+retro_dict = {}
+retro_dict["Retro"] = retro[:,4:7]
+print(retro[:,4:7].shape)
+retro_truth = retro_true[:,4:7]
+plot_resolution_from_dict(retro_truth,retro_dict,["Retro"],\
+                            cut=None,weights=retro_weights,suptitle="Retro",\
+                                                                                    savefolder=save_folder,save=save,bins=100,use_fraction=False)
