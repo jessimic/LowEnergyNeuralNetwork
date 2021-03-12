@@ -1,9 +1,9 @@
 #!/bin/bash
 
 START=1
-END=1549
+END=644
 
-SYST=140000
+SYST=120000
 for ((INDEX=${START};INDEX<=${END};INDEX+=1));
 do
     FILE_NR=`printf "%06d\n" $INDEX`

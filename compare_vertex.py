@@ -2,14 +2,18 @@ import numpy as np
 import h5py
 import matplotlib.pyplot as plt
 
-input_file = "/mnt/home/micall12/LowEnergyNeuralNetwork/vertex_recos.hdf5"
+input_file = "/mnt/home/micall12/LowEnergyNeuralNetwork/test_10_monopod.hdf5"
 f = h5py.File(input_file, 'r')
 SANTA_fit = f['SANTA_fit'][:]
 SANTA = f['SANTA_vertex'][:]
 Finite = f['Finite_vertex'][:]
-LEERA_EM = f['LEERA_EM_vertex'][:]
-LEERA_Had = f['LEERA_Had_vertex'][:]
-LEERA_Mu = f['LEERA_Mu_vertex'][:]
+#LEERA_EM = f['LEERA_EM_vertex'][:]
+#LEERA_Had = f['LEERA_Had_vertex'][:]
+#LEERA_Mu = f['LEERA_Mu_vertex'][:]
+Monopod = f['Monopod_vertex'][:]
+Corridor = f['CorridorWide_vertex'][:]
+HLC = f['HLC_vertex'][:]
+L3 = f['L3_vertex'][:]
 true = f['True_vertex'][:]
 weights = f['weights'][:]
 f.close()
@@ -111,7 +115,7 @@ def plot_resolution_from_dict(truth,reco,keylist,\
             plt.savefig("%sVertexResolution_%s.png"%(savefolder,sup),bbox_inches='tight')
     plt.close()
 
-
+"""
 LEERA_dict = {}
 LEERA_dict['Cascade EM'] = LEERA_EM
 LEERA_dict['Cascade Had'] = LEERA_Had
@@ -136,33 +140,51 @@ for var in range(0,3):
     assert sum(check1) == 0, "Casc EM - Had not small"
     assert sum(check2) == 0, "Casc EM - Muon not small"
     assert sum(check3) == 0, "Muon - Casc Had not small"
+"""
 
 passed_dict = {}
 passed_SANTA = SANTA_fit > 0
 passed_Finite = np.logical_not(np.isnan(Finite[:,0]))
-passed_LEERA = np.logical_not(np.isnan(LEERA_EM[:,0]))
-passed = np.logical_and(passed_SANTA,np.logical_and(passed_Finite,passed_LEERA))
+passed_L3 = np.logical_not(np.isnan(L3[:,0]))
+passed_HLC = np.logical_not(np.isnan(HLC[:,0]))
+passed_Cor = np.logical_not(np.isnan(Corridor[:,0]))
+passed_Mono = np.logical_not(np.isnan(Monopod[:,0]))
+passed =  np.logical_and(passed_SANTA,np.logical_and(passed_Finite, np.logical_and(passed_L3, np.logical_and(passed_HLC, np.logical_and(passed_Cor, passed_Mono)))))
+
+#passed_LEERA = np.logical_not(np.isnan(LEERA_EM[:,0]))
+#passed = np.logical_and(passed_SANTA,np.logical_and(passed_Finite,passed_LEERA))
+#print("Passed LEERA = %.3f"%(sum(passed_LEERA)/len(passed_LEERA)))
+
 print("Passed SANTA = %.3f"%(sum(passed_SANTA)/len(passed_SANTA)))
-print("Passed LEERA = %.3f"%(sum(passed_LEERA)/len(passed_LEERA)))
 print("Passed Finite = %.3f"%(sum(passed_Finite)/len(passed_Finite)))
+print("Passed L3 = %.3f"%(sum(passed_L3)/len(passed_L3)))
+print("Passed HLC = %.3f"%(sum(passed_HLC)/len(passed_HLC)))
+print("Passed Cor = %.3f"%(sum(passed_Cor)/len(passed_Cor)))
+print("Passed Mono = %.3f"%(sum(passed_Mono)/len(passed_Mono)))
+
 passed_dict["Finite"] = Finite[passed]
-passed_dict["LEERA"] = LEERA_Had[passed]
+#passed_dict["LEERA"] = LEERA_Had[passed]
 passed_dict["SANTA"] = SANTA[passed]
+passed_dict["L3Guess"] = L3[passed]
+passed_dict["HLC"] = HLC[passed]
+passed_dict["CorridorWide"] = Corridor[passed]
+passed_dict["Monopod"] = Monopod[passed]
 passed_truth = true[passed]
 passed_weights = weights[passed]
-keys = ["Finite", "LEERA", "SANTA"]
+#keys = ["Finite", "LEERA", "SANTA"]
+keys = ["Finite", "L3Guess", "SANTA", "HLC", "CorridorWide", "Monopod"]
 
-delta1 = np.isnan(passed_dict["Finite"])
-delta2 = np.isnan(passed_dict["LEERA"])
-delta3 = np.isnan(passed_dict["SANTA"])
-print(sum(delta1), "Finite has nans left")
-print(sum(delta2),"LEERA has nans left")
-print(sum(delta3), "SANTA")
-"""
+#delta1 = np.isnan(passed_dict["Finite"])
+#delta2 = np.isnan(passed_dict["LEERA"])
+#delta3 = np.isnan(passed_dict["SANTA"])
+#print(sum(delta1), "Finite has nans left")
+#print(sum(delta2),"LEERA has nans left")
+#print(sum(delta3), "SANTA")
+
 plot_resolution_from_dict(passed_truth,passed_dict,keys,\
                             cut=None,weights=passed_weights,suptitle="All Passed SANTA Vertex",\
                             savefolder=save_folder,save=save,bins=100,use_fraction=False)
-
+"""
 reco_name = ["Finite", "SANTA", "LEERA"]
 final_vertex = Finite
 reco_type = np.zeros(len(final_vertex))

@@ -153,6 +153,7 @@ if reco is not None:
 from PlottingFunctionsClassification import ROC
 from PlottingFunctionsClassification import confusion_matrix
 from PlottingFunctionsClassification import plot_classification_hist
+from PlottingFunctionsClassification import precision
 
 #All events
 do_general_plots = True
@@ -161,12 +162,14 @@ if do_general_plots:
     mask_name_here = "L7"
 
     track_threshold, cascade_threshold = ROC(true_isTrack,cnn_predict,mask=mask_here,mask_name=mask_name_here,reco=retro_PID_all,save=save,save_folder_name=save_folder)
-    plot_classification_hist(true_isTrack,cnn_predict,mask=mask_here,mask_name=mask_name_here, variable="CNN Classification",units="",bins=50,log=False,save=save,save_folder_name=save_folder)
-    plot_classification_hist(true_isTrack,cnn_predict,mask=mask_here,mask_name=mask_name_here, variable="CNN Classification",units="",weights=weights,bins=50,log=False,save=save,save_folder_name=save_folder)
-    plot_classification_hist(true_isTrack,retro_PID_all,mask=mask_here,mask_name=mask_name_here, variable="L7_PIDClassifier_AllSky_ProbTrack",units="",weights=weights,bins=50,log=False,save=save,save_folder_name=save_folder)
-    confusion_matrix(true_isTrack, cnn_predict, track_threshold, mask=mask_here, mask_name=mask_name_here, weights=None,save=save, save_folder_name=save_folder)
-    confusion_matrix(true_isTrack, cnn_predict, track_threshold, mask=mask_here, mask_name=mask_name_here, weights=weights,save=save, save_folder_name=save_folder)
+    #plot_classification_hist(true_isTrack,cnn_predict,mask=mask_here,mask_name=mask_name_here, variable="CNN Classification",units="",bins=50,log=False,save=save,save_folder_name=save_folder)
+    #plot_classification_hist(true_isTrack,cnn_predict,mask=mask_here,mask_name=mask_name_here, variable="CNN Classification",units="",weights=weights,bins=50,log=False,save=save,save_folder_name=save_folder)
+    #plot_classification_hist(true_isTrack,retro_PID_all,mask=mask_here,mask_name=mask_name_here, variable="L7_PIDClassifier_AllSky_ProbTrack",units="",weights=weights,bins=50,log=False,save=save,save_folder_name=save_folder)
+    #confusion_matrix(true_isTrack, cnn_predict, track_threshold, mask=mask_here, mask_name=mask_name_here, weights=None,save=save, save_folder_name=save_folder)
+    #confusion_matrix(true_isTrack, cnn_predict, track_threshold, mask=mask_here, mask_name=mask_name_here, weights=weights,save=save, save_folder_name=save_folder)
+    precision(true_isTrack, cnn_predict, reco=retro_PID_all, mask=mask_here, mask_name = mask_name_here,save=save,save_folder_name=save_folder)
 
+"""
     mask_here = maskANA
     mask_name_here = "Analysis Cuts"
     print(retro_PID_up[:10])
@@ -176,7 +179,7 @@ if do_general_plots:
     plot_classification_hist(true_isTrack,retro_PID_up,mask=mask_here,mask_name=mask_name_here, variable="L7_PIDClassifier_Upgoing_ProbTrack",units="",weights=weights,bins=50,log=False,save=save,save_folder_name=save_folder)
     confusion_matrix(true_isTrack, cnn_predict, track_threshold, mask=mask_here, mask_name=mask_name_here, weights=None,save=save, save_folder_name=save_folder)
     confusion_matrix(true_isTrack, cnn_predict, track_threshold, mask=mask_here, mask_name=mask_name_here, weights=weights,save=save, save_folder_name=save_folder)
-
+"""
 find_10p_contam = False
 if find_10p_contam:
     track_threshold = None

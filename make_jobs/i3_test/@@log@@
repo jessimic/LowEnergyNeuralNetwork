@@ -1,4 +1,0 @@
-  File "/mnt/home/micall12/LowEnergyNeuralNetwork/CNN_Test_i3.py", line 366
-    output_name = str(basename) + "_FLERCNN_" + model_type + "_" model_type2
-                                                                           ^
-SyntaxError: invalid syntax

@@ -59,6 +59,14 @@ parser.add_argument("--variable2",type=str,default="class",
                     dest="variable2", help="name of second variable to predict, class has specific unique function to run the classifier")
 parser.add_argument("--factor2", type=float, default=1.,
                     dest="factor2", help="transformation factor to adjust output by")
+parser.add_argument("--model_name3",default=None,
+                    dest="model_name3", help="name of output folder where model is located")
+parser.add_argument("--epochs3",default=None,
+                    dest="epochs3", help="epoch number for model 3 to use")
+parser.add_argument("--variable3",type=str,default="zenith",
+                    dest="variable3", help="name of third variable to predict, class has specific unique function to run the classifier")
+parser.add_argument("--factor3", type=float, default=1.,
+                    dest="factor3", help="transformation factor to adjust output by")
 parser.add_argument("--charge_min", type=float, default=0.25,
                     dest="charge_min", help="minimum charge pulse to keep, remove < this")
 args = parser.parse_args()
@@ -93,6 +101,16 @@ if model_name2 is not None:
         model_name2 ="%s/%s_%sepochs_model.hdf5"%(model_path2,model_name2,args.epochs2)
     print("ALSO Predicting: %s,\nOutput transformation scale factor: %.2f.,\nUsing model: %s"%(variable2, scale_factor2, model_name2))
 
+variable3 = args.variable3
+scale_factor3=args.factor3
+model_name3 = args.model_name3
+model_path3 = args.model_dir + args.model_name3
+if model_name3 is not None:
+    if args.epochs3 is None:
+        model_name3 ="%s/%s_final_model.hdf5"%(model_path3,model_name3)
+    else:
+        model_name3 ="%s/%s_%sepochs_model.hdf5"%(model_path3,model_name3,args.epochs3)
+    print("ALSO Predicting: %s,\nOutput transformation scale factor: %.2f.,\nUsing model: %s"%(variable3, scale_factor3, model_name3))
 
 def get_observable_features(frame,low_window=-500,high_window=4000):
     """
@@ -358,7 +376,7 @@ def read_files(filename):
     return  output_features_DC, output_features_IC, output_headers
 
 
-def test_write(filename_list, model_name,output_dir, output_name, model_name2=None,factor=100.,model_type="energy",model_type2="class",factor2=1.):
+def test_write(filename_list, model_name,output_dir, output_name, model_name2=None,factor=100.,model_type="energy",model_type2="class",factor2=1., model_name3=None, model_type3="zenith",factor3=1.):
 
 
     for a_file in filename_list:
@@ -366,7 +384,10 @@ def test_write(filename_list, model_name,output_dir, output_name, model_name2=No
             basename = a_file.split("/")[-1] 
             basename = basename[:-7]
             if model_name2 is not None:
-                output_name = str(basename) + "_FLERCNN_" + model_type + "_" + model_type2
+                if model_name3 is not None:
+                    output_name = str(basename) + "_FLERCNN_" + model_type + "_" + model_type2 + "_" + model_type3
+                else:
+                    output_name = str(basename) + "_FLERCNN_" + model_type + "_" + model_type2
             else:
                 output_name = str(basename) + "_FLERCNN_" + model_type
         outfile = dataio.I3File(output_dir+output_name+".i3.zst",'w')
@@ -386,6 +407,12 @@ def test_write(filename_list, model_name,output_dir, output_name, model_name2=No
             prediction2 = cnn_test(DC_array, IC_near_DC_array, model_name2,model_type=model_type2)
             t1 = time.time()
             print("Time to run CNN Test 2 on %i events: %f seconds"%(DC_array.shape[0],t1-t0))
+        
+        if model_name3 is not None:
+            t0 = time.time()
+            prediction3 = cnn_test(DC_array, IC_near_DC_array, model_name3,model_type=model_type2)
+            t1 = time.time()
+            print("Time to run CNN Test 3 on %i events: %f seconds"%(DC_array.shape[0],t1-t0))
 
             
         index = 0
@@ -415,6 +442,13 @@ def test_write(filename_list, model_name,output_dir, output_name, model_name2=No
                     key_name2 = "FLERCNN_%s"%model_type2
                     adjusted_prediction2 = prediction2[index][0]*factor2
                     frame[key_name2] = dataclasses.I3Double(adjusted_prediction2)
+                
+                if model_name3 is not None:
+                    assert model_type3 != model_type, "Rewriting key, need different names"
+                    assert model_type3 != model_type2, "Rewriting key, need different names"
+                    key_name3 = "FLERCNN_%s"%model_type3
+                    adjusted_prediction3 = prediction3[index][0]*factor3
+                    frame[key_name3] = dataclasses.I3Double(adjusted_prediction3)
 
                 outfile.push(frame)
                 index +=1
@@ -428,7 +462,7 @@ import glob
 event_file_names = sorted(glob.glob(input_file))
 assert event_file_names,"No files loaded, please check path."
 time_start=time.time()
-test_write(event_file_names, model_name, output_dir, output_name, factor=scale_factor, model_type=variable,model_name2=model_name2,model_type2=variable2,factor2=scale_factor2)
+test_write(event_file_names, model_name, output_dir, output_name, factor=scale_factor, model_type=variable,model_name2=model_name2,model_type2=variable2,factor2=scale_factor2,model_name3=model_name3,model_type3=variable3,factor3=scale_factor3)
 time_end=time.time()
 print("Total time: %f"%(time_end-time_start))
 

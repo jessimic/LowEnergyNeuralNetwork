@@ -21,6 +21,10 @@ import icecube.lilliput.segments
 from icecube.oscNext.selection.globals import *
 from icecube.oscNext.selection.oscNext_cuts import oscNext_cut
 from icecube.oscNext.selection.oscNext_L6 import RETRO_RECO_PARTICLE_KEY, RETRO_FIT_METHOD, check_retro_reco_success
+from icecube import photonics_service, millipede
+
+table_base = os.path.expandvars('$I3_DATA/photon-tables/splines/ems_mie_z20_a10.%s.fits')
+cascade_service = photonics_service.I3PhotoSplineService(table_base % 'abs', table_base % 'prob', 0)
 
 def check_object_exists(frame,object_key) : 
     '''    
@@ -766,6 +770,11 @@ def oscNext_L7_compute_pid( tray, name, ):
 #
 # Top-level traysegment
 #
+def make_seed(frame):
+    p = frame['L4_first_hlc']
+    frame['L4_first_hlc_seed'] = p
+    frame['L4_first_hlc_seed'].dir.set_theta_phi(0, 0)
+    frame['L4_first_hlc_seed'].energy = 1
 
 @icetray.traysegment
 def oscNext_L7( 
@@ -821,6 +830,16 @@ def oscNext_L7(
         oscNext_L7_compute_final_reconstructed_values,
         'oscNext_L7_compute_final_reconstructed_values',
         cleaned_pulses=cleaned_pulses,
+    )
+
+    tray.Add(make_seed)
+
+    tray.Add(millipede.MonopodFit, 'MonopodFit',
+        CascadePhotonicsService=cascade_service,
+        Pulses='SplitInIcePulses',
+        Seed='CascadeLast_DC',
+        PhotonsPerBin=10, #10
+        Minimizer="SIMPLEX",
     )
 
     # Find coincident events (unsimulated)
