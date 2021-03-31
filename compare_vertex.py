@@ -7,6 +7,8 @@ f = h5py.File(input_file, 'r')
 SANTA_fit = f['SANTA_fit'][:]
 SANTA = f['SANTA_vertex'][:]
 Finite = f['Finite_vertex'][:]
+Retro = f['Retro_vertex'][:]
+Retro_fit = f['Retro_fit'][:]
 #LEERA_EM = f['LEERA_EM_vertex'][:]
 #LEERA_Had = f['LEERA_Had_vertex'][:]
 #LEERA_Mu = f['LEERA_Mu_vertex'][:]
@@ -18,7 +20,7 @@ true = f['True_vertex'][:]
 weights = f['weights'][:]
 f.close()
 del f
-
+"""
 input_file2 = "/mnt/home/micall12/LowEnergyNeuralNetwork/output_plots/energy_numu_flat_1_500_level6_cleanedpulses_IC19_CC_20000evtperbin_lrEpochs50_extended/L7_148885/prediction_values_oldGCD.hdf5"
 f = h5py.File(input_file2, 'r')
 retro = f["reco_test"][:]
@@ -26,11 +28,11 @@ retro_true = f["Y_test_use"][:]
 retro_weights = f["weights_test"][:]
 f.close()
 del f
-retro_weights = retro_weights[:,8]/9.
-
+retro_weights = retro_weights[:,8]
+"""
 save = True
 save_folder = '/mnt/home/micall12/LowEnergyNeuralNetwork/output_plots/Vertex_Test/'
-weights = weights/9.
+weights = weights
 
 
 def get_RMS(resolution,weights=None):
@@ -149,7 +151,8 @@ passed_L3 = np.logical_not(np.isnan(L3[:,0]))
 passed_HLC = np.logical_not(np.isnan(HLC[:,0]))
 passed_Cor = np.logical_not(np.isnan(Corridor[:,0]))
 passed_Mono = np.logical_not(np.isnan(Monopod[:,0]))
-passed =  np.logical_and(passed_SANTA,np.logical_and(passed_Finite, np.logical_and(passed_L3, np.logical_and(passed_HLC, np.logical_and(passed_Cor, passed_Mono)))))
+passed_Retro = Retro_fit == 1
+passed =  np.logical_and(Retro_fit, np.logical_and(passed_SANTA,np.logical_and(passed_Finite, np.logical_and(passed_L3, np.logical_and(passed_HLC, np.logical_and(passed_Cor, passed_Mono))))))
 
 #passed_LEERA = np.logical_not(np.isnan(LEERA_EM[:,0]))
 #passed = np.logical_and(passed_SANTA,np.logical_and(passed_Finite,passed_LEERA))
@@ -161,6 +164,7 @@ print("Passed L3 = %.3f"%(sum(passed_L3)/len(passed_L3)))
 print("Passed HLC = %.3f"%(sum(passed_HLC)/len(passed_HLC)))
 print("Passed Cor = %.3f"%(sum(passed_Cor)/len(passed_Cor)))
 print("Passed Mono = %.3f"%(sum(passed_Mono)/len(passed_Mono)))
+print("Passed Retro = %.3f"%(sum(passed_Retro)/len(passed_Retro)))
 
 passed_dict["Finite"] = Finite[passed]
 #passed_dict["LEERA"] = LEERA_Had[passed]
@@ -169,10 +173,11 @@ passed_dict["L3Guess"] = L3[passed]
 passed_dict["HLC"] = HLC[passed]
 passed_dict["CorridorWide"] = Corridor[passed]
 passed_dict["Monopod"] = Monopod[passed]
+passed_dict["Retro"] = Retro[passed]
 passed_truth = true[passed]
 passed_weights = weights[passed]
 #keys = ["Finite", "LEERA", "SANTA"]
-keys = ["Finite", "L3Guess", "SANTA", "HLC", "CorridorWide", "Monopod"]
+keys = ["Finite", "L3Guess", "SANTA", "HLC", "CorridorWide", "Monopod", "Retro"]
 
 #delta1 = np.isnan(passed_dict["Finite"])
 #delta2 = np.isnan(passed_dict["LEERA"])
@@ -180,11 +185,11 @@ keys = ["Finite", "L3Guess", "SANTA", "HLC", "CorridorWide", "Monopod"]
 #print(sum(delta1), "Finite has nans left")
 #print(sum(delta2),"LEERA has nans left")
 #print(sum(delta3), "SANTA")
-
-plot_resolution_from_dict(passed_truth,passed_dict,keys,\
-                            cut=None,weights=passed_weights,suptitle="All Passed SANTA Vertex",\
-                            savefolder=save_folder,save=save,bins=100,use_fraction=False)
 """
+plot_resolution_from_dict(passed_truth,passed_dict,keys,\
+                            cut=None,weights=passed_weights,suptitle="Passed All Recos",\
+                            savefolder=save_folder,save=save,bins=100,use_fraction=True)
+
 reco_name = ["Finite", "SANTA", "LEERA"]
 final_vertex = Finite
 reco_type = np.zeros(len(final_vertex))
@@ -212,10 +217,17 @@ print("Finite: %i, SANTA: %i, LEERA: %i"%(num_finite,num_santa,num_leera))
 num_finite = (santa_type == 0).sum()
 num_santa = (santa_type == 1).sum()
 print("Finite: %i, SANTA: %i"%(num_finite,num_santa))
-
-plot_resolution_from_dict(final_truth,final_dict,["LEERA SANTA FINITE","SANTA FINITE"],\
-                            cut=None,weights=final_weights,suptitle="Compare Mixed",\
-                                                        savefolder=save_folder,save=save,bins=100,use_fraction=False)
+"""
+final_dict = {}
+passed_two = np.logical_and(passed_Retro,passed_Mono)
+final_dict["Retro"] = Retro[passed_two]
+final_dict["HLC"] = HLC[passed_two]
+final_dict["Monopod"] = Monopod[passed_two]
+final_truth = true[passed_two]
+final_weights = weights[passed_two]
+plot_resolution_from_dict(final_truth,final_dict,["Retro","HLC", "Monopod"],\
+                            cut=None,weights=final_weights,suptitle="Compare Retro HLC Mono",\
+                                                        savefolder=save_folder,save=save,bins=100,use_fraction=True)
 """
 retro_dict = {}
 retro_dict["Retro"] = retro[:,4:7]
@@ -224,3 +236,4 @@ retro_truth = retro_true[:,4:7]
 plot_resolution_from_dict(retro_truth,retro_dict,["Retro"],\
                             cut=None,weights=retro_weights,suptitle="Retro",\
                                                                                     savefolder=save_folder,save=save,bins=100,use_fraction=False)
+"""

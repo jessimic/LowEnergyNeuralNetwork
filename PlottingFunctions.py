@@ -256,7 +256,7 @@ def plot_distributions_CCNC(truth_all_labels,truth,reco,save=False,savefolder=No
         plt.savefig("%sNNEnergyDistribution_CCNC.png"%savefolder)
     plt.close()
 
-def plot_distributions(truth,reco=None,save=False,savefolder=None,old_reco=None,weights=None,variable="Energy",units="(GeV)",reco_name="Retro", minval=None, maxval=None,bins=100,cnn_name="CNN",log=False):
+def plot_distributions(truth,reco=None,save=False,savefolder=None,old_reco=None,weights=None,variable="Energy",units="(GeV)",reco_name="Retro", minval=None, maxval=None,bins=100,cnn_name="CNN",log=False,old_reco_weights=None):
     """
     Plot testing set distribution
     Recieves:
@@ -269,35 +269,49 @@ def plot_distributions(truth,reco=None,save=False,savefolder=None,old_reco=None,
     Returns:
         1D histogram of variable's absolute distribution for truth and for reco overlaid
     """
-    if maxval is None:
+    if maxval is None and reco is not None:
         if old_reco is None:
             maxval = numpy.max([numpy.max(truth),numpy.max(reco)])
         else:
             maxval = numpy.max([numpy.max([numpy.max(truth),numpy.max(reco)]),numpy.max(old_reco)])
-    if minval is None:
+    else:
+        maxval = numpy.max(truth)
+    if minval is None and reco is not None:
         if old_reco is None:
             minval = numpy.min([numpy.min(truth),numpy.min(reco)])
         else:
             minval = numpy.min([numpy.min([numpy.min(truth),numpy.min(reco)]),numpy.min(old_reco)])
+    else:
+        minval = numpy.min(truth)
+    print("Using", minval, maxval)
     plt.figure(figsize=(10,7))
     name = ""
     if weights is not None:
-        name += "Weighted"
+        if old_reco_weights is None:
+            old_reco_weights = weights
+        #name += "Weighted"
+        weights_factor = 1e7
     plt.title("%s %s Distribution"%(name,variable),fontsize=25)
     plt.hist(truth, bins=bins,color='g',alpha=0.5,range=[minval,maxval],weights=weights,label="Truth");
     maskT = numpy.logical_and(truth > minval, truth < maxval)
     print("Truth Total: %i, Events in Plot: %i, Overflow: %i"%(len(truth),sum(maskT),len(truth)-sum(maskT)))
+    if weights is not None:
+        print("WEIGHTED Truth Total: %.2f, Events in Plot: %.2f, Overflow: %.2f"%(sum(weights)*weights_factor,sum(weights[maskT])*weights_factor,(sum(weights)-sum(weights[maskT]))*weights_factor))
     name += "T"
     if reco is not None:
         plt.hist(reco, bins=bins,color='b', alpha=0.5,range=[minval,maxval],weights=weights,label=cnn_name);
         name += "R"
         maskR = numpy.logical_and(reco > minval, reco < maxval)
         print("Reco Total: %i, Events in Plot: %i, Overflow: %i"%(len(reco),sum(maskR),len(reco)-sum(maskR)))
+        if weights is not None:
+            print("WEIGHTED Reco Total: %.2f, Events in Plot: %.2f, Overflow: %.2f"%(sum(weights)*weights_factor,sum(weights[maskR])*weights_factor,(sum(weights)-sum(weights[maskR]))*weights_factor))
     if old_reco is not None:
-        plt.hist(old_reco, bins=bins,color='orange', alpha=0.5,range=[minval,maxval],weights=weights,label=reco_name);
+        plt.hist(old_reco, bins=bins,color='orange', alpha=0.5,range=[minval,maxval],weights=old_reco_weights,label=reco_name);
         name += "OR"
         maskOR = numpy.logical_and(old_reco > minval, old_reco < maxval)
         print("Old Reco Total: %i, Events in Plot: %i, Overflow: %i"%(len(old_reco),sum(maskOR),len(old_reco)-sum(maskOR)))
+        if weights is not None:
+            print("WEIGHTED Old Reco Total: %.2f, Events in Plot: %.2f, Overflow: %.2f"%(sum(old_reco_weights)*weights_factor,sum(old_reco_weights[maskOR])*weights_factor,(sum(old_reco_weights)-sum(old_reco_weights[maskOR]))*weights_factor))
     plt.xlabel("%s (%s)"%(variable,units),fontsize=20)
     if log:
         plt.yscale("log")
@@ -383,8 +397,8 @@ def plot_2D_prediction(truth, nn_reco, \
         plt.ylabel("%s %s"%(new_labels[0],new_units[0]),fontsize=20)
         plt.xlabel("%s %s"%(new_labels[1],new_units[1]),fontsize=20)
     title = "%s vs %s for %s %s"%(reco_name,variable_type,variable,syst_set)
-    if weights is not None:
-        title += " Weighted"
+    #if weights is not None:
+    #    title += " Weighted"
     if epochs:
         title += " at %i Epochs"%epochs
     plt.suptitle(title,fontsize=25)
@@ -423,10 +437,10 @@ def plot_2D_prediction(truth, nn_reco, \
         plt.savefig("%s%s%sReco%s_2DHist%s%s.png"%(savefolder,variable_type,reco_name,variable,syst_set,nocut_name),bbox_inches='tight')
     plt.close()
 
-def plot_2D_prediction_fraction(truth, nn_reco, \
+def plot_2D_prediction_fraction(truth, nn_reco, weights=None,\
                             save=False,savefolder=None,syst_set="",\
-                            bins=60,minval=None,maxval=None,\
-                            cut_truth = False, axis_square =False,
+                            bins=60,xminval=None,xmaxval=None,\
+                            yminval=None,ymaxval=None,log=True,zmax=None,\
                             variable="Energy", units = "(GeV)",reco_name="CNN"):
     """
     Plot testing set reconstruction vs truth
@@ -439,81 +453,54 @@ def plot_2D_prediction_fraction(truth, nn_reco, \
         bins = int, number of bins plot (will use for both the x and y direction)
         minval = float, minimum value to cut (truth - nn_reco)/truth fractional results
         maxval = float, maximum value to cut (truth - nn_reco)/truth fractional results
-        cut_truth = bool, true if you want to make the value cut on truth rather than nn results
         variable = string, name of the variable you are plotting
         units = string, units for the variable you are plotting
     Returns:
         2D plot of True vs (True - Reco)/True
     """
-
+    
     fractional_error = abs(truth - nn_reco)/ truth
+   
+    nolim=False
+    if xminval is None:
+        xminval = min(truth)
+    if xmaxval is None:
+        nolim = True
+        xmaxval = max(truth)
+    if yminval is None:
+        yminval = min(fractional_error)
+    if ymaxval is None:
+        ymaxval = max(fractional_error)
     
-    if cut_truth:
-        if not minval:
-            minval = min(truth)
-        if not maxval:
-            maxval= max(truth)
-        mask1 = numpy.logical_and(truth >= minval, truth <= maxval)
-        if axis_square:
-            mask2 = numpy.logical_and(nn_reco >= minval, nn_reco <= maxval)
-            overflow = sum(mask1) - sum(mask2)
-            print("OVerflow: ",overflow)
-            mask = numpy.logical_and(mask1, mask2)
-        else:
-            mask = mask1
-        name = "True %s [%.2f, %.2f]"%(variable,minval,maxval)
-
+    if weights is None:
+        cmin = 1
     else:
-        if not minval:
-            minval = min(fractional_error)
-        if not maxval:
-            maxval= max(fractional_error)
-        mask = numpy.logical_and(fractional_error >= minval, fractional_error <= maxval)
-        name = "%s %s in Fractional Error [%.2f, %.2f]"%(reco_name,variable,minval,maxval)
-
-    #Check if cutting
-    cutting = False
-    if sum(mask)!= len(truth):
-        overflow = len(nn_reco)-sum(mask)
-        print("Making a cut for plotting, removing %i events"%(overflow))
-        cutting = True
-    maxplotline = min([max(nn_reco),max(truth)])
-    minplotline = max([min(nn_reco),min(truth)])
-    
-    truth = truth[mask]
-    fractional_error = fractional_error[mask]
+        cmin = 1e-12
     
     plt.figure(figsize=(10,7))
 
-    cts,xbin,ybin,img = plt.hist2d(truth, fractional_error, bins=bins)
+    if log:
+        cts,xbin,ybin,img = plt.hist2d(truth, fractional_error, bins=bins,range=[[xminval,xmaxval],[yminval,ymaxval]],cmap='viridis_r', norm=colors.LogNorm(), weights=weights, cmax=zmax, cmin=cmin)
+    else:
+        cts,xbin,ybin,img = plt.hist2d(truth, fractional_error, bins=bins,range=[[xminval,xmaxval],[yminval,ymaxval]],cmap='viridis_r', weights=weights, cmax=zmax, cmin=cmin)
     cbar = plt.colorbar()
     cbar.ax.set_ylabel('counts', rotation=90)
-    plt.set_cmap('viridis_r')
-    #plt.xlim(min(truth),max(truth))
-    #plt.ylim(min(fractional_truth),max(fractional_truth))
     
     plt.xlabel("True Neutrino %s %s"%(variable,units),fontsize=20)
     plt.ylabel(r'Fractional Resolution: $\frac{reconstruction - truth}{truth}$',fontsize=20)
-    plt.suptitle("%s Fractional Error vs. True %s %s"%(reco_name,variable,syst_set),fontsize=25)
-    if cutting:
-        plt.title("%s, plotted %i, overflow %i"%(name,len(truth),overflow),fontsize=20)
-        
-    #Plot 1:1 line
-    #if cutting == True:
-    #    plt.plot([minval,maxval],[minval,maxval],'k:',label="1:1")
-    #else:
-    #    plt.plot([minplotline,maxplotline],[minplotline,maxplotline],'k:',label="1:1")
+    plt.title("%s Fractional Error vs. True %s %s"%(reco_name,variable,syst_set),fontsize=25)
     
-    x, y, y_l, y_u = find_contours_2D(truth,fractional_error,xbin)
+    x, y, y_l, y_u = find_contours_2D(truth,fractional_error,xbin,weights=weights)
     plt.plot(x,y,color='r',label='Median')
     plt.plot(x,y_l,color='r',label='68% band',linestyle='dashed')
     plt.plot(x,y_u,color='r',linestyle='dashed')
     plt.legend(fontsize=12)
     
+    nocut_name = ""
     variable = variable.replace(" ","")
-    if cutting:
-        nocut_name = ""
-    else:
+    if weights is not None:
+        nocut_name="Weighted"
+    if nolim:
         nocut_name ="_nolim"
     if save:
         plt.savefig("%sTruth%sRecoFrac%s_2DHist%s%s.png"%(savefolder,reco_name,variable,syst_set,nocut_name),bbox_inches='tight')
@@ -569,7 +556,8 @@ def plot_single_resolution(truth,nn_reco,weights=None, \
                            mintrue=None,maxtrue=None,\
                            minaxis=None,maxaxis=None,\
                            save=False,savefolder=None,
-                           variable="Energy", units = "GeV", epochs=None,reco_name="CNN"):
+                           variable="Energy", units = "GeV", epochs=None,
+                           reco_name="CNN", old_reco_name="Retro"):
     """Plots resolution for dict of inputs, one of which will be a second reco
     Recieves:
         truth = array of truth or Y_test labels
@@ -599,6 +587,19 @@ def plot_single_resolution(truth,nn_reco,weights=None, \
         truth2 = truth
     else:
         truth2 = old_reco_truth
+    # NAN CUT FOR OLD RECO
+    #if old_reco is not None:
+    #    not_nan = numpy.logical_not(numpy.isnan(old_reco))
+    #    if sum(not_nan) != len(not_nan):
+    #        print("CUTTING NAN VALUES FROM OLD RECO")
+    #    old_reco = old_reco[not_nan]
+    #    truth2 = truth2[not_nan]
+    #    weights_reco = weights_reco[not_nan]
+    #Check nan
+    is_nan = numpy.isnan(old_reco)
+    assert sum(is_nan) == 0, "OLD RECO HAS NAN"
+    is_nan = numpy.isnan(nn_reco)
+    assert sum(is_nan) == 0, "CNN RECO HAS NAN"
     
     if use_fraction:
         nn_resolution = (nn_reco - truth)/truth
@@ -614,34 +615,10 @@ def plot_single_resolution(truth,nn_reco,weights=None, \
         xlabel = "reconstruction - truth %s"%units
     if epochs:
         title += " at %i Epochs"%epochs
-    if weights is not None:
-        title += " Weighted"
+    #if weights is not None:
+    #    title += " Weighted"
     original_size = len(nn_resolution)
  
-    # Cut on true values
-    #print(mintrue,maxtrue)
-    if mintrue or maxtrue:
-         truth_cut=True
-    else:
-         truth_cut=False
-    if not mintrue:
-        mintrue = int(min(truth))
-    if not maxtrue:
-        maxtrue = int(max(truth))+1
-    #print(mintrue,maxtrue,truth_cut)
-    if truth_cut:
-        true_mask = numpy.logical_and(truth >= mintrue, truth <= maxtrue)
-        title += "\n(true %s [%.2f, %.2f])"%(variable,mintrue,maxtrue)
-        nn_resolution = nn_resolution[true_mask]
-        if weights is not None:
-            weights = weights[true_mask]
-        if use_old_reco:
-            true2_mask = numpy.logical_and(truth2 >= mintrue, truth2 <= maxtrue)
-            old_reco_resolution = old_reco_resolution[true2_mask]
-            if weights is not None:
-                weights_reco = weights_reco[true2_mask]
-    true_cut_size=len(nn_resolution)
-    
     
     #Get stats before axis cut!
     rms_nn = get_RMS(nn_resolution,weights)
@@ -664,55 +641,37 @@ def plot_single_resolution(truth,nn_reco,weights=None, \
             median_old_reco = numpy.median(old_reco_resolution)
 
 
-    # Cut for plot axis
+    # Find cut for plot axis
     #print(minaxis,maxaxis)
+    axis_cut = False
     if minaxis or maxaxis:
-        axis_cut=True
-    else:
-        axis_cut=False
+        axis_cut = True
     if not minaxis:
-        axis_cut=True
         minaxis = min(nn_resolution)
         if use_old_reco:
             if minaxis > min(old_reco_resolution):
-                    minaxis = min(old_reco_resolution)
+                minaxis = min(old_reco_resolution)
     if not maxaxis:
-        axis_cut=True
         maxaxis = max(nn_resolution)
         if use_old_reco:
             if maxaxis < max(old_reco_resolution):
-                    maxaxis = max(old_reco_resolution)
-    if axis_cut:
-        axis_mask = numpy.logical_and(nn_resolution >= minaxis, nn_resolution <= maxaxis)
-        nn_resolution = nn_resolution[axis_mask]
-        if weights is not None:
-            weights = weights[axis_mask]
-        if use_old_reco:
-            reco_axis_mask = numpy.logical_and(old_reco_resolution >= minaxis, old_reco_resolution <= maxaxis)
-            old_reco_resolution = old_reco_resolution[reco_axis_mask]
-            reco_len = len(old_reco_resolution)
-            if weights is not None:
-                weights_reco = weights_reco[reco_axis_mask]
-           
-    true_axis_cut_size=len(nn_resolution)
+                maxaxis = max(old_reco_resolution)
+    
 
-    cnn_name = "Neural Network"
-    #cnn_name = "CNN"
-    hist_nn, bins, p = ax.hist(nn_resolution, bins=bins, range=[minaxis,maxaxis], weights=weights, alpha=0.5, label=cnn_name);
-    if use_old_reco:
-        stats1_label = cnn_name
-        
-    else:
-        stats1_label = reco_name
+    hist_nn, bins, p = ax.hist(nn_resolution, bins=bins, range=[minaxis,maxaxis], weights=weights, alpha=0.5, label=reco_name);
+    weights_factor = 1 #1e7
+    total_events = len(weights) #sum(weights)
+    outside_range = numpy.logical_or(nn_resolution < minaxis, nn_resolution > maxaxis)
+    overflow = sum(outside_range) #sum(weights[outside_range])
 
     #Statistics
     #weighted_avg_and_std(nn_resolution,weights)
     
     textstr = '\n'.join((
-            r'%s' % (stats1_label),
-            r'$\mathrm{events}=%i$' % (len(nn_resolution), ),
+            r'%s' % (reco_name),
+            r'$\mathrm{events}=%.0f$' % (total_events*weights_factor, ),
             r'$\mathrm{median}=%.2f$' % (median, ),
-            r'$\mathrm{overflow}=%i$' % (true_cut_size-true_axis_cut_size, ),
+            r'$\mathrm{overflow}=%.0f$' % (overflow*weights_factor, ),
             r'$\mathrm{RMS}=%.2f$' % (rms_nn, ),
             r'$\mathrm{1\sigma}=%.2f,%.2f$' % (r1,r2 )))
     props = dict(boxstyle='round', facecolor='blue', alpha=0.3)
@@ -720,13 +679,16 @@ def plot_single_resolution(truth,nn_reco,weights=None, \
         verticalalignment='top', bbox=props)
 
     if use_old_reco:
-        ax.hist(old_reco_resolution, bins=bins, range=[minaxis,maxaxis], weights=weights_reco, alpha=0.5, label="%s"%reco_name);
+        ax.hist(old_reco_resolution, bins=bins, range=[minaxis,maxaxis], weights=weights_reco, alpha=0.5, label="%s"%old_reco_name);
+        total_events_reco = len(weights_reco) #sum(weights_reco) #len(weights_reco)
+        outside_range_reco = numpy.logical_or(old_reco_resolution < minaxis, old_reco_resolution > maxaxis)
+        overflow_reco = sum(outside_range_reco) #sum(weights_reco[outside_range_reco]) #sum(outside_range_reco)
         ax.legend(loc="upper left",fontsize=20)
         textstr = '\n'.join((
-            '%s' % (reco_name),
-            r'$\mathrm{events}=%i$' % (len(old_reco_resolution), ),
+            '%s' % (old_reco_name),
+            r'$\mathrm{events}=%.0f$' % (total_events_reco*weights_factor, ),
             r'$\mathrm{median}=%.2f$' % (median_old_reco, ),
-            r'$\mathrm{overflow}=%i$' % (true_cut_size_reco-reco_len, ),
+            r'$\mathrm{overflow}=%.0f$' % (overflow_reco*weights_factor, ),
             r'$\mathrm{RMS}=%.2f$' % (rms_old_reco, ),
             r'$\mathrm{1\sigma}=%.2f,%.2f$' % (r1_old_reco,r2_old_reco )))
         props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
@@ -738,15 +700,13 @@ def plot_single_resolution(truth,nn_reco,weights=None, \
     ax.set_xlabel(xlabel,fontsize=20)
     ax.set_title(title,fontsize=25)
 
-    reco_name = reco_name.replace(" ","")
+    old_reco_name = old_reco_name.replace(" ","")
     variable = variable.replace(" ","")
     savename = "%sResolution"%variable
     if weights is not None:
         savename+="Weighted"
     if use_fraction:
         savename += "Frac"
-    if truth_cut:
-        savename = "_Range%.2f_%.2f"%(mintrue,maxtrue)
     if use_old_reco:
         savename += "_Compare%sReco"%reco_name
     if axis_cut:
@@ -755,17 +715,18 @@ def plot_single_resolution(truth,nn_reco,weights=None, \
         plt.savefig("%s%s.png"%(savefolder,savename),bbox_inches='tight')
     plt.close()
 
-def plot_compare_resolution(truth,nn_reco,namelist, savefolder=None,\
-                            num_namelist = None,save=False,bins=100,use_fraction=False):
+def plot_compare_resolution(truth,nn_reco,namelist, weights_dict=None, savefolder=None,\
+                            save=False,bins=100,use_fraction=False, mask_dict=None,mask_index=None,
+                            minval=None,maxval=None,reco_name="CNN",variable="Energy",units="(GeV)"):
     """Plots resolution for dict of inputs
     Receives:
         truth = dict of truth or Y_test labels
                 (contents = [key name, energy], shape = [number syst sets, number of events])
         nn_reco = dict of NN predicted or Y_test_predicted results
                     (contents = [key name, energy], shape = [number syst sets, number of events])
+        weights = dict of weights
         namelist = list of names for the dict, to use as pretty labels
         save_folder_name = string for output file
-        num_namelist = shorthand for names of sets (numerical version), for printing
         save = bool where True saves and False does not save plot
         bins = int value
         use_fraction: bool, uses fractional resolution if True
@@ -773,56 +734,106 @@ def plot_compare_resolution(truth,nn_reco,namelist, savefolder=None,\
         Histograms of resolutions for systematic sets, overlaid
         Prints statistics for all histograms into table
     """
+
+    if weights_dict is not None:
+        import wquantiles as wq
+
     
     print("Resolution")
-    print('Name\t Mean\t Median\t RMS\t Percentiles\t')
+    print('Name\t Events\t Overflow\t Mean\t Median\t RMS\t Percentiles\t')
     plt.figure(figsize=(10,7)) 
     if use_fraction:
-        title = "Fractional Energy Resolution"
-        xlabel = "(NN reconstruction - truth) / truth"
-        plt.legend(fontsize=20)
+        title = "%s Fractional %s Resolution"%(reco_name,variable)
+        xlabel = "(reconstruction - truth) / truth"
     else:
-        title = "Energy Resolution"
-        xlabel = "NN reconstruction - truth (GeV)"
-        plt.legend(loc=9, bbox_to_anchor=(0.5, -0.1), ncol=2)
-    
+        title = "%s %s Resolution"%(reco_name, variable)
+        xlabel = "reconstruction - truth %s"%units
+   
+    find_minval = True
+    find_maxval = True
+    if minval is not None:
+        find_minval = False
+    if maxval is not None:
+        find_maxval = False
+        
+    resolution = {} 
     for index in range(0,len(namelist)):
-        keyname = "file_%i"%index
+        keyname = namelist[index]
+        #if mask_dict is None:
+        #    mask = numpy.ones(len(truth[keyname]),dtype=bool)
+        #else:
+        #    mask = mask_dict[keyname][mask_index]
         if use_fraction:
-            resolution = (nn_reco[keyname] - truth[keyname]) / truth[keyname]
+            resolution[keyname] = (nn_reco[keyname] - truth[keyname]) / truth[keyname]
         else:
-            resolution = nn_reco[keyname] - truth[keyname]
-        plt.hist(resolution, bins=60, alpha=0.5, label="%s"%namelist[index]);
+            resolution[keyname] = nn_reco[keyname] - truth[keyname]
         
-        #Statistics
-        rms = get_RMS(resolution)
-        #r1, r2 = get_FWHM(resolution,bins)
-        r1, r2 = numpy.percentile(resolution, [16,84])
+        if find_minval:
+            if index == 0:
+                minval = min(resolution[keyname])
+            if minval > min(resolution[keyname]):
+                minval = min(resolution[keyname])
+        if find_maxval:
+            if index == 0:
+                maxval = max(resolution[keyname])
+            if maxval < max(resolution[keyname]):
+                maxval = max(resolution[keyname])
+    
+    #Get Statistics & Plot
+    for index in range(0,len(namelist)):
+        keyname = namelist[index]
+        #if mask_dict is None:
+        #    mask = numpy.ones(len(truth[keyname]),dtype=bool)
+        #else:
+        #    mask = mask_dict[keyname][mask_index]
         
-        if num_namelist:
-            names = num_namelist
+        rms = get_RMS(resolution[keyname],weights_dict[keyname])
+        if weights_dict is not None:
+            r1 = wq.quantile(resolution[keyname],weights_dict[keyname],0.16)
+            r2 = wq.quantile(resolution[keyname],weights_dict[keyname],0.84)
+            median = wq.median(resolution[keyname],weights_dict[keyname])
         else:
-            names = namelist
+            r1, r2 = numpy.percentile(resolution[keyname], [16,84])
+            median = numpy.median(resolution[keyname])
+
+        total_events = len(resolution[keyname]) #sum(weights_dict[keyname][mask])
+        outside_range = numpy.logical_or(resolution[keyname] < minval, resolution[keyname] > maxval)
+        #masked_weights=weights_dict[keyname]
+        overflow = sum(outside_range) #sum(masked_weights[outside_range])
+        weights_factor = 1 #1e7
+
+        plt.hist(resolution[keyname], range=[minval,maxval],bins=bins, alpha=0.5, label="%s"%namelist[index]);
             
-        print("%s\t %.2f\t %.2f\t %.2f\t %.2f, %.2f\t"%(names[index], \
-                                                        numpy.mean(resolution),\
-                                                        numpy.median(resolution),\
+        print("%s\t %.0f\t %.0f\t %.2f\t %.2f\t %.2f, %.2f\t"%(namelist[index], \
+                                                        total_events*weights_factor,\
+                                                        overflow*weights_factor,\
+                                                        median,\
                                                         rms,\
                                                         r1, r2))
     plt.title(title)    
     plt.xlabel(xlabel)
+    if use_fraction:
+        plt.legend(fontsize=20)
+
+    else:
+        plt.legend(loc=9, bbox_to_anchor=(0.5, -0.1), ncol=2)
     
+    basename=""
+    if weights_dict is not None:
+        basename += "Weighted"
+    if use_fraction:
+        basename += "Frac"
+    basename += "%sResolution_CompareSets%s"%(variable,reco_name)
     if save:
-        if use_fraction:
-            plt.savefig("%sFractionalEnergyResolution_CompareSets.png"%savefolder)
-        else:
-            plt.savefig("%sEnergyResolution_CompareSets.png"%savefolder)
+        plt.savefig("%s%s.png"%(savefolder,basename))
     plt.close()
 
-def plot_systematic_slices(truth_dict, nn_reco_dict,\
-                           namelist, use_fraction=False, \
-                           use_old_reco = False, old_reco_dict=None,\
-                           save=False,savefolder=None):
+def plot_systematic_slices(truth_dict, nn_reco_dict, namelist,
+                           weights_dict = None, use_fraction=False,
+                           mask_dict=None, mask_index=None,title=None,\
+                           use_old_reco = False, old_reco_dict=None,
+                           old_reco_weights_dict = None, old_reco_truth_dict = None,\
+                           save=False,savefolder=None,cnn_name="CNN",old_reco_name="Retro"):
     """Plots different arrays vs each other (systematic set arrays)
     Receives:
         truth_dict = dict of arrays with truth labels
@@ -838,6 +849,12 @@ def plot_systematic_slices(truth_dict, nn_reco_dict,\
         "scatter plot" with systematic sets on x axis,
         y axis has median of resolution with error bars containing 68% of resolution
     """
+    if weights_dict is not None:
+        if old_reco_weights_dict is None:
+            old_reco_weights_dict = weights_dict
+    if old_reco_dict is not None:
+        if old_reco_truth_dict is None:
+            old_reco_truth_dict = truth_dict
     
     number_sets = len(namelist)
     percentile_in_peak = 68.27
@@ -850,21 +867,31 @@ def plot_systematic_slices(truth_dict, nn_reco_dict,\
     err_to   = numpy.zeros(number_sets)
     
     if use_old_reco:
-        medians_old_reco  = numpy.zeros(number_sets)
-        err_from_old_reco = numpy.zeros(number_sets)
-        err_to_old_reco   = numpy.zeros(number_sets)
+        medians_reco  = numpy.zeros(number_sets)
+        err_from_reco = numpy.zeros(number_sets)
+        err_to_reco   = numpy.zeros(number_sets)
     
     resolution = {}
     for index in range(0,number_sets):
-        keyname = "file_%i"%index
+        keyname = namelist[index]
+        #if mask_dict is None:
+        #    mask = numpy.ones(len(truth_dict[keyname]),dtype=bool)
+        #else:
+        #    mask = mask_dict[keyname][mask_index]
         if use_fraction:
             resolution = (nn_reco_dict[keyname] - truth_dict[keyname])/truth_dict[keyname]
         else:
             resolution = (nn_reco_dict[keyname] - truth_dict[keyname])
     
-        lower_lim = numpy.percentile(resolution, left_tail_percentile)
-        upper_lim = numpy.percentile(resolution, right_tail_percentile)
-        median = numpy.percentile(resolution, 50.)
+        if weights_dict is not None:
+            import wquantiles as wq
+            lower_lim = wq.quantile(resolution,weights_dict[keyname],0.16)
+            upper_lim = wq.quantile(resolution,weights_dict[keyname],0.84)
+            median = wq.median(resolution,weights_dict[keyname])
+        else:
+            lower_lim = numpy.percentile(resolution, left_tail_percentile)
+            upper_lim = numpy.percentile(resolution, right_tail_percentile)
+            median = numpy.percentile(resolution, 50.)
         
         medians[index] = median
         err_from[index] = lower_lim
@@ -872,13 +899,18 @@ def plot_systematic_slices(truth_dict, nn_reco_dict,\
     
         if use_old_reco:
             if use_fraction:
-                resolution_old_reco = ((old_reco_dict[keyname]-truth_dict[keyname])/truth_dict[keyname])
+                resolution_old_reco = ((old_reco_dict[keyname]-old_reco_truth_dict[keyname])/old_reco_truth_dict[keyname])
             else:
-                resolution_old_reco = (old_reco_dict[keyname]-truth_dict[keyname])
+                resolution_old_reco = (old_reco_dict[keyname]-old_reco_truth_dict[keyname])
             
-            lower_lim_reco = numpy.percentile(resolution_old_reco, left_tail_percentile)
-            upper_lim_reco = numpy.percentile(resolution_old_reco, right_tail_percentile)
-            median_reco = numpy.percentile(resolution_old_reco, 50.)
+            if weights_dict is not None:
+                lower_lim_reco = wq.quantile(resolution_old_reco,old_reco_weights_dict[keyname],0.16)
+                upper_lim_reco = wq.quantile(resolution_old_reco,old_reco_weights_dict[keyname],0.84)
+                median_reco = wq.median(resolution_old_reco,old_reco_weights_dict[keyname])
+            else:
+                lower_lim_reco = numpy.percentile(resolution_old_reco, left_tail_percentile)
+                upper_lim_reco = numpy.percentile(resolution_old_reco, right_tail_percentile)
+                median_reco = numpy.percentile(resolution_old_reco, 50.)
             
             medians_reco[index] = median_reco
             err_from_reco[index] = lower_lim_reco
@@ -887,11 +919,10 @@ def plot_systematic_slices(truth_dict, nn_reco_dict,\
 
     x_range = numpy.linspace(1,number_sets,number_sets)
     
-    cnn_name = "Neural Network"
     fig, ax = plt.subplots(figsize=(10,7))
-    plt.errorbar(x_range, medians, yerr=[medians-err_from, err_to-medians],  capsize=5.0, fmt='o',label=cnn_name)
+    plt.errorbar(x_range, medians, yerr=[medians-err_from, err_to-medians],  capsize=5.0, fmt='o',label="%s"%cnn_name)
     if use_old_reco:
-        plt.errorbar(x_range, medians_reco, yerr=[medians_reco-err_from_reco, err_to_reco-medians_reco], capsize=5.0,fmt='o',label="Pegleg Reco")
+        plt.errorbar(x_range, medians_reco, yerr=[medians_reco-err_from_reco, err_to_reco-medians_reco], capsize=5.0,fmt='o',label="%s"%old_reco_name)
         plt.legend(loc="upper right")
     ax.plot([0,number_sets+1], [0,0], color='k')
     ax.set_xlim(0,number_sets+1)
@@ -908,19 +939,23 @@ def plot_systematic_slices(truth_dict, nn_reco_dict,\
         ax.set_ylabel(r'Fractional Resolution: $\frac{reconstruction - truth}{truth}$')
     else:
         ax.set_ylabel("Resolution: \n reconstruction - truth (GeV)")
-    ax.set_title("Resolution Energy Dependence")
+    ax.set_title("%s"%title)
     
-    savename = "SystematicResolutionCompare"
+    savename = ""
+    if weights_dict is not None:
+        savename += "Weighted"
     if use_fraction:
         savename += "Frac"
     if use_old_reco:
         savename += "_CompareOldReco"
+    savename += "SystematicResolutionCompare"
     if save == True:
         plt.savefig("%s%s.png"%(savefolder,savename))
     plt.close()
 
 def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
-                       use_fraction = False, old_reco=None,old_reco_truth=None, reco_energy_truth=None,old_reco_weights=None,\
+                       use_fraction = False, old_reco=None,old_reco_truth=None,\
+                       reco_energy_truth=None,old_reco_weights=None,\
                        bins=10,min_val=0.,max_val=60., ylim = None,\
                        save=False,savefolder=None,vs_predict=False,\
                        variable="Energy",units="(GeV)",xvariable="Energy",xunits="(GeV)",\
@@ -957,6 +992,24 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
         energy_truth2 = numpy.array(energy_truth)
     else:
         energy_truth2 = numpy.array(reco_energy_truth)
+    #Check nan
+    is_nan = numpy.isnan(old_reco)
+    assert sum(is_nan) == 0, "OLD RECO HAS NAN"
+    is_nan = numpy.isnan(nn_reco)
+    assert sum(is_nan) == 0, "CNN RECO HAS NAN"
+    
+    # NAN CUT FOR OLD RECO
+    #if old_reco is not None:
+    #    not_nan = numpy.logical_not(numpy.isnan(old_reco))
+    #    if sum(not_nan) != len(not_nan):
+    #        print("CUTTING NAN VALUES FROM OLD RECO")
+    #    old_reco = old_reco[not_nan]
+    #    truth2 = truth2[not_nan]
+    #    if reco_weights is not None:
+    #        reco_weights = reco_weights[not_nan]
+    #    if energy_truth is not None:
+    #        energy_truth2 = energy_truth2[not_nan]
+
 
     if use_fraction:
         resolution = ((nn_reco-truth)/truth) # in fraction
@@ -1080,7 +1133,7 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
 def plot_rms_slices(truth, nn_reco, energy_truth=None, use_fraction = False,  \
                        old_reco=None,old_reco_truth=None, reco_energy_truth=None,\
                        bins=10,min_val=0.,max_val=60., ylim = None,weights=None,\
-                       save=False,savefolder=None,\
+                       old_reco_weights=None,save=False,savefolder=None,\
                        variable="Energy",units="(GeV)",epochs=None,reco_name="PegLeg"):
     """Plots different variable slices vs each other (systematic set arrays)
     Receives:
@@ -1108,6 +1161,9 @@ def plot_rms_slices(truth, nn_reco, energy_truth=None, use_fraction = False,  \
         energy_truth2 = numpy.array(energy_truth)
     else:
         energy_truth2 = numpy.array(reco_energy_truth)
+    if weights is not None:
+        if old_reco_weights is None:
+            old_reco_weights = weights
 
     if use_fraction:
         resolution = ((nn_reco-truth)/truth) # in fraction
@@ -1132,10 +1188,9 @@ def plot_rms_slices(truth, nn_reco, energy_truth=None, use_fraction = False,  \
         var_from = variable_ranges[i]
         var_to   = variable_ranges[i+1]
         
-        if weights is None:
-            title=""
-        else:
-            title="Weighted "
+        title=""
+        #else:
+        #    title="Weighted "
         if energy_truth is None:
             title+="%s RMS Resolution Dependence"%(variable)
             cut = (truth >= var_from) & (truth < var_to)
@@ -1149,13 +1204,14 @@ def plot_rms_slices(truth, nn_reco, energy_truth=None, use_fraction = False,  \
 
         if weights is not None:
             weight_here = weights[cut]
+            reco_weight_here = old_reco_weights[cut2]
         else:
             weight_here = None
         rms = get_RMS(resolution[cut],weight_here)
         rms_all[i] = rms
        
         if old_reco is not None:
-            rms_reco = get_RMS(resolution_reco[cut],weight_here)
+            rms_reco = get_RMS(resolution_reco[cut2],reco_weight_here)
             rms_reco_all[i] = rms_reco
 
     #cnn_name = "CNN"

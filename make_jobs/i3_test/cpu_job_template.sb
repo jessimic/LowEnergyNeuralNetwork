@@ -2,7 +2,7 @@
 
 ########### SBATCH Lines for Resource Request ##########
 
-#SBATCH --time=00:19:00             # limit of wall clock time - how long the job will run (same as -t)
+#SBATCH --time=03:59:00             # limit of wall clock time - how long the job will run (same as -t)
 #SBATCH --nodes=1                 # number of different nodes - could be an exact number or a range of nodes (same as -N)
 #SBATCH --mem=20G            # memory required per allocated CPU (or core) - amount of memory (in bytes)
 #SBATCH --job-name i3_test      # you can give your job a name for easier identification (same as -J)
@@ -10,6 +10,6 @@
 
 ########### Command Lines to Run ##################
 
-singularity exec -B /mnt/scratch/micall12:/mnt/scratch/micall12 --nv /mnt/research/IceCube/Software/icetray_stable-tensorflow.sif sh -c '/usr/local/icetray/env-shell.sh python /mnt/home/micall12/LowEnergyNeuralNetwork/CNN_Test_i3.py -i @@file@@ -o /mnt/research/IceCube/jmicallef/FLERCNN_i3_output/ --model_name @@model_name@@ --variable @@variable@@ -e @@epoch@@ --factor @@factor@@ --model_name2 @@model_name2@@--epoch2 @@epoch2@@ --model_name3 @@model_name3@@ --epoch3 @@epoch3@@ --cleaned True'
+singularity exec -B /mnt/scratch/micall12:/mnt/scratch/micall12 --nv /mnt/research/IceCube/Software/icetray_stable-tensorflow.sif sh -c '/usr/local/icetray/env-shell.sh python /mnt/home/micall12/LowEnergyNeuralNetwork/CNN_Test_i3.py -i @@file@@ -o /mnt/scratch/micall12/temp/ --model_name @@model_name@@ --variable @@variable@@ -e @@epoch@@ --factor @@factor@@ --model_name2 @@model_name2@@ --epochs2 @@epoch2@@ --model_name3 @@model_name3@@ --epochs3 @@epoch3@@ --cleaned True'
 
 exit $?

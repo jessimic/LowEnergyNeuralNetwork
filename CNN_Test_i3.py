@@ -410,7 +410,7 @@ def test_write(filename_list, model_name,output_dir, output_name, model_name2=No
         
         if model_name3 is not None:
             t0 = time.time()
-            prediction3 = cnn_test(DC_array, IC_near_DC_array, model_name3,model_type=model_type2)
+            prediction3 = cnn_test(DC_array, IC_near_DC_array, model_name3,model_type=model_type3)
             t1 = time.time()
             print("Time to run CNN Test 3 on %i events: %f seconds"%(DC_array.shape[0],t1-t0))
 

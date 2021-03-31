@@ -10,6 +10,6 @@
 ########### Command Lines to Run ##################
 source /mnt/home/micall12/setup_combo_stable.sh
 
-python /mnt/home/micall12/LowEnergyNeuralNetwork/pull_labels_i3_to_hdf5.py -i "/mnt/research/IceCube/jmicallef/FLERCNN_i3_output/oscNext_genie_level7_v02.00_pass2.1?0000.*_FLERCNN_class.i3.zst" -o /mnt/home/micall12/LowEnergyNeuralNetwork/output_plots/PID_level6_cleanedpulses_IC19_E5to200_30000evtperbin_sigmoid_binarycross_lrEpochs50/L7_official_NuENuMu/ --variable class
+python /mnt/home/micall12/LowEnergyNeuralNetwork/pull_test_labels_i3_to_hdf5.py -i "/mnt/research/IceCube/jmicallef/FLERCNN_i3_output/oscNext_genie_level7_v02.00_pass2.1[2,4]0000.*_FLERCNN_energy_class_zenith.i3.zst" -o /mnt/home/micall12/LowEnergyNeuralNetwork/output_plots/Test_Level6.5/L7_official_NuENuMu/ --variable energy --variable2 class --variable3 zenith
 
 exit $?

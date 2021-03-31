@@ -24,6 +24,7 @@ else:
 event_file_names = sorted(glob.glob(input_files))
 assert event_file_names,"No files loaded, please check path."
 do_LEERA = False
+do_retro = True
 
 counter = 0
 SANTA_zero = 0
@@ -40,6 +41,9 @@ CorridorWide = []
 Corridor = []
 Monopod = []
 MPE = []
+if do_retro:
+    Retro_fit = []
+    Retro = []
 True_vertex = []
 weights = []
 print("Using %i files"%len(event_file_names))
@@ -62,6 +66,17 @@ for count, event_file_name in enumerate(event_file_names):
             #corridor_vertex = frame['L6_CorridorCutTrack'].pos
             monopod_vertex = frame['MonopodFit'].pos
             #MPE_vertex = frame['MPEFitMuEX'].pos
+
+            if do_retro:
+                retro_fit = ( "retro_crs_prefit__fit_status" in frame ) and frame["retro_crs_prefit__fit_status"] == 0
+                if retro_fit:
+                    retro_x = frame['L7_reconstructed_vertex_x'].value
+                    retro_y = frame['L7_reconstructed_vertex_y'].value
+                    retro_z = frame['L7_reconstructed_vertex_z'].value
+                else:
+                    retro_x = np.nan
+                    retro_y = np.nan
+                    retro_z = np.nan
 
             #Finite REco
             Finite_x = frame['FiniteRecoFit'].pos.x
@@ -117,6 +132,9 @@ for count, event_file_name in enumerate(event_file_names):
                 LEERA_EM_vertex.append( np.array( [float(Cascade_EM_x), float(Cascade_EM_y), float(Cascade_EM_z) ]) )
                 LEERA_Had_vertex.append( np.array( [float(Cascade_Had_x), float(Cascade_Had_y), float(Cascade_Had_z) ]) )
                 LEERA_Mu_vertex.append( np.array( [float(Muon_x), float(Muon_y), float(Muon_z) ]) )
+            if do_retro:
+                Retro_fit.append(retro_fit)
+                Retro.append( np.array( [float(retro_x), float(retro_y), float(retro_z)]) )
             True_vertex.append( np.array( [float(nu_x), float(nu_y), float(nu_z) ]) )
 
             counter +=1
@@ -131,6 +149,9 @@ if do_LEERA:
     f.create_dataset("LEERA_EM_vertex", data=LEERA_EM_vertex)
     f.create_dataset("LEERA_Had_vertex", data=LEERA_Had_vertex)
     f.create_dataset("LEERA_Mu_vertex", data=LEERA_Mu_vertex)
+if do_retro:
+    f.create_dataset("Retro_vertex", data=Retro)
+    f.create_dataset("Retro_fit", data=Retro_fit)
 f.create_dataset("True_vertex", data=True_vertex)
 f.create_dataset("L3_vertex", data=L3)
 #f.create_dataset("MPE_vertex", data=MPE)

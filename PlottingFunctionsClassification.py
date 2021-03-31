@@ -85,8 +85,8 @@ def plot_classification_hist(truth,prediction,reco=None,reco_mask=None,mask=None
     binary_casc = prediction < threshold_casc
 #    print("True Track Rate: %.2f, False Track Rate: %.2f"%)
     print("Events predicted to be track: ", sum(binary_track), "number of true tracks there: ", sum(np.logical_and(maskTrack,binary_track)), "number of true cascades there: ", sum(np.logical_and(maskCascade,binary_track)))
-    ax.axvline(threshold_track,linewidth=3,color='green',label=r'10% Track Contamination')
-    ax.axvline(threshold_casc,linewidth=3,color='blue',label=r'10% Cascade Contamination')
+    #ax.axvline(threshold_track,linewidth=3,color='green',label=r'10% Track Contamination')
+    #ax.axvline(threshold_casc,linewidth=3,color='blue',label=r'10% Cascade Contamination')
 
     ax.legend(fontsize=20)
 
@@ -124,14 +124,14 @@ def precision(truth, prediction, reco=None, mask=None, mask_name="", reco_mask =
         
 
     fig, ax = plt.subplots(1,2,figsize=(10,7))
-    ax[0].plot(t,p,'g-',label="CNN")
-    ax[0].axvline(threshold_track,linewidth=3,color='black',label=r'10% Contamination CNN')
+    ax[0].plot(t,p[:-1],'g-',label="CNN")
+    #ax[0].axvline(threshold_track,linewidth=3,color='black',label=r'10% Contamination CNN')
     if reco is not None:
-        ax[0].plot(t2,p2,'orange',linestyle="-",label="%s"%reco_name)
-        ax[0].axvline(best2,'k:',linewidth=3,label=r'10% Contamination' + " %s"%reco_name)
+        ax[0].plot(t2,p2[:-1],'orange',linestyle="-",label="%s"%reco_name)
+        #ax[0].axvline(best2,linewidth=3,label=r'10% Contamination' + " %s"%reco_name)
         ax[0].legend(fontsize=20)
-    ax[0].set_ylabel("Precision = TP/(TP + FP)",fontize=20)
-    ax[0].set_xlabel("Threshold Cut",fontize=20)
+    ax[0].set_ylabel("Precision = TP/(TP + FP)")
+    ax[0].set_xlabel("Threshold Cut")
     ax[0].set_title("Track Precision")
    
     inverse = np.ones(len(prediction)) - prediction
@@ -143,14 +143,14 @@ def precision(truth, prediction, reco=None, mask=None, mask_name="", reco_mask =
         p4, r4, t4 = precision_recall_curve(np.logical_not(truth), inverse_reco)
         index4 = (p4 - (1.0 - contamination)).argmin()
         best4 = t4[index4]
-    ax[1].plot(t_casc,p_casc,'b-',label="CNN")
-    ax[1].axvline(t_casc,linewidth=3,color='black',label=r'10% Contamination CNN')
+    ax[1].plot(t_casc,p_casc[:-1],'b-',label="CNN")
+    #ax[1].axvline(threshold_casc,linewidth=3,color='black',label=r'10% Contamination CNN')
     if reco is not None:
-        ax[1].plot(t4,p4,'orange',linestyle="-",label="%s"%reco_name)
-        ax[1].axvline(best4,'k:',linewidth=3,label=r'10% Contamination' + " %s"%reco_name)
+        ax[1].plot(t4,p4[:-1],'orange',linestyle="-",label="%s"%reco_name)
+        #ax[1].axvline(best4,linewidth=3,label=r'10% Contamination' + " %s"%reco_name)
         ax[1].legend(fontsize=20)
-    ax[1].set_ylabel("Precision = TP/(TP + FP)",fontize=20)
-    ax[1].set_xlabel("Threshold Cut",fontize=20)
+    ax[1].set_ylabel("Precision = TP/(TP + FP)")
+    ax[1].set_xlabel("Threshold Cut")
     ax[1].set_title("Cascade Precision")
 
     name="%s"%mask_name
@@ -159,7 +159,7 @@ def precision(truth, prediction, reco=None, mask=None, mask_name="", reco_mask =
     if save:
         plt.savefig("%sPrecision%s.png"%(save_folder_name,name))
 
-def ROC(truth, prediction,reco=None,mask=None,mask_name="",reco_mask=None,save=True,save_folder_name=None,reco_name="Retro",contamination=0.1):
+def ROC(truth, prediction,reco=None,reco_truth=None,mask=None,mask_name="",reco_mask=None,save=True,save_folder_name=None,reco_name="Retro",contamination=0.1):
 
     if mask is not None:
         print(sum(mask)/len(truth))
@@ -167,16 +167,20 @@ def ROC(truth, prediction,reco=None,mask=None,mask_name="",reco_mask=None,save=T
         prediction = prediction[mask]
         if reco is not None:
             if reco_mask is None:
-                reco = reco[mask]
+                reco_mask = mask
+            reco = reco[reco_mask]
+            if reco_truth is None:
+                reco_truth = truth
             else:
-                reco = reco[reco_mask]
+                reco_truth = reco_truth[reco_mask]
+
     print("Fraction of true tracks: %.3f"%(sum(truth)/len(truth)))
     
     # Find ROC Curve + Stats
     fpr, tpr, thresholds = roc_curve(truth, prediction)
     auc = roc_auc_score(truth, prediction)
     threshold_track, threshold_casc, rates_t, rates_c = find_thresholds(truth, prediction, contamination)
-    print('AUC: %.3f' % auc,"best track threshold %.3f"%threshold_track)
+    #print('AUC: %.3f' % auc,"best track threshold %.3f"%threshold_track)
 
     # Plot ROC Curve
     fig, ax = plt.subplots(figsize=(10,7))
@@ -185,8 +189,8 @@ def ROC(truth, prediction,reco=None,mask=None,mask_name="",reco_mask=None,save=T
     ax.plot(fpr, tpr, marker='.', markersize=1,label="CNN")
     #Compare other reco
     if reco is not None:
-        fpr_reco, tpr_reco, thresholds_reco = roc_curve(truth, reco)
-        auc_reco = roc_auc_score(truth, reco)
+        fpr_reco, tpr_reco, thresholds_reco = roc_curve(reco_truth, reco)
+        auc_reco = roc_auc_score(reco_truth, reco)
         ax.plot(fpr_reco, tpr_reco, marker='.', markersize=1,label="%s"%reco_name)
 
     ax.set_xlim([0.0, 1.0])
@@ -205,7 +209,54 @@ def ROC(truth, prediction,reco=None,mask=None,mask_name="",reco_mask=None,save=T
             transform=ax.transAxes, fontsize=20, verticalalignment='top', bbox=props)
     ax.legend(loc="lower right",fontsize=20)
 
-    end = "ROC"
+    end = "ROC%s"%reco_name.replace(" ","")
+    if reco is not None:
+        end += "_compare%s"%reco_name.replace(" ","")
+    if mask is not None:
+        end += "_%s"%mask_name.replace(" ","")
+    if save:
+        plt.savefig("%s%s.png"%(save_folder_name,end))
+    plt.close()
+
+    return threshold_track, threshold_casc
+
+def ROC_dict(truth_dict, prediction_dict,namelist, reco_dict=None,mask_dict=None,mask_name="",reco_mask_dict=None,save=True,save_folder_name=None,reco_name="Retro",contamination=0.1):
+
+    print("Keyname\t AUC")
+    # Plot ROC Curve
+    fig, ax = plt.subplots(figsize=(10,7))
+    ax.plot([0,1],[0,1],'k:',label="random")
+    for index in range(0,len(namelist)):
+        keyname = namelist[index]
+        if mask_dict is not None:
+            mask = mask_dict[keyname]
+            print("Fraction events kept:",sum(mask[keyname])/len(truth_dict[keyname]))
+            truth_dict[keyname] = truth_dict[keyname][mask]
+            prediction_dict[keyname] = prediction_dict[keyname][mask]
+            if reco_dict is not None:
+                if reco_mask_dict is None:
+                    reco_dict[keyname] = reco_dict[keyname][mask]
+                else:
+                    reco_dict[keyname] = reco_dict[keyname][reco_mask_dict[keyname]]
+        print("Fraction of true tracks: %.3f"%(sum(truth_dict[keyname])/len(truth_dict[keyname])))
+        
+        # Find ROC Curve + Stats
+        fpr, tpr, thresholds = roc_curve(truth_dict[keyname], prediction_dict[keyname])
+        auc = roc_auc_score(truth_dict[keyname], prediction_dict[keyname])
+        print("%s\t %.3f"%(keyname,auc))
+        ax.plot(fpr, tpr, marker='.', markersize=1,label="%s"%keyname)
+
+    ax.set_xlim([0.0, 1.0])
+    ax.set_ylim([0.0, 1.0])
+    ax.set_xlabel('False Positive Rate',fontsize=20)
+    ax.set_ylabel('True Positive Rate',fontsize=20)
+    ax.set_title('ROC Curve %s'%mask_name,fontsize=25)
+    #ax.plot(rates_t[0],rates_t[1],"g*",markersize=10,label="10% Track Contamination")
+    #ax.plot(rates_c[0],rates_c[1],"b*",markersize=10,label="10% Cascade Contamination")
+    props = dict(boxstyle='round', facecolor='blue', alpha=0.3)
+    ax.legend(loc="lower right",fontsize=20)
+
+    end = "SystROC"
     if reco is not None:
         end += "_compare%s"%reco_name.replace(" ","")
     if mask is not None:

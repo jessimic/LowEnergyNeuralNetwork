@@ -832,15 +832,15 @@ def oscNext_L7(
         cleaned_pulses=cleaned_pulses,
     )
 
-    tray.Add(make_seed)
+    #tray.Add(make_seed)
 
-    tray.Add(millipede.MonopodFit, 'MonopodFit',
-        CascadePhotonicsService=cascade_service,
-        Pulses='SplitInIcePulses',
-        Seed='CascadeLast_DC',
-        PhotonsPerBin=10, #10
-        Minimizer="SIMPLEX",
-    )
+    #tray.Add(millipede.MonopodFit, 'MonopodFit',
+    #    CascadePhotonicsService=cascade_service,
+    #    Pulses='SplitInIcePulses',
+    #    Seed='CascadeLast_DC',
+    #    PhotonsPerBin=10, #10
+    #    Minimizer="SIMPLEX",
+    #)
 
     # Find coincident events (unsimulated)
     #tray.Add(

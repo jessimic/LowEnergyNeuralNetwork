@@ -16,19 +16,22 @@ parser.add_argument("--variable",type=str,default="energy",
                     dest="variable", help="name of variable that was predicted")
 parser.add_argument("--variable2",default=None,
                     dest="variable2", help="name of variable that was predicted")
+parser.add_argument("--variable3",default=None,
+                    dest="variable3", help="name of variable that was predicted")
 args = parser.parse_args()
 
 input_file = args.input_file
 save_folder_name=args.output_dir
 variable = args.variable
 variable2 = args.variable2
+variable3 = args.variable3
 if args.outname is None:
     output_name = "prediction_values_%s"%variable #input_file.split("/")[-1]
 else:
     output_name = args.outname
 outdir = args.output_dir
 
-def read_i3_files(filenames_list):
+def read_i3_files(filenames_list,variable, variable2,variable3):
     output_cnn = []
     output_labels = []
     output_reco_labels = []
@@ -38,6 +41,8 @@ def read_i3_files(filenames_list):
     max_files = len(filenames_list)
     if max_files > 10:
         ten_percent = int(max_files/10)
+
+    no_retro = 0
 
     for count, event_file_name in enumerate(filenames_list):
         event_file = dataio.I3File(event_file_name)
@@ -49,9 +54,13 @@ def read_i3_files(filenames_list):
                 cnn_prediction = frame['FLERCNN_%s'%variable].value
                 if variable2 is not None:
                     cnn_prediction2 = frame['FLERCNN_%s'%variable2].value
-                    output_cnn.append( np.array( [float(cnn_prediction), float(cnn_prediction2) ]))
+                    if variable3 is not None:
+                        cnn_prediction3 = frame['FLERCNN_%s'%variable3].value
+                        output_cnn.append( np.array( [float(cnn_prediction), float(cnn_prediction2), float(cnn_prediction3) ]))
+                    else:
+                        output_cnn.append( np.array( [float(cnn_prediction), float(cnn_prediction2) ]))
                 else:
-                    output_cnn.append( np.array( [float(cnn_prediction)])) #Keeping like this in case additional values are predicted in future
+                    output_cnn.append( np.array( [float(cnn_prediction)]))
 
                 #Truth 
                 tree = frame["I3MCTree"]
@@ -137,9 +146,8 @@ def read_i3_files(filenames_list):
                     reco_casc_energy = frame['L7_reconstructed_cascade_energy'].value
                     reco_track_energy = frame['L7_reconstructed_track_energy'].value
                     reco_em_casc_energy = frame['L7_reconstructed_em_cascade_energy'].value
-                    reco_pid_full = frame['L7_PIDClassifier_FullSky_ProbTrack'].value
-                    reco_pid_up = frame['L7_PIDClassifier_Upgoing_ProbTrack'].value
                 except:
+                    no_retro +=1
                     reco_energy = np.nan
                     reco_zenith = np.nan
                     reco_z = np.nan 
@@ -152,8 +160,13 @@ def read_i3_files(filenames_list):
                     reco_casc_energy = np.nan
                     reco_track_energy = np.nan
                     reco_em_casc_energy = np.nan
+                try:
+                    reco_pid_full = frame['L7_PIDClassifier_FullSky_ProbTrack'].value
+                    reco_pid_up = frame['L7_PIDClassifier_Upgoing_ProbTrack'].value
+                except:
                     reco_pid_full = np.nan
                     reco_pid_up = np.nan
+
                 output_reco_labels.append( np.array([ float(reco_energy), float(reco_zenith), float(reco_azimuth), float(reco_time), float(reco_x), float(reco_y), float(reco_z), float(reco_length), float(reco_track_energy), float(reco_casc_energy), float(reco_em_casc_energy), float(reco_zenith), float(reco_pid_full), float(reco_pid_up) ]) )
 
                 #Additional Info
@@ -161,19 +174,22 @@ def read_i3_files(filenames_list):
                     coin_muon = frame['L7_CoincidentMuon_bool'].value > 0
                     prob_nu = frame['L7_MuonClassifier_Upgoing_ProbNu'].value
                     prob_nu2 = frame['L7_MuonClassifier_FullSky_ProbNu'].value
-                    true_ndoms = frame['IC2018_LE_L3_Vars']['NchCleaned']
                     n_top15 = frame['L7_CoincidentMuon_Variables']['n_top15']
                     n_outer = frame['L7_CoincidentMuon_Variables']['n_outer']
-                    fit_success = ( "retro_crs_prefit__fit_status" in frame ) and (frame["retro_crs_prefit__fit_status"] == 0)
                 except:
                     coin_muon = np.nan
                     prob_nu = np.nan
                     prob_nu2 = np.nan
-                    true_ndoms = np.nan
                     n_top15 = np.nan
                     n_outer = np.nan
+                try:
+                    fit_success = ( "retro_crs_prefit__fit_status" in frame ) and (frame["retro_crs_prefit__fit_status"] == 0)
+                except:
                     fit_success = np.nan
-
+                    
+                
+                true_ndoms = frame['IC2018_LE_L3_Vars']['NchCleaned']
+                HLC_vertex = frame['L4_first_hlc'].pos
                 noise_class = frame['L4_NoiseClassifier_ProbNu'].value
                 nhit_doms = frame['L5_SANTA_DirectPulsesHitMultiplicity'].n_hit_doms
                 # Check for 8 or more hits
@@ -196,7 +212,7 @@ def read_i3_files(filenames_list):
                         if count_cleaned_pulses >=8:
                             clean_pulses_8_or_more = True
                             break
-                output_info.append( np.array([ float(coin_muon), float(prob_nu), float(true_ndoms), fit_success, float( noise_class), float(nhit_doms), float(n_top15), float(n_outer), float(prob_nu2), clean_pulses_8_or_more]))
+                output_info.append( np.array([ float(coin_muon), float(prob_nu), float(true_ndoms), fit_success, float( noise_class), float(nhit_doms), float(n_top15), float(n_outer), float(prob_nu2), clean_pulses_8_or_more, float(HLC_vertex.x), float(HLC_vertex.y), float(HLC_vertex.z) ]))
 
                 #Weights
                 weights = frame['I3MCWeightDict']
@@ -213,11 +229,14 @@ def read_i3_files(filenames_list):
     output_info = np.asarray(output_info)
     output_weights = np.asarray(output_weights)
 
+    if no_retro == output_labels.shape[0]:
+        print("Didnt save any retro values")
+
     return output_cnn, output_labels, output_reco_labels, output_info, output_weights
 
 event_file_names = sorted(glob.glob(input_file))
 assert event_file_names,"No files loaded, please check path."
-output_cnn, output_labels, output_reco_labels, output_info, output_weights = read_i3_files(event_file_names)
+output_cnn, output_labels, output_reco_labels, output_info, output_weights = read_i3_files(event_file_names,variable,variable2,variable3)
 
 print(output_info.shape)
 

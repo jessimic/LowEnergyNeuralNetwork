@@ -31,7 +31,7 @@ syst = args.syst
 if args.directory is None:
     inpath='/mnt/research/IceCube/jmicallef/official_oscnext/level6/%s/'%syst
 else:
-    inpath=args.directory
+    inpath=args.directory + "/"
 
 full_index = "%06d" % (index,)
 infilename='oscNext_genie_level6_v02.00_pass2.%s.%s.i3.zst'%(syst,full_index)

@@ -1,0 +1,20 @@
+#!/bin/bash --login
+
+########### SBATCH Lines for Resource Request ##########
+
+#SBATCH --time=00:19:00             # limit of wall clock time - how long the job will run (same as -t)
+#SBATCH --nodes=1                 # number of different nodes - could be an exact number or a range of nodes (same as -N)
+#SBATCH --gres=gpu:1
+#SBATCH --mem=20GB            # memory required per allocated CPU (or core) - amount of memory (in bytes) 200M
+#SBATCH --job-name final_retro      # you can give your job a name for easier identification (same as -J)
+#SBATCH --output /mnt/home/micall12/LowEnergyNeuralNetwork/make_jobs/finalize_retro/job_scripts/logs/final_retro_@@syst@@_@@index@@.out
+
+########### Command Lines to Run ##################
+
+eval `/cvmfs/icecube.opensciencegrid.org/py2-v3.1.1/setup.sh`
+
+/cvmfs/icecube.opensciencegrid.org/users/Oscillation/software/oscNext_meta/releases/V01-00-04/build__py2-v3.1.1__osgvo-el7/env-shell.sh python /mnt/home/micall12/LowEnergyNeuralNetwork/data_cuts/RunL7.py  -i @@index@@ -s @@syst@@ -d @@dir@@
+
+singularity exec -B /mnt/scratch/micall12:/mnt/scratch/micall12 --nv /mnt/research/IceCube/Software/icetray_stable-tensorflow.sif sh -c '/usr/local/icetray/env-shell.sh python /mnt/home/micall12/LowEnergyNeuralNetwork/CNN_Test_i3.py -i @@outfile@@ -o /mnt/research/IceCube/jmicallef/FLERCNN_i3_output/ --model_name energy_numu_flat_1_500_level6_cleanedpulses_IC19_CC_20000evtperbin_lrEpochs50_extended --variable energy -e 152 --factor 100 --model_name2 PID_level6_cleanedpulses_IC19_E5to200_30000evtperbin_sigmoid_binarycross_LRe-3DROPe-1EPOCHS50 --variable2 class --epochs2 192 --factor2 1. --model_name3 zenith_numu_lrEpochs64_lrInit0.001_lrDrop0.6_weighted --epochs3 656 --cleaned True'
+
+exit $?
