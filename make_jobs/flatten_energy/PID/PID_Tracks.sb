@@ -4,23 +4,18 @@
 
 #SBATCH --time=03:59:00             # limit of wall clock time - how long the job will run (same as -t)
 #SBATCH --nodes=1                 # number of different nodes - could be an exact number or a range of nodes (same as -N)
-#SBATCH --mem-per-cpu=800G            # memory required per allocated CPU (or core) - amount of memory (in bytes)
+#SBATCH --mem-per-cpu=1000G            # memory required per allocated CPU (or core) - amount of memory (in bytes)
 #SBATCH --job-name make_uncontained_even_events    # you can give your job a name for easier identification (same as -J)
+#SBATCH --output combine_track.out
 
 ########### Command Lines to Run ##########
 
 INDIR=/mnt/home/micall12/LowEnergyNeuralNetwork
-INFILE=NuMu_genie_149999_[0,1]?k_level6.zst_cleanedpulses_transformed_IC19lt500_CC_all_start_all_end_flat_499bins_20000evtperbin.hdf5
-NAME=PID_Track_genie_level6_cleanedpulses_transformed_IC19_
-MAX=15000
-CUTS="CC"
-NUMOUT=6
 
 source /mnt/home/micall12/setup_anaconda.sh
 
-echo python $INDIR/flatten_energy_distribution.py -i $INFILE -d /mnt/scratch/micall12/training_files/newMC_EMequiv/ -o ${NAME} --emax 200 --emin 5 --max_per_bin $MAX --cuts CC --num_out $NUMOUT --transformed 
 
-python $INDIR/flatten_energy_distribution.py -i $INFILE -o ${NAME} -d /mnt/scratch/micall12/training_files/newMC_EMequiv/ --emax 200 --emin 5 --max_per_bin $MAX --cuts CC --num_out $NUMOUT --transformed
+python $INDIR/cut_concat_split_files.py -i "PID_NuMu_genie_level6_cleanedpulses_transformed_IC19lt200_all_all_start_all_end_flat_195bins_250000evtperbin.hdf5" -d /mnt/scratch/micall12/training_files/batch_file/ -o PID_Track_genie_level6_cleanedpulses_transformed_IC19_4674228events --emin 5 --emax 200 --cuts CC --shuffle --efactor 100 --total_events 4676228 --num_out 10
 
 exit $?
 

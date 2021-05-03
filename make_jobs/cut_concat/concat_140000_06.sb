@@ -1,0 +1,12 @@
+#!/bin/bash --login
+
+########### SBATCH Lines for Resource Request ##########
+
+#SBATCH --time=03:59:00             # limit of wall clock time - how long the job will run (same as -t)
+#SBATCH --nodes=1                 # number of different nodes - could be an exact number or a range of nodes (same as -N)
+#SBATCH --mem-per-cpu=100G            # memory required per allocated CPU (or core) - amount of memory (in bytes)
+#SBATCH --job-name cut_concat_events    # you can give your job a name for easier identification (same as -J)
+#SBATCH --output job_logs/oscNext_genie_level6_v02.00_pass2.140000.06h.cleanedpulses_transformed_IC19.out
+########### Command Lines to Run ##########
+
+python /mnt/home/micall12/LowEnergyNeuralNetwork/cut_concat_split_files.py -i oscNext_genie_level6_v02.00_pass2.140000.0006??.i3.zst_cleanedpulses_transformed_IC19.hdf5 -d /mnt/scratch/micall12/training_files/single_file/140000/ -o /mnt/scratch/micall12/training_files/single_file/140000/ -n oscNext_genie_level6_v02.00_pass2.140000.06h.cleanedpulses_transformed_IC19 --no_cuts

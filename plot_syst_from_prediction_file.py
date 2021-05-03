@@ -14,11 +14,13 @@ no_old_reco = False
 #syst_set_names = ["140001", "140002", "140000", "140003", "140004"]
 #syst_set_names = ["120001", "120002", "120000", "120003", "120004"]
 #syst_set_names = ["140000", "140100", "140101", "140102", "140150", "141118"]
+#syst_set_names = ["140000", "141118"]
 syst_set_names = ["120000", "121118"]
 #syst_set_names = ["120000", "120100", "120101", "120102", "120150"]
 #syst_set_names = ["140000", "140500", "140501", "140502", "140503"]
 basedir="/mnt/home/micall12/LowEnergyNeuralNetwork/output_plots/Test_Level6.5/"
-outdir = basedir + "SystStudies/14_BFROnly/"
+#outdir = basedir + "SystStudies/14_BFROnly/"
+outdir = basedir + "SystStudies/12_BFROnly/"
 save_folder_name = outdir
 if os.path.isdir(save_folder_name) != True:
     os.mkdir(save_folder_name)

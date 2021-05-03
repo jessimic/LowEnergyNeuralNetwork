@@ -66,6 +66,8 @@ parser.add_argument("--split",default=False,action='store_true',
                     dest="split", help="set flag if you want to split in to train, test, validate")
 parser.add_argument("--no_validation",default=True,action='store_false',
                     dest="no_validation", help="set flag if you DO NOT want validation set when splitting")
+parser.add_argument("--no_flatten",default=False,action='store_true',
+                    dest="no_flatten", help="set flag if you DO NOT want to flatten the set")
 args = parser.parse_args()
 
 input_files = args.input_files
@@ -81,6 +83,9 @@ emax = args.emax
 emin = args.emin
 cut_name = args.cuts
 print("Keeping %s event types"%cut_name)
+flatten = not(args.no_flatten)
+if not flatten:
+    print("NOT FLATTENING THE DATA, JUST STORING ALL OUTPUT")
 
 verbose = args.verbose
 split_data = args.split
@@ -191,24 +196,30 @@ for a_file in event_file_names:
         energy = file_labels[:,0]*efactor
     else:
         energy=file_labels[:,0]
-    keep_index = [False]*len(energy)
     print("Total events this file: %i"%len(energy))
 
     # Check how many events already in each bin, save if under max
-    for index,e in enumerate(energy):
-        if e > emax:
-            count_out_bounds += 1
-            continue
-        if e < emin:
-            count_out_bounds += 1
-            continue
+    if flatten == True:
+        keep_index = [False]*len(energy)
+        for index,e in enumerate(energy):
+            if e > emax:
+                count_out_bounds += 1
+                continue
+            if e < emin:
+                count_out_bounds += 1
+                continue
 
-        if mask[index] == False:
-            continue
+            if mask[index] == False:
+                continue
 
-        e_bin = int((e-emin)/float(bin_size))
-        if count_energy[e_bin] < max_per_bin:
-            keep_index[index] = True
+            e_bin = int((e-emin)/float(bin_size))
+            if count_energy[e_bin] < max_per_bin:
+                keep_index[index] = True
+                count_energy[e_bin] += 1
+    else:
+        keep_index = [True]*len(energy)
+        for index,e in enumerate(energy):
+            e_bin = int((e-emin)/float(bin_size))
             count_energy[e_bin] += 1
 
     keep_index = np.array(keep_index)

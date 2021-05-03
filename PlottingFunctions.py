@@ -256,7 +256,7 @@ def plot_distributions_CCNC(truth_all_labels,truth,reco,save=False,savefolder=No
         plt.savefig("%sNNEnergyDistribution_CCNC.png"%savefolder)
     plt.close()
 
-def plot_distributions(truth,reco=None,save=False,savefolder=None,old_reco=None,weights=None,variable="Energy",units="(GeV)",reco_name="Retro", minval=None, maxval=None,bins=100,cnn_name="CNN",log=False,old_reco_weights=None):
+def plot_distributions(truth,reco=None,save=False,savefolder=None,old_reco=None,weights=None,variable="Energy",units="(GeV)",reco_name="Retro", minval=None, maxval=None,bins=100,cnn_name="CNN",log=False,old_reco_weights=None,title=None):
     """
     Plot testing set distribution
     Recieves:
@@ -291,7 +291,10 @@ def plot_distributions(truth,reco=None,save=False,savefolder=None,old_reco=None,
             old_reco_weights = weights
         #name += "Weighted"
         weights_factor = 1e7
-    plt.title("%s %s Distribution"%(name,variable),fontsize=25)
+    if title is not None:
+        plt.title("%s"%(title),fontsize=25)
+    else:
+        plt.title("%s %s Distribution"%(name,variable),fontsize=25)
     plt.hist(truth, bins=bins,color='g',alpha=0.5,range=[minval,maxval],weights=weights,label="Truth");
     maskT = numpy.logical_and(truth > minval, truth < maxval)
     print("Truth Total: %i, Events in Plot: %i, Overflow: %i"%(len(truth),sum(maskT),len(truth)-sum(maskT)))
@@ -312,7 +315,7 @@ def plot_distributions(truth,reco=None,save=False,savefolder=None,old_reco=None,
         print("Old Reco Total: %i, Events in Plot: %i, Overflow: %i"%(len(old_reco),sum(maskOR),len(old_reco)-sum(maskOR)))
         if weights is not None:
             print("WEIGHTED Old Reco Total: %.2f, Events in Plot: %.2f, Overflow: %.2f"%(sum(old_reco_weights)*weights_factor,sum(old_reco_weights[maskOR])*weights_factor,(sum(old_reco_weights)-sum(old_reco_weights[maskOR]))*weights_factor))
-    plt.xlabel("%s (%s)"%(variable,units),fontsize=20)
+    plt.xlabel("%s %s"%(variable,units),fontsize=20)
     if log:
         plt.yscale("log")
     plt.legend(fontsize=10)
@@ -740,7 +743,7 @@ def plot_compare_resolution(truth,nn_reco,namelist, weights_dict=None, savefolde
 
     
     print("Resolution")
-    print('Name\t Events\t Overflow\t Mean\t Median\t RMS\t Percentiles\t')
+    print('Name\t Events\t Overflow\t Median\t RMS\t Percentiles\t')
     plt.figure(figsize=(10,7)) 
     if use_fraction:
         title = "%s Fractional %s Resolution"%(reco_name,variable)
@@ -959,7 +962,7 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
                        bins=10,min_val=0.,max_val=60., ylim = None,\
                        save=False,savefolder=None,vs_predict=False,\
                        variable="Energy",units="(GeV)",xvariable="Energy",xunits="(GeV)",\
-                       epochs=None,reco_name="PegLeg"):
+                       epochs=None,reco_name="PegLeg",cnn_name="CNN"):
     """Plots different variable slices vs each other (systematic set arrays)
     Receives:
         truth= array with truth labels for this one variable
@@ -1087,8 +1090,6 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
             err_from_reco[i] = lower_lim_reco
             err_to_reco[i] = upper_lim_reco
 
-    cnn_name = "CNN"
-    #cnn_name = "Neural Network"
     plt.figure(figsize=(10,7))
     plt.errorbar(variable_centers, medians, yerr=[medians-err_from, err_to-medians], xerr=[ variable_centers-variable_ranges[:-1], variable_ranges[1:]-variable_centers ], capsize=5.0, fmt='o',label=cnn_name)
     if old_reco is not None:
@@ -1100,6 +1101,8 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
         plt.ylim(ylim)
     if vs_predict:
         plt.xlabel("CNN Predicted %s %s"%(variable,units),fontsize=20)
+    elif energy_truth is not None:
+        plt.xlabel("%s %s"%(xvariable,units),fontsize=20)
     else:
         plt.xlabel("True %s %s"%(variable,units),fontsize=20)
     if use_fraction:
@@ -1112,7 +1115,7 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
     
     reco_name = reco_name.replace(" ","")
     variable = variable.replace(" ","")
-    savename = "%sResolutionSlices"%variable
+    savename = "%s%sResolutionSlices"%(variable,cnn_name)
     if vs_predict:
         savename +="VsPredict"
     if use_fraction:

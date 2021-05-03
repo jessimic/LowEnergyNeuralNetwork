@@ -270,7 +270,7 @@ binss = [199, 199, 199, 95, 199, 95, 199, 199, 95,95,199,99]
 syst_bins = [20, 20, 20, 10, 20, 10, 20, 20, 10,10,20,10]
 save_base_name = save_folder_name
 
-for cut_index in [4,7,8,10,11]: #range(1,len(cut_list)):
+for cut_index in [7,8,10,11]: #range(1,len(cut_list)):
     cuts = cut_list[cut_index]
     folder_name = cut_names[cut_index]
     minval = minvals[cut_index]
@@ -299,12 +299,12 @@ for cut_index in [4,7,8,10,11]: #range(1,len(cut_list)):
                                 save=save, savefolder=save_folder_name, weights=true_weights,\
                                 reco_name = "Retro", variable=plot_name, units= plot_units,
                                 minval=minval,maxval=maxval,bins=bins)
-    plot_distributions(true_energy[cuts], cnn_energy[cuts], old_reco=retro_energy[cuts],\
-                                save=save, savefolder=save_folder_name, weights=true_weights,\
-                                reco_name = "Retro", variable=plot_name, units= plot_units)
-    plot_distributions(true_r[cuts], reco_r[cuts],\
-                                save=save, savefolder=save_folder_name, weights=true_weights,\
-                                cnn_name = "Retro", variable="Radial Vertex", units= "(m)",log=True)
+    #plot_distributions(true_energy[cuts], cnn_energy[cuts], old_reco=retro_energy[cuts],\
+    #                            save=save, savefolder=save_folder_name, weights=true_weights,\
+    #                            reco_name = "Retro", variable=plot_name, units= plot_units)
+    #plot_distributions(true_r[cuts], reco_r[cuts],\
+    #                            save=save, savefolder=save_folder_name, weights=true_weights,\
+    #                            cnn_name = "Retro", variable="Radial Vertex", units= "(m)",log=True)
     plot_distributions(true_z[cuts], reco_z[cuts],\
                                 save=save, savefolder=save_folder_name, weights=true_weights,\
                                 cnn_name = "Retro", variable="Z Vertex", units= "(m)",log=True)
@@ -323,6 +323,7 @@ for cut_index in [4,7,8,10,11]: #range(1,len(cut_list)):
                             save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
                             minval=minval, maxval=maxval, cut_truth=True, axis_square=True,\
                             variable=plot_name, units=plot_units, reco_name="Retro")
+    """
     plot_2D_prediction(em_equiv_energy[cuts], cnn_energy[cuts],weights=true_weights,\
                             save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
                             minval=minval, maxval=maxval, cut_truth=True, axis_square=True,\
@@ -346,7 +347,7 @@ for cut_index in [4,7,8,10,11]: #range(1,len(cut_list)):
                             save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
                             minval=minval, maxval=maxval, cut_truth=True, axis_square=True,\
                             variable=plot_name, units=plot_units, reco_name="Retro")
-    
+    """ 
     plot_single_resolution(true_energy[cuts], cnn_energy[cuts], weights=true_weights,\
                        use_old_reco = True, old_reco = retro_energy[cuts],\
                        minaxis=-maxval, maxaxis=maxval, bins=bins,\
@@ -363,12 +364,13 @@ for cut_index in [4,7,8,10,11]: #range(1,len(cut_list)):
                         use_fraction = True, bins=syst_bin, min_val=minval, max_val=maxval,\
                         save=save, savefolder=save_folder_name,\
                         variable=plot_name, units=plot_units, reco_name="Retro")
+    """
     plot_bin_slices(true_energy[cuts], cnn_energy[cuts], weights=true_weights,  
                         old_reco = retro_energy[cuts],vs_predict = True,\
                         use_fraction = True, bins=syst_bin, min_val=minval, max_val=maxval,\
                         save=save, savefolder=save_folder_name,\
                         variable=plot_name, units=plot_units, reco_name="Retro")
-
+    """
     plot_rms_slices(true_energy[cuts], cnn_energy[cuts], weights=true_weights,  
                         old_reco = retro_energy[cuts],\
                         use_fraction = True, bins=syst_bin, min_val=minval, max_val=maxval,\

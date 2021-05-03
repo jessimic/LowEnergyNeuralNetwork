@@ -36,7 +36,7 @@ parser.add_argument("-o", "--outdir",type=str,default='/mnt/scratch/micall12/tra
                     dest="output_dir", help="path of ouput file")
 parser.add_argument("-r", "--reco",type=str,default="False",
                     dest="reco", help="True if using Level5p or have a pegleg reco")
-parser.add_argument("--reco_type",type=str,default="pegleg",
+parser.add_argument("--reco_type",type=str,default="retro",
                     dest="reco_type", help="Options are pegleg or retro")
 parser.add_argument("--efactor",type=float,default=100.0,
                     dest="efactor",help="Value to transform (divide by) energy")

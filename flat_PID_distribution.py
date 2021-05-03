@@ -66,6 +66,8 @@ parser.add_argument("--split",default=False,action='store_true',
                     dest="split", help="set flag if you want to split in to train, test, validate")
 parser.add_argument("--no_validation",default=True,action='store_false',
                     dest="no_validation", help="set flag if you DO NOT want validation set when splitting")
+parser.add_argument("--cut_end",default=False,action='store_true',
+                    dest="cut_end", help="set flag if you want to not use energy binned cut")
 args = parser.parse_args()
 
 input_files = args.input_files
@@ -89,6 +91,7 @@ use_old_reco = args.reco
 if use_old_reco:
     print("Expecting old reco values in files, pulling from pegleg frames")
 shuffle = args.shuffle
+cut_end = args.cut_end
 
 # Vertex Cuts (no transformation done yet)
 start_cut = args.start_cut
@@ -193,31 +196,34 @@ for a_file in event_file_names:
     else:
         energy=file_labels[:,0]
     isTrack = file_labels[:,8]
-    keep_index = [False]*len(energy)
     print("Total events this file: %i"%len(energy))
 
-    # Check how many events already in each bin, save if under max
-    for index,e in enumerate(energy):
-        if e > emax:
-            count_out_bounds += 1
-            continue
-        if e < emin:
-            count_out_bounds += 1
-            continue
+    if not cut_end:
+        keep_index = [False]*len(energy)
+        # Check how many events already in each bin, save if under max
+        for index,e in enumerate(energy):
+            if e > emax:
+                count_out_bounds += 1
+                continue
+            if e < emin:
+                count_out_bounds += 1
+                continue
 
-        if mask[index] == False:
-            continue
+            if mask[index] == False:
+                continue
 
-        e_bin = int((e-emin)/float(bin_size))
-        if isTrack[index]:
-            if count_energy_track[e_bin] < max_per_bin:
-                keep_index[index] = True
-                count_energy_track[e_bin] += 1
-        if not isTrack[index]:
-            if count_energy_cascade[e_bin] < max_per_bin:
-                keep_index[index] = True
-                count_energy_cascade[e_bin] += 1
-
+            e_bin = int((e-emin)/float(bin_size))
+            if isTrack[index]:
+                if count_energy_track[e_bin] < max_per_bin:
+                    keep_index[index] = True
+                    count_energy_track[e_bin] += 1
+            if not isTrack[index]:
+                if count_energy_cascade[e_bin] < max_per_bin:
+                    keep_index[index] = True
+                    count_energy_cascade[e_bin] += 1
+    else:
+        keep_index = [True]*len(energy)
+        
 
     keep_index = np.array(keep_index)
 

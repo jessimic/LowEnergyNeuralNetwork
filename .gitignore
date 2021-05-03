@@ -23,6 +23,7 @@ make_jobs/flatten_energy/job_logs/*
 make_jobs/flatten_energy/PID/job_logs/*
 make_jobs/flatten_energy/PID/core*
 outdated/make_even/job_logs/*
+outdated/make_jobs/make_even/job_logs/*
 data_files/*
 
 #Kill all core files

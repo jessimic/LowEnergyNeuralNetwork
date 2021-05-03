@@ -10,10 +10,13 @@ SYST_SET=0150
 #INPUTFILES="/mnt/scratch/micall12/oscnext_official/149999_v2/oscNext_genie_level3_v02.00_pass2.149999.00????.i3.zst"
 #INPUTFILES="/mnt/scratch/micall12/oscnext_official/14${SYST_SET}/oscNext_genie_level6.5*"
 #INPUTFILES="/mnt/scratch/micall12/oscnext_official/149999_v2/oscNext_genie_level6.5*"
+#INPUTFILES="/mnt/scratch/micall12/oscnext_official/130000/oscNext_muongun_level6_v02.00_pass2.130000.*"
 #INPUTFILES="/mnt/research/IceCube/le_osc/forJessie/L6/NuMu_genie_149999_*.zst"
-INPUTFILES="/mnt/research/IceCube/jmicallef/simulation/level6/149999/NuMu_genie_149999_03[4,5,6,7,8,9]???_level6.zst"
+INPUTFILES="/mnt/research/IceCube/jmicallef/simulation/level6/149999/NuMu_genie_149999_05[2,3]*_level6.zst"
+#INPUTFILES=/mnt/research/IceCube/jmicallef/official_oscnext/level6/1[2,4]0000/oscNext_genie_level6_v02.00_pass2.1[2,4]0000.00????.i3.zst
 FILEPATH=/mnt/scratch/micall12/training_files
-LOG_FOLDER=$FILEPATH/job_logs/Feb16_149999
+LOG_FOLDER=$FILEPATH/job_logs/Apr22_149999
+outdir=single_file/149999
 
 [ ! -d $LOG_FOLDER ] && mkdir $LOG_FOLDER
 [ ! -d $LOG_FOLDER/slurm ] && mkdir $LOG_FOLDER/slurm
@@ -27,6 +30,7 @@ do
     sed -e "s|@@file@@|${file}|g" \
         -e "s|@@log@@|${LOG_FOLDER}/$name.log|g" \
         -e "s|@@name@@|${name}|g" \
+        -e "s|@@folder@@|${outdir}|g" \
         < job_i3.sb > $LOG_FOLDER/slurm/${name}.sb
     let COUNT=$COUNT+1
 done

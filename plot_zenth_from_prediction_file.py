@@ -210,7 +210,7 @@ syst_bins_zenith = [20, 20, 20, 20, 12, 20]
 
 save_base_name = save_folder_name
 
-for cut_index in [1]: #range(1,len(cut_list)):
+for cut_index in [0,2,3,4]: #range(1,len(cut_list)):
     cuts = cut_list[cut_index]
     folder_name = cut_names[cut_index]
     true_energy_val = true_energy[cuts]
@@ -220,7 +220,8 @@ for cut_index in [1]: #range(1,len(cut_list)):
         reco_class = retro_PID_up
     else:
         reco_class = retro_PID_full
-    
+    reco_name = "Likelihood-Based"
+
     minval_energy = minvals_energy[cut_index]
     maxval_energy = maxvals_energy[cut_index]
     syst_bin_energy = syst_bins_energy[cut_index]
@@ -235,7 +236,7 @@ for cut_index in [1]: #range(1,len(cut_list)):
     if os.path.isdir(save_folder_name) != True:
         os.mkdir(save_folder_name)
 
-    for variable in ["zenith"]: 
+    for variable in ["energy"]: 
 
         if variable == "energy":
             plot_name = "Energy"
@@ -273,18 +274,22 @@ for cut_index in [1]: #range(1,len(cut_list)):
 
         #plot_distributions(true_val, cnn_val, old_reco=retro_val,old_reco_weights=retro_weights,\
         #                            save=save, savefolder=save_folder_name, weights=true_weights,\
-        #                            reco_name = "Retro", variable=plot_name, units= plot_units,
+        #                            reco_name = reco_name, variable=plot_name, units= plot_units,
         #                            minval=minval,maxval=maxval,bins=bins)
         #plot_distributions(true_val, cnn_val, old_reco=retro_val,old_reco_weights=retro_weights,\
         #                            save=save, savefolder=save_folder_name, weights=true_weights,\
-        #                            reco_name = "Retro", variable=plot_name, units= plot_units,
+        #                            reco_name = reco_name, variable=plot_name, units= plot_units,
         #                            minval=min(true_val), maxval=max(true_val))
         #plot_distributions(true_r[cuts], reco_r[cuts],\
         #                            save=save, savefolder=save_folder_name, weights=true_weights,\
-        #                            cnn_name = "Retro", variable="Radial Vertex", units= "(m)",log=True)
+        #                            cnn_name = reco_name, variable="Radial Vertex", units= "(m)",log=True)
         #plot_distributions(true_z[cuts], reco_z[cuts],\
         #                            save=save, savefolder=save_folder_name, weights=true_weights,\
-        #                            cnn_name = "Retro", variable="Z Vertex", units= "(m)",log=True)
+        #                            cnn_name = reco_name, variable="Z Vertex", units= "(m)",log=True)
+        
+        plot_distributions(true_val, save=save, savefolder=save_folder_name, weights=true_weights,\
+                            variable=plot_name, units= plot_units, bins=bins,\
+                            log=True, title="Energy Distribution for NuE CC")
         
         switch = False 
         plot_2D_prediction(true_val, cnn_val,weights=true_weights,\
@@ -292,7 +297,7 @@ for cut_index in [1]: #range(1,len(cut_list)):
                                 variable=plot_name, units=plot_units, reco_name="CNN")
         plot_2D_prediction(retro_true_val, retro_val, weights=retro_weights,
                                 save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
-                                variable=plot_name, units=plot_units, reco_name="Retro")
+                                variable=plot_name, units=plot_units, reco_name=reco_name)
         plot_2D_prediction(true_val, cnn_val,weights=true_weights,\
                                 save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
                                 minval=minval, maxval=maxval, cut_truth=True, axis_square=True,\
@@ -300,8 +305,8 @@ for cut_index in [1]: #range(1,len(cut_list)):
         plot_2D_prediction(retro_true_val, retro_val, weights=retro_weights,
                                 save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
                                 minval=minval, maxval=maxval, cut_truth=True, axis_square=True,\
-                                variable=plot_name, units=plot_units, reco_name="Retro")
-        
+                                variable=plot_name, units=plot_units, reco_name=reco_name)
+        """ 
         plot_2D_prediction(em_equiv_energy[cuts], cnn_val,weights=true_weights,\
                                 save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
                                 minval=minval, maxval=maxval, cut_truth=True, axis_square=True,\
@@ -309,15 +314,15 @@ for cut_index in [1]: #range(1,len(cut_list)):
         plot_2D_prediction(em_equiv_energy[cuts], retro_val, weights=true_weights,
                                 save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
                                 minval=minval, maxval=maxval, cut_truth=True, axis_square=True,\
-                                variable=plot_name, units=plot_units, reco_name="Retro", variable_type = "EM Equiv")
-        """
+                                variable=plot_name, units=plot_units, reco_name=reco_name, variable_type = "EM Equiv")
+        
         switch = True
         plot_2D_prediction(true_val, cnn_val,weights=true_weights,\
                                 save=save, savefolder=save_folder_name,bins=bins, switch_axis=switch,
                                 variable=plot_name, units=plot_units, reco_name="CNN")
         plot_2D_prediction(retro_true_val, retro_val, weights=retro_weights,
                                 save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
-                                variable=plot_name, units=plot_units, reco_name="Retro")
+                                variable=plot_name, units=plot_units, reco_name=reco_name)
         plot_2D_prediction(true_val, cnn_val,weights=true_weights,\
                                 save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
                                 minval=minval, maxval=maxval, cut_truth=True, axis_square=True,\
@@ -325,7 +330,7 @@ for cut_index in [1]: #range(1,len(cut_list)):
         plot_2D_prediction(retro_true_val, retro_val, weights=retro_weights,
                                 save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
                                 minval=minval, maxval=maxval, cut_truth=True, axis_square=True,\
-                                variable=plot_name, units=plot_units, reco_name="Retro")
+                                variable=plot_name, units=plot_units, reco_name=reco_name)
         """
         plot_single_resolution(true_val, cnn_val, weights=true_weights,\
                            use_old_reco = True, old_reco = retro_val,\
@@ -345,26 +350,26 @@ for cut_index in [1]: #range(1,len(cut_list)):
             plot_2D_prediction_fraction(retro_true_val, retro_val, weights=retro_weights,
                                 save=save, savefolder=save_folder_name,bins=bins,\
                                 xminval=minval, xmaxval=maxval, yminval=-2,ymaxval=2.,\
-                                variable=plot_name, units=plot_units, reco_name="Retro")
+                                variable=plot_name, units=plot_units, reco_name=reco_name)
             plot_2D_prediction_fraction(true_val, cnn_val,weights=true_weights,\
                                 save=save, savefolder=save_folder_name,bins=bins,\
                                 variable=plot_name, units=plot_units, reco_name="CNN")
             plot_2D_prediction_fraction(retro_true_val, retro_val, weights=retro_weights,
                                 save=save, savefolder=save_folder_name,bins=bins,\
-                                variable=plot_name, units=plot_units, reco_name="Retro")
+                                variable=plot_name, units=plot_units, reco_name=reco_name)
             """
             plot_distributions(true_val,log=True, 
                                     save=save, savefolder=save_folder_name, weights=true_weights,\
-                                    reco_name = "Retro", variable=plot_name, units= plot_units,
+                                    reco_name = reco_name, variable=plot_name, units= plot_units,
                                     bins=bins)
             plot_distributions(true_val,log=True,minval=1,maxval=300, 
                                     save=save, savefolder=save_folder_name, weights=true_weights,\
-                                    reco_name = "Retro", variable=plot_name, units= plot_units,
+                                    reco_name = reco_name, variable=plot_name, units= plot_units,
                                     bins=bins)
             plot_single_resolution(true_val, cnn_val, weights=true_weights,\
                            use_old_reco = True, old_reco = retro_val,\
                            old_reco_truth=retro_true_val, old_reco_weights=retro_weights,
-                           minaxis=-2, maxaxis=2, bins=bins,\
+                           minaxis=-2, maxaxis=2, bins=bins,old_reco_name=reco_name,\
                            save=save, savefolder=save_folder_name,use_fraction=True,\
                            variable=plot_name, units=plot_units)
             
@@ -372,18 +377,18 @@ for cut_index in [1]: #range(1,len(cut_list)):
                             old_reco = retro_val,old_reco_truth=retro_true_val,old_reco_weights=retro_weights,\
                             use_fraction = True, bins=syst_bin, min_val=minval, max_val=maxval,\
                             save=save, savefolder=save_folder_name,\
-                            variable=plot_name, units=plot_units, reco_name="Retro")
+                            variable=plot_name, units=plot_units, reco_name=reco_name)
             #plot_bin_slices(true_val, cnn_val, weights=true_weights,  
             #                old_reco = retro_val,old_reco_truth=true_val[not_nan],
             #                old_reco_weights=true_weights, vs_predict = True,\
             #                use_fraction = True, bins=syst_bin, min_val=minval, max_val=maxval,\
             #                save=save, savefolder=save_folder_name,\
-            #                variable=plot_name, units=plot_units, reco_name="Retro")
+            #                variable=plot_name, units=plot_units, reco_name=reco_name)
             plot_rms_slices(true_val, cnn_val, weights=true_weights, old_reco_truth=retro_true_val, 
                             old_reco = retro_val, old_reco_weights = retro_weights,\
                             use_fraction = True, bins=syst_bin, min_val=minval, max_val=maxval,\
                             save=save, savefolder=save_folder_name,\
-                            variable=plot_name, units=plot_units, reco_name="Retro")
+                            variable=plot_name, units=plot_units, reco_name=reco_name)
         
         if variable == "zenith":
             plot_single_resolution(true_val, cnn_val, weights=true_weights,\
@@ -391,34 +396,26 @@ for cut_index in [1]: #range(1,len(cut_list)):
                            old_reco_weights = retro_weights,
                            minaxis=-2, maxaxis=2, bins=bins,\
                            save=save, savefolder=save_folder_name,\
-                           variable=plot_name, units=plot_units, reco_name="Retro")
+                           variable=plot_name, units=plot_units, reco_name=reco_name)
             plot_bin_slices(true_val, cnn_val, weights=true_weights,  
                             old_reco = retro_val,old_reco_weights=retro_weights,\
                             use_fraction = False, bins=syst_bin, min_val=minval, max_val=maxval,\
                             save=save, savefolder=save_folder_name,\
-                            variable=plot_name, units=plot_units, reco_name="Retro")
+                            variable=plot_name, units=plot_units, reco_name=reco_name)
             plot_distributions(true_val,
                                     save=save, savefolder=save_folder_name, weights=true_weights,\
-                                    reco_name = "Retro", variable=plot_name, units= plot_units,
+                                    reco_name = reco_name, variable=plot_name, units= plot_units,
                                     bins=bins)
             plot_distributions(true_val,minval=-1,maxval=1., 
                                     save=save, savefolder=save_folder_name, weights=true_weights,\
-                                    reco_name = "Retro", variable=plot_name, units= plot_units,
+                                    reco_name = reco_name, variable=plot_name, units= plot_units,
                                     bins=bins)
-            plot_2D_prediction(true_val, cnn_val,weights=true_weights,\
-                                save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
-                                minval=-1, maxval=0.3, cut_truth=True, axis_square=True,\
-                                variable=plot_name, units=plot_units, reco_name="CNNCut")
-            plot_2D_prediction(retro_true_val, retro_val, weights=retro_weights,
-                                save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
-                                minval=-1, maxval=0.3, cut_truth=True, axis_square=True,\
-                                variable=plot_name, units=plot_units, reco_name="RetroCut")
             """
             plot_bin_slices(true_val, cnn_val, weights=true_weights,  
                             old_reco = retro_val,vs_predict = True,\
                             use_fraction = False, bins=syst_bin, min_val=minval, max_val=maxval,\
                             save=save, savefolder=save_folder_name,\
-                            variable=plot_name, units=plot_units, reco_name="Retro")
+                            variable=plot_name, units=plot_units, reco_name=reco_name)
             """
             plot_bin_slices(true_val, cnn_val, weights=true_weights, \
                             old_reco = retro_val,energy_truth= true_energy_val,\
@@ -427,7 +424,7 @@ for cut_index in [1]: #range(1,len(cut_list)):
                             use_fraction = False, bins=syst_bin_energy, \
                             min_val=minval_energy, max_val=maxval_energy,\
                             save=save, savefolder=save_folder_name,\
-                            variable="True Neutrino Energy", units=plot_units, reco_name="Retro")
+                            variable="True Neutrino Energy", units=plot_units, reco_name=reco_name)
             plot_rms_slices(true_val, cnn_val, weights=true_weights,  
                             old_reco = retro_val, energy_truth= true_energy_val,\
                             reco_energy_truth=tretro_energy_val,
@@ -435,7 +432,7 @@ for cut_index in [1]: #range(1,len(cut_list)):
                             use_fraction = False, bins=syst_bin_energy,
                             min_val=minval_energy, max_val=maxval_energy,\
                             save=save, savefolder=save_folder_name,\
-                            variable="True Neutrino Energy", units=plot_units, reco_name="Retro")
+                            variable="True Neutrino Energy", units=plot_units, reco_name=reco_name)
 
 
     if all_NuMu and (cut_index > 5):

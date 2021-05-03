@@ -166,8 +166,12 @@ def read_i3_files(filenames_list,variable, variable2,variable3):
                 except:
                     reco_pid_full = np.nan
                     reco_pid_up = np.nan
+                try:
+                    reco_iterations = frame['retro_crs_prefit__iterations'].value
+                except:
+                    reco_iterations = np.nan
 
-                output_reco_labels.append( np.array([ float(reco_energy), float(reco_zenith), float(reco_azimuth), float(reco_time), float(reco_x), float(reco_y), float(reco_z), float(reco_length), float(reco_track_energy), float(reco_casc_energy), float(reco_em_casc_energy), float(reco_zenith), float(reco_pid_full), float(reco_pid_up) ]) )
+                output_reco_labels.append( np.array([ float(reco_energy), float(reco_zenith), float(reco_azimuth), float(reco_time), float(reco_x), float(reco_y), float(reco_z), float(reco_length), float(reco_track_energy), float(reco_casc_energy), float(reco_em_casc_energy), float(reco_zenith), float(reco_pid_full), float(reco_pid_up), reco_iterations ]) )
 
                 #Additional Info
                 try:

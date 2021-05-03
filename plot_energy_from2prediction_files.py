@@ -20,7 +20,7 @@ args = parser.parse_args()
 input_file = args.input_file
 input_file2 = args.input_file2
 save_folder_name = args.output_dir
-numu_files = 1518.
+numu_files = 100 #1518.
 nue_files = 602.
 
 f = h5py.File(input_file, "r")
@@ -52,6 +52,10 @@ true_CC = np.array(truth[:,11])
 cnn_energy2 = np.array(predict2[:,0])
 true_energy2 = np.array(truth2[:,0])
 true_CC2 = np.array(truth2[:,11])
+retro_energy =  np.array(reco[:,0])
+retro_energy2 =  np.array(reco2[:,0])
+true_azimuth = np.array(truth[:,7])
+true_azimuth2 = np.array(truth2[:,7])
 
 weights = np.array(weights[:,8])
 weights2 = np.array(weights2[:,8])
@@ -107,56 +111,85 @@ minval = 1
 maxval = 200
 bins = 100
 syst_bin = 20
-true_weights = None #weights[cuts] #weights[cuts]/1510.
-true_weights2 = None #weights2[cuts2] #weights[cuts]/1510.
-
+true_weights = weights[cuts] #weights[cuts]/1510.
+true_weights2 = weights2[cuts2] #weights[cuts]/1510.
+name1 = "baseline"
+name2 = "BFR"
 
 print(true_energy[cuts][:10], cnn_energy[cuts][:10])
-
+"""
 switch = False
 plot_2D_prediction(true_energy[cuts], cnn_energy[cuts],weights=true_weights,\
                         save=save, savefolder=save_folder_name,bins=bins, switch_axis=switch,
-                        variable=plot_name, units=plot_units, reco_name="old GCD")
+                        variable=plot_name, units=plot_units, reco_name=name1)
 plot_2D_prediction(true_energy2[cuts2], cnn_energy2[cuts2], weights=true_weights2,
                         save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
-                        variable=plot_name, units=plot_units, reco_name="new GCD")
+                        variable=plot_name, units=plot_units, reco_name=name2)
 plot_2D_prediction(true_energy[cuts], cnn_energy[cuts],weights=true_weights,\
                         save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
                         minval=minval, maxval=maxval, axis_square=True,\
-                        variable=plot_name, units=plot_units, reco_name="old GCD")
+                        variable=plot_name, units=plot_units, reco_name=name1)
 plot_2D_prediction(true_energy2[cuts2], cnn_energy2[cuts2], weights=true_weights2,
                         save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
                         minval=minval, maxval=maxval, axis_square=True,\
-                        variable=plot_name, units=plot_units, reco_name="new GCD")
+                        variable=plot_name, units=plot_units, reco_name=name2)
 switch = True
 plot_2D_prediction(true_energy[cuts], cnn_energy[cuts],weights=true_weights,\
                         save=save, savefolder=save_folder_name,bins=bins, switch_axis=switch,
-                        variable=plot_name, units=plot_units, reco_name="old GCD")
+                        variable=plot_name, units=plot_units, reco_name=name1)
 plot_2D_prediction(true_energy2[cuts2], cnn_energy2[cuts2], weights=true_weights2,
                         save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
-                        variable=plot_name, units=plot_units, reco_name="new GCD")
+                        variable=plot_name, units=plot_units, reco_name=name2)
 plot_2D_prediction(true_energy[cuts], cnn_energy[cuts],weights=true_weights,\
                         save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
                         minval=minval, maxval=maxval, cut_truth=True, axis_square=True,\
-                        variable=plot_name, units=plot_units, reco_name="old GCD")
+                        variable=plot_name, units=plot_units, reco_name=name1)
 plot_2D_prediction(true_energy2[cuts2], cnn_energy2[cuts2], weights=true_weights2,
                         save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
                         minval=minval, maxval=maxval, cut_truth=True, axis_square=True,\
-                        variable=plot_name, units=plot_units, reco_name="new GCD")
+                        variable=plot_name, units=plot_units, reco_name=name2)
 
 plot_single_resolution(true_energy[cuts], cnn_energy[cuts], weights=true_weights,old_reco_weights=true_weights2,\
                    use_old_reco = True, old_reco = cnn_energy2[cuts2], old_reco_truth=true_energy2[cuts2],\
                    minaxis=-maxval, maxaxis=maxval, bins=bins,\
                    save=save, savefolder=save_folder_name,\
-                   variable=plot_name, units=plot_units, reco_name="new GCD")
+                   variable=plot_name, units=plot_units, reco_name=name2)
 plot_single_resolution(true_energy[cuts], cnn_energy[cuts], weights=true_weights,old_reco_weights=true_weights2,\
                    use_old_reco = True, old_reco = cnn_energy2[cuts2], old_reco_truth=true_energy2[cuts2],\
                    minaxis=-2., maxaxis=2, bins=bins,use_fraction=True,\
                    save=save, savefolder=save_folder_name,\
-                   variable=plot_name, units=plot_units, reco_name="new GCD")
+                   variable=plot_name, units=plot_units, reco_name=name2)
 
 plot_bin_slices(true_energy[cuts], cnn_energy[cuts], weights=true_weights, old_reco_weights=true_weights2,\
                     old_reco = cnn_energy2[cuts2],old_reco_truth=true_energy2[cuts2],\
                     use_fraction = True, bins=syst_bin, min_val=minval, max_val=maxval,\
                     save=save, savefolder=save_folder_name,\
-                    variable=plot_name, units=plot_units, reco_name="new GCD")
+                    variable=plot_name, units=plot_units, cnn_name=name1, reco_name=name2)
+"""
+plot_bin_slices(true_energy[cuts], cnn_energy[cuts], 
+                energy_truth=true_azimuth[cuts], 
+                weights=true_weights, old_reco_weights=true_weights2,\
+                old_reco = cnn_energy2[cuts2],old_reco_truth=true_energy2[cuts2],
+                reco_energy_truth=true_azimuth2[cuts2],\
+                use_fraction = True, bins=syst_bin, 
+                min_val=minval, max_val=maxval,\
+                save=save, savefolder=save_folder_name,
+                xvariable="Azimuth",\
+                variable=plot_name, units="(rad)", 
+                cnn_name=name1, reco_name=name2)
+"""
+reco_nan = np.isnan(retro_energy)
+not_nan = np.logical_not(reco_nan)
+assert sum(not_nan) > 0, "Retro is all nans"
+cuts = np.logical_and(cuts,not_nan)
+reco_nan2 = np.isnan(retro_energy2)
+not_nan2 = np.logical_not(reco_nan2)
+assert sum(not_nan2) > 0, "Retro is all nans"
+cuts2 = np.logical_and(cuts2,not_nan2)
+plot_bin_slices(true_energy[cuts], retro_energy[cuts], weights=weights[cuts], old_reco_weights=weights2[cuts2],\
+
+                    old_reco = retro_energy2[cuts2],old_reco_truth=true_energy2[cuts2],\
+                    use_fraction = True, bins=syst_bin, min_val=minval, max_val=maxval,\
+                    save=save, savefolder=save_folder_name,\
+                    variable=plot_name, units=plot_units, cnn_name=name1, reco_name=name2)
+"""
