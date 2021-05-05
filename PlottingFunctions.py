@@ -1091,10 +1091,14 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
             err_to_reco[i] = upper_lim_reco
 
     plt.figure(figsize=(10,7))
-    plt.errorbar(variable_centers, medians, yerr=[medians-err_from, err_to-medians], xerr=[ variable_centers-variable_ranges[:-1], variable_ranges[1:]-variable_centers ], capsize=5.0, fmt='o',label=cnn_name)
+    (_, caps, _) = plt.errorbar(variable_centers, medians, yerr=[medians-err_from, err_to-medians], xerr=[ variable_centers-variable_ranges[:-1], variable_ranges[1:]-variable_centers ], capsize=5.0, fmt='o',label=cnn_name)
+    for cap in caps:
+        cap.set_markeredgewidth(5)
     if old_reco is not None:
-        plt.errorbar(variable_centers, medians_reco, yerr=[medians_reco-err_from_reco, err_to_reco-medians_reco], xerr=[ variable_centers-variable_ranges[:-1], variable_ranges[1:]-variable_centers ], capsize=5.0, fmt='o',label="%s"%reco_name)
+        (_, caps_reco, _) = plt.errorbar(variable_centers, medians_reco, yerr=[medians_reco-err_from_reco, err_to_reco-medians_reco], xerr=[ variable_centers-variable_ranges[:-1], variable_ranges[1:]-variable_centers ], capsize=5.0, fmt='o',label="%s"%reco_name)
         plt.legend(loc="upper center")
+        for cap in caps_reco:
+            cap.set_markeredgewidth(5)
     plt.plot([min_val,max_val], [0,0], color='k')
     plt.xlim(min_val,max_val)
     if type(ylim) is not None:
