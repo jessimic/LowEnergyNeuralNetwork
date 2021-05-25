@@ -112,7 +112,7 @@ if args.reco == "True" or args.reco == "true":
 else:    
     use_old_reco = False
 
-print("\nSaving old reco info: %s \nNumber output files: %i \nDo Cuts: %s \nAssuming Transformed Input: %s (Energy Factor %i, Track Factor %i) \nShuffling: %s \nSplit Train/Test: %s \nMake validation: %s\n"%(use_old_reco,num_outputs,do_cuts,transformed, energy_factor, track_factor, shuffle,split_train, create_validation)) 
+print("\nSaving old reco info: %s \nNumber output files: %i \nDo Cuts: %s \nAssuming Transformed Input: %s (Energy Factor %i, Track Factor %i) \nShuffling: %s \nSplit Train/Test: %s \nMake validation: %s \nTest Only: %s\n"%(use_old_reco,num_outputs,do_cuts,transformed, energy_factor, track_factor, shuffle,split_train, create_validation,test_only)) 
 if total_events is not None:
     print("Cutting total events to be at or less than %i"%total_events)
 if do_cuts:
@@ -320,10 +320,10 @@ if split_train or test_only:
         f.create_dataset("X_test_DC", data=X_test_DC[test_start:test_end])
         f.create_dataset("X_test_IC", data=X_test_IC[test_start:test_end])
         f.create_dataset("weights_test", data=weights_test[test_start:test_end])
-        f.attrs['output_label_names'] = [a.encode('utf8') for a in output_label_names]
-        f.create_dataset("output_label_names",data=f.attrs['output_label_names'])
-        f.create_dataset("input_transform_factors",data=input_transform_factors)
-        f.create_dataset("output_transform_factors",data=output_transform_factors)
+        #f.attrs['output_label_names'] = [a.encode('utf8') for a in output_label_names]
+        #f.create_dataset("output_label_names",data=f.attrs['output_label_names'])
+        #f.create_dataset("input_transform_factors",data=input_transform_factors)
+        #f.create_dataset("output_transform_factors",data=output_transform_factors)
 
         if not test_only:
             f.create_dataset("Y_train", data=Y_train[train_start:train_end])

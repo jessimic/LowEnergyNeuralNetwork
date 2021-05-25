@@ -9,8 +9,8 @@ do
     FILENUM=`printf "%02d\n" $THOUS`
     #infile=oscNext_muongun_level6_v02.00_pass2.${SET}.0${FILENUM}???.i3.zst_cleanedpulses_transformed_IC19.hdf5
     #name=oscNext_muongun_level6_v02.00_pass2.${SET}.${FILENUM}k_cleanedpulses_transformed_IC19
-    infile=oscNext_genie_level6_v02.00_pass2.${SET}.00${FILENUM}??.i3.zst_cleanedpulses_transformed_IC19.hdf5
-    name=oscNext_genie_level6_v02.00_pass2.${SET}.${FILENUM}h.cleanedpulses_transformed_IC19
+    infile=oscNext_genie_level6.5_v02.00_pass2.${SET}.00${FILENUM}??.i3.bz2_cleanedpulses_transformed_IC19.hdf5
+    name=oscNext_genie_level6.5_v02.00_pass2.${SET}.${FILENUM}h.cleanedpulses_transformed_IC19
     sed -e "s|@@files@@|${infile}|g" \
         -e "s|@@syst_set@@|${SET}|g" \
         -e "s|@@name@@|${name}|g" \

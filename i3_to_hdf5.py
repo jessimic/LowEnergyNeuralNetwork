@@ -60,6 +60,8 @@ reco_type = args.reco_type
 if args.reco == 'True' or args.reco == 'true':
     use_old_reco = True
     print("Expecting old reco values in files, pulling from %s frames"%reco_type)
+    if reco_type == "retro":
+        print("CUTTING OUT ALL FIT FAILURES, INCLUDING ITERATIONS < 9")
 else:
     use_old_reco = False
 if args.cleaned == "True" or args.cleaned == "true":
@@ -324,6 +326,8 @@ def read_files(filename_list, use_old_reco, check_filters, true_name, reco_type)
     skipped_triggers = 0
     probnu = 0
     less_8_hits = 0
+    failed_fit = 0
+    failed_iter = 0
 
 
     for event_file_name in filename_list:
@@ -409,18 +413,23 @@ def read_files(filename_list, use_old_reco, check_filters, true_name, reco_type)
                     if reco_type == "retro":
                         fit_success = ( "retro_crs_prefit__fit_status" in frame ) and frame["retro_crs_prefit__fit_status"] == 0
                         if fit_success:
-                            reco_energy = frame['L7_reconstructed_total_energy'].value
-                            reco_time = frame['L7_reconstructed_time'].value
-                            reco_zenith = frame['L7_reconstructed_zenith'].value
-                            reco_azimuth = frame['L7_reconstructed_azimuth'].value
-                            reco_x = frame['L7_reconstructed_vertex_x'].value
-                            reco_y = frame['L7_reconstructed_vertex_y'].value
-                            reco_z = frame['L7_reconstructed_vertex_z'].value
-                            reco_length = frame['L7_reconstructed_track_length'].value
-                            reco_casc_energy = frame['L7_reconstructed_cascade_energy'].value
-                            reco_track_energy = frame['L7_reconstructed_track_energy'].value
-                            reco_em_casc_energy = frame['L7_reconstructed_em_cascade_energy'].value
+                            reco_iterations = frame['retro_crs_prefit__iterations'].value
+                            if reco_iterations > 9:
+                                reco_energy = frame['L7_reconstructed_total_energy'].value
+                                reco_time = frame['L7_reconstructed_time'].value
+                                reco_zenith = frame['L7_reconstructed_zenith'].value
+                                reco_azimuth = frame['L7_reconstructed_azimuth'].value
+                                reco_x = frame['L7_reconstructed_vertex_x'].value
+                                reco_y = frame['L7_reconstructed_vertex_y'].value
+                                reco_z = frame['L7_reconstructed_vertex_z'].value
+                                reco_length = frame['L7_reconstructed_track_length'].value
+                                reco_casc_energy = frame['L7_reconstructed_cascade_energy'].value
+                                reco_track_energy = frame['L7_reconstructed_track_energy'].value
+                                reco_em_casc_energy = frame['L7_reconstructed_em_cascade_energy'].value
+                            else:
+                                failed_iter += 1
                         else:
+                            failed_fit += 1
                             continue
                             #reco_energy =0
                             #reco_time = 0
@@ -557,6 +566,11 @@ def read_files(filename_list, use_old_reco, check_filters, true_name, reco_type)
         print("Skipped %i events due to less than 8 hits"%less_8_hits)
     if probnu > 0:
         print("Skipped %i events due to ProbNu < 0.95"%probnu)
+    if failed_fit > 0:
+        print("Skipped %i events due to failed retro fit"%failed_fit)
+    if failed_iter > 0:
+        print("Skipped %i events due to retro iterations < 9"%failed_iter)
+
         
 
     return output_features_DC, output_features_IC, output_labels, output_reco_labels, output_initial_stats, output_num_pulses_per_dom, output_trigger_times, output_weights, ICstrings

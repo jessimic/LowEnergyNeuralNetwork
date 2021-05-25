@@ -20,12 +20,15 @@ parser.add_argument("--nue",type=float,default=602.,
                     dest="nue", help="number of nue files")
 parser.add_argument("--no_old_reco", default=False,action='store_true',
                         dest='no_old_reco',help="no old reco")
+parser.add_argument("--nu_type",type=str,default="NuMu",
+                    dest="nu_type", help="NuMu or NuE")
 args = parser.parse_args()
 
 input_file = args.input_file
 save_folder_name = args.output_dir
 numu_files = args.numu
 nue_files = args.nue
+nu_type = args.nu_type
 
 f = h5py.File(input_file, "r")
 truth = f["Y_test_use"][:]
@@ -201,22 +204,22 @@ if reco is not None:
 
 
 
-cut_list = [np.logical_and(maskHits8,maskCC), np.logical_and(maskANA, maskCC), np.logical_and(maskHLCVertex, np.logical_and(np.logical_and(maskCNNE2, maskCC),maskHits8)), np.logical_and(maskHLCVertex, np.logical_and(np.logical_and(maskCNNE, maskCC),maskHits8)),np.logical_and(maskCNNZenith,np.logical_and(maskHLCVertex, np.logical_and(np.logical_and(maskCNNE, maskCC),maskHits8))),np.logical_and(maskANA2, maskCC), np.logical_and(np.logical_not(maskPassRetro), np.logical_and(maskHits8,maskCC)) ]
-cut_names = ["Weighted_Hits8CC", "WeightedAnalysisCuts_CC", "WeightedCNN1100_HLCVertex_Hits8CC", "WeightedCNN5100_HLCVertex_Hits8CC", "WeightedCNN5100_ZenithHLCVertex_Hits8CC","WeightedAnalysisCuts_NoZen_CC","WeightsFailedRetro_Hits8CC"]
-minvals_energy = [1, 5, 1, 5, 5, 5, 1]
-maxvals_energy = [200, 200, 100, 100, 100., 200, 200]
-minvals_zenith =  [-1., -1, -1, -1, -1, -1, -1]
-maxvals_zenith = [1,1,1,1, 0.3, 1, 1]
-binss_energy = [199, 195, 199, 95, 95, 195, 199]
-syst_bins_energy = [20, 20, 20, 10, 10, 20, 20]
-binss_zenith = [100, 100, 100, 100, 100, 100, 100]
-syst_bins_zenith = [20, 20, 20, 20, 12, 20, 20]
-nu_type = "NuMu"
-plot_main = False
+cut_list = [np.logical_and(maskHits8,maskCC), np.logical_and(maskANA, maskCC), np.logical_and(maskHLCVertex, np.logical_and(np.logical_and(maskCNNE2, maskCC),maskHits8)), np.logical_and(maskHLCVertex, np.logical_and(np.logical_and(maskCNNE, maskCC),maskHits8)),np.logical_and(maskCNNZenith,np.logical_and(maskHLCVertex, np.logical_and(np.logical_and(maskCNNE, maskCC),maskHits8))),np.logical_and(maskANA2, maskCC), np.logical_and(np.logical_not(maskPassRetro), np.logical_and(maskHits8,maskCC)),np.logical_and( maskE,np.logical_and(maskHits8,maskCC)) ]
+cut_names = ["Weighted_Hits8CC", "WeightedAnalysisCuts_CC", "WeightedCNN1100_HLCVertex_Hits8CC", "WeightedCNN5100_HLCVertex_Hits8CC", "WeightedCNN5100_ZenithHLCVertex_Hits8CC","WeightedAnalysisCuts_NoZen_CC","WeightsFailedRetro_Hits8CC", "WeightedTrueE5100_Hits8CC"]
+minvals_energy = [1, 5, 1, 5, 5, 5, 1,5]
+maxvals_energy = [200, 200, 100, 100, 100., 200, 200,100]
+minvals_zenith =  [-1., -1, -1, -1, -1, -1, -1,-1]
+maxvals_zenith = [1,1,1,1, 0.3, 1, 1,1]
+binss_energy = [199, 195, 199, 95, 95, 195, 199,95]
+syst_bins_energy = [20, 20, 20, 10, 10, 20, 20, 10]
+binss_zenith = [100, 100, 100, 100, 100, 100, 100, 100]
+syst_bins_zenith = [20, 20, 20, 20, 12, 20, 20, 20]
+sample_names = ["CC", "CC", "CC", "CC", "CC", "CC", "CC", "CC"]
+plot_main = True
 plot_EMequiv = False
 plot_switch = False
 plot_others = False
-plot_philipp = True
+plot_philipp = False
 save_base_name = save_folder_name
 
 for cut_index in [0]: #,2,3,4]: #range(1,len(cut_list)):
@@ -230,6 +233,7 @@ for cut_index in [0]: #,2,3,4]: #range(1,len(cut_list)):
     else:
         reco_class = retro_PID_full
     reco_name = "Likelihood-Based"
+    sample_name = sample_names[cut_index]
 
     minval_energy = minvals_energy[cut_index]
     maxval_energy = maxvals_energy[cut_index]
@@ -269,12 +273,19 @@ for cut_index in [0]: #,2,3,4]: #range(1,len(cut_list)):
             retro_val = np.copy(retro_coszenith[cuts])
 
 
-        #Cut out failed Retro
-        retro_val = retro_val[fit_success_cut]
-        retro_true_val = true_val[fit_success_cut]
-        retro_weights = true_weights[fit_success_cut]
-        tretro_energy_val = true_energy_val[fit_success_cut]
-        print(sum(fit_success_cut)/len(fit_success_cut))
+        #Cut out failed Retro or set it to none if all failed retro
+        if cut_index == 6:
+            retro_val = None
+            retro_true_val = None
+            retro_weights = None
+            tretro_energy_val = None
+
+        else:
+            retro_val = retro_val[fit_success_cut]
+            retro_true_val = true_val[fit_success_cut]
+            retro_weights = true_weights[fit_success_cut]
+            tretro_energy_val = true_energy_val[fit_success_cut]
+            print(sum(fit_success_cut)/len(fit_success_cut))
 
         #print(plot_name, plot_units, minval, maxval, syst_bin, bins)
         #print(max(true_val), max(cnn_val), max(retro_val))
@@ -282,69 +293,115 @@ for cut_index in [0]: #,2,3,4]: #range(1,len(cut_list)):
         
 
         if plot_main:
-            plot_distributions(true_val, cnn_val, old_reco=retro_val,old_reco_weights=retro_weights,\
-                                    save=save, savefolder=save_folder_name, weights=true_weights,\
-                                    reco_name = reco_name, variable=plot_name, units= plot_units,
-                                    minval=minval,maxval=maxval,bins=bins)
-            plot_distributions(true_val, cnn_val, old_reco=retro_val,old_reco_weights=retro_weights,\
-                                    save=save, savefolder=save_folder_name, weights=true_weights,\
-                                    reco_name = reco_name, variable=plot_name, units= plot_units,
-                                    minval=min(true_val), maxval=max(true_val))
+            plot_distributions(true_val, cnn_val, 
+                                old_reco=retro_val,old_reco_weights=retro_weights,\
+                                save=save, savefolder=save_folder_name, weights=true_weights,\
+                                reco_name = reco_name, variable=plot_name, units= plot_units,
+                                minval=minval,maxval=maxval,bins=bins)
+            plot_distributions(true_val, cnn_val,
+                                old_reco=retro_val,old_reco_weights=retro_weights,\
+                                save=save, savefolder=save_folder_name, weights=true_weights,\
+                                reco_name = reco_name, variable=plot_name, units= plot_units,
+                                minval=min(true_val), maxval=max(true_val))
         if plot_others:
             plot_distributions(true_r[cuts], reco_r[cuts],\
-                                    save=save, savefolder=save_folder_name, weights=true_weights,\
-                                    cnn_name = reco_name, variable="Radial Vertex", units= "(m)",log=True)
+                                save=save, savefolder=save_folder_name, weights=true_weights,\
+                                cnn_name = reco_name,
+                                variable="Radial Vertex", units= "(m)",log=True)
             plot_distributions(true_z[cuts], reco_z[cuts],\
-                                    save=save, savefolder=save_folder_name, weights=true_weights,\
-                                    cnn_name = reco_name, variable="Z Vertex", units= "(m)",log=True)
+                                save=save, savefolder=save_folder_name,
+                                weights=true_weights,cnn_name = reco_name,
+                                variable="Z Vertex", units= "(m)",log=True)
         if plot_main:
             switch = False 
             plot_2D_prediction(true_val, cnn_val,weights=true_weights,\
-                                save=save, savefolder=save_folder_name,bins=bins, switch_axis=switch,
-                                variable=plot_name, units=plot_units, reco_name="CNN")
-            plot_2D_prediction(retro_true_val, retro_val, weights=retro_weights,
-                                save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
-                                variable=plot_name, units=plot_units, reco_name=reco_name)
+                                save=save, savefolder=save_folder_name,
+                                bins=bins, switch_axis=switch,
+                                variable=plot_name, units=plot_units,
+                                reco_name="CNN",flavor=nu_type,sample=sample_name)
             plot_2D_prediction(true_val, cnn_val,weights=true_weights,\
-                                save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
-                                minval=minval, maxval=maxval, cut_truth=True, axis_square=True,\
-                                variable=plot_name, units=plot_units, reco_name="CNN")
-            plot_2D_prediction(retro_true_val, retro_val, weights=retro_weights,
-                                save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
-                                minval=minval, maxval=maxval, cut_truth=True, axis_square=True,\
-                                variable=plot_name, units=plot_units, reco_name=reco_name)
+                                save=save, savefolder=save_folder_name,
+                                bins=bins,switch_axis=switch,\
+                                minval=minval, maxval=maxval, 
+                                cut_truth=True, axis_square=True,\
+                                variable=plot_name, units=plot_units,\
+                                reco_name="CNN",flavor=nu_type,sample=sample_name)
+            if retro_val is not None:
+                plot_2D_prediction(retro_true_val, retro_val, weights=retro_weights,
+                                save=save, savefolder=save_folder_name,
+                                bins=bins,switch_axis=switch,\
+                                variable=plot_name, units=plot_units,
+                                reco_name=reco_name,flavor=nu_type,sample=sample_name)
+                plot_2D_prediction(retro_true_val, retro_val, weights=retro_weights,
+                                save=save, savefolder=save_folder_name,
+                                bins=bins,switch_axis=switch,\
+                                minval=minval, maxval=maxval,
+                                cut_truth=True, axis_square=True,\
+                                variable=plot_name, units=plot_units,
+                                reco_name=reco_name,flavor=nu_type,sample=sample_name)
         if plot_EMequiv:
             plot_2D_prediction(em_equiv_energy[cuts], cnn_val,weights=true_weights,\
-                                save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
-                                minval=minval, maxval=maxval, cut_truth=True, axis_square=True,\
-                                variable=plot_name, units=plot_units, reco_name="CNN",variable_type="EM Equiv")
-            plot_2D_prediction(em_equiv_energy[cuts], retro_val, weights=true_weights,
-                                save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
-                                minval=minval, maxval=maxval, cut_truth=True, axis_square=True,\
-                                variable=plot_name, units=plot_units, reco_name=reco_name, variable_type = "EM Equiv")
+                                save=save, savefolder=save_folder_name,
+                                bins=bins,switch_axis=switch,\
+                                minval=minval, maxval=maxval,
+                                cut_truth=True, axis_square=True,\
+                                variable=plot_name, units=plot_units,
+                                reco_name="CNN",variable_type="EM Equiv",
+                                flavor=nu_type,sample=sample_name)
+            if retro_val is not None:
+                plot_2D_prediction(em_equiv_energy[cuts], retro_val, weights=true_weights,
+                                save=save, savefolder=save_folder_name,
+                                bins=bins,switch_axis=switch,\
+                                minval=minval, maxval=maxval,
+                                cut_truth=True, axis_square=True,\
+                                variable=plot_name, units=plot_units, 
+                                reco_name=reco_name, variable_type = "EM Equiv",
+                                flavor=nu_type,sample=sample_name)
         if plot_switch:
             switch = True
             plot_2D_prediction(true_val, cnn_val,weights=true_weights,\
-                                save=save, savefolder=save_folder_name,bins=bins, switch_axis=switch,
-                                variable=plot_name, units=plot_units, reco_name="CNN")
-            plot_2D_prediction(retro_true_val, retro_val, weights=retro_weights,
-                                save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
-                                variable=plot_name, units=plot_units, reco_name=reco_name)
+                                save=save, savefolder=save_folder_name,
+                                bins=bins, switch_axis=switch,
+                                variable=plot_name, units=plot_units,
+                                reco_name="CNN",flavor=nu_type,sample=sample_name)
             plot_2D_prediction(true_val, cnn_val,weights=true_weights,\
-                                save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
-                                minval=minval, maxval=maxval, cut_truth=True, axis_square=True,\
-                                variable=plot_name, units=plot_units, reco_name="CNN")
-            plot_2D_prediction(retro_true_val, retro_val, weights=retro_weights,
-                                save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
-                                minval=minval, maxval=maxval, cut_truth=True, axis_square=True,\
-                                variable=plot_name, units=plot_units, reco_name=reco_name)
-        if plot_main:
-            plot_single_resolution(true_val, cnn_val, weights=true_weights,\
+                                save=save, savefolder=save_folder_name,
+                                bins=bins,switch_axis=switch,\
+                                minval=minval, maxval=maxval,
+                                cut_truth=True, axis_square=True,\
+                                variable=plot_name, units=plot_units,
+                                reco_name="CNN",flavor=nu_type,sample=sample_name)
+            if retro_val is not None:
+                plot_2D_prediction(retro_true_val, retro_val, weights=retro_weights,
+                                save=save, savefolder=save_folder_name,
+                                bins=bins,switch_axis=switch,\
+                                variable=plot_name, units=plot_units,
+                                reco_name=reco_name,flavor=nu_type,sample=sample_name)
+                plot_2D_prediction(retro_true_val, retro_val, weights=retro_weights,
+                                save=save, savefolder=save_folder_name,
+                                bins=bins,switch_axis=switch,\
+                                minval=minval, maxval=maxval,
+                                cut_truth=True, axis_square=True,\
+                                variable=plot_name, units=plot_units,
+                                reco_name=reco_name,flavor=nu_type,sample=sample_name)
+        if plot_main:   
+            if retro_val is not None:
+                plot_single_resolution(true_val, cnn_val, weights=true_weights,\
                            use_old_reco = True, old_reco = retro_val,\
-                           old_reco_truth=retro_true_val, old_reco_weights = retro_weights,
+                           old_reco_truth=retro_true_val,
+                            old_reco_weights = retro_weights,old_reco_name=reco_name,
                            minaxis=-maxval, maxaxis=maxval, bins=bins,\
                            save=save, savefolder=save_folder_name,\
-                           variable=plot_name, units=plot_units)
+                           variable=plot_name, units=plot_units,
+                           flavor=nu_type,sample=sample_name)
+                
+            else:
+                plot_single_resolution(true_val, cnn_val, weights=true_weights,\
+                           use_old_reco = False,\
+                           minaxis=-maxval, maxaxis=maxval, bins=bins,\
+                           save=save, savefolder=save_folder_name,\
+                           variable=plot_name, units=plot_units,
+                           flavor=nu_type,sample=sample_name)
         
 
         
@@ -366,37 +423,73 @@ for cut_index in [0]: #,2,3,4]: #range(1,len(cut_list)):
                                 variable=plot_name, units=plot_units, reco_name=reco_name)
             
             if plot_main:           
+                if nu_type == "NuMu" or nu_type == "numu":
+                    dist_title = r'$\nu_\mu$ '
+                elif nu_type == "NuE" or nu_type == "nue":
+                    dist_title = r'for $\nu_e$ '
+                else:
+                    dist_title += nu_type
+                dist_title += sample_name
                 plot_distributions(true_val,log=True, 
-                                    save=save, savefolder=save_folder_name, weights=true_weights,\
-                                    reco_name = reco_name, variable=plot_name, units= plot_units,
-                                    bins=bins,title="Testing Energy Distribution for %s CC"%nu_type)
+                                    save=save, savefolder=save_folder_name, 
+                                    weights=true_weights,reco_name = reco_name,
+                                    variable=plot_name, units= plot_units,
+                                    bins=bins,
+                                    title="Testing Energy Distribution for %s"%dist_title)
                 plot_distributions(true_val,log=True,minval=1,maxval=300, 
-                                    save=save, savefolder=save_folder_name, weights=true_weights,\
-                                    reco_name = reco_name, variable=plot_name, units= plot_units,
-                                    bins=bins,title="Testing Energy Distribution for %s CC"%nu_type)
+                                    save=save, savefolder=save_folder_name, 
+                                    weights=true_weights,reco_name = reco_name,
+                                    variable=plot_name, units= plot_units,
+                                    bins=bins,
+                                    title="Testing Energy Distribution for %s"%dist_title)
 
-                plot_single_resolution(true_val, cnn_val, weights=true_weights,\
+                if retro_val is not None:
+                    plot_single_resolution(true_val, cnn_val, weights=true_weights,\
                            use_old_reco = True, old_reco = retro_val,\
                            old_reco_truth=retro_true_val, old_reco_weights=retro_weights,
                            minaxis=-2, maxaxis=2, bins=bins,old_reco_name=reco_name,\
                            save=save, savefolder=save_folder_name,use_fraction=True,\
-                           variable=plot_name, units=plot_units)
+                           variable=plot_name, units=plot_units,
+                           flavor=nu_type,sample=sample_name)
+                else:
+                    plot_single_resolution(true_val, cnn_val, weights=true_weights,\
+                           use_old_reco = False, minaxis=-2, maxaxis=2, bins=bins,\
+                           save=save, savefolder=save_folder_name,use_fraction=True,\
+                           variable=plot_name, units=plot_units,
+                           flavor=nu_type,sample=sample_name)
+
             
                 plot_bin_slices(true_val, cnn_val, weights=true_weights,  
-                            old_reco = retro_val,old_reco_truth=retro_true_val,old_reco_weights=retro_weights,\
-                            use_fraction = True, bins=syst_bin, min_val=minval, max_val=maxval,\
+                            old_reco = retro_val,old_reco_truth=retro_true_val,
+                            old_reco_weights=retro_weights,use_fraction = True,
+                            bins=syst_bin, min_val=minval, max_val=maxval,\
                             save=save, savefolder=save_folder_name,\
-                            variable=plot_name, units=plot_units, reco_name=reco_name)
-                plot_rms_slices(true_val, cnn_val, weights=true_weights, old_reco_truth=retro_true_val, 
+                            variable=plot_name, units=plot_units, reco_name=reco_name,
+                            flavor=nu_type,sample=sample_name)
+                plot_rms_slices(true_val, cnn_val, weights=true_weights, 
+                            old_reco_truth=retro_true_val, 
                             old_reco = retro_val, old_reco_weights = retro_weights,\
-                            use_fraction = True, bins=syst_bin, min_val=minval, max_val=maxval,\
+                            use_fraction = True, bins=syst_bin,
+                            min_val=minval, max_val=maxval,\
                             save=save, savefolder=save_folder_name,\
-                            variable=plot_name, units=plot_units, reco_name=reco_name)
+                            variable=plot_name, units=plot_units, reco_name=reco_name,
+                            flavor=nu_type,sample=sample_name)
                 plot_bin_slices(true_val, cnn_val, weights=None,  
                             old_reco = retro_val,old_reco_truth=retro_true_val,\
-                            use_fraction = True, bins=syst_bin, min_val=minval, max_val=maxval,\
+                            use_fraction = True, bins=syst_bin, 
+                            min_val=minval, max_val=maxval,\
                             save=save, savefolder=save_folder_name,\
-                            variable=plot_name, units=plot_units, reco_name=reco_name)
+                            variable=plot_name, units=plot_units, reco_name=reco_name,
+                            flavor=nu_type,sample=sample_name)
+                plot_bin_slices(true_val, cnn_val, weights=true_weights,  
+                            old_reco = retro_val,old_reco_truth=retro_true_val,
+                            old_reco_weights=retro_weights, vs_predict = True,\
+                            use_fraction = True, bins=syst_bin,
+                            min_val=minval, max_val=maxval,\
+                            save=save, savefolder=save_folder_name,\
+                            variable=plot_name, units=plot_units, reco_name=reco_name,
+                            flavor=nu_type,sample=sample_name)
+
             if plot_philipp:
                 plot_bin_slices(true_val, cnn_val, weights=None,  
                             old_reco = retro_val,old_reco_truth=retro_true_val,\
@@ -404,32 +497,58 @@ for cut_index in [0]: #,2,3,4]: #range(1,len(cut_list)):
                             save=save, savefolder=save_folder_name,\
                             variable=plot_name, units=plot_units, reco_name=reco_name)
                 
-                an_e_cut = np.logical_and(true_val > minval, true_val < maxval)
+                ccon = np.logical_and(true_val > minval, true_val < maxval)
                 p = dm.PointData()
-                p.x = true_val[an_e_cut]
-                p.res = (cnn_val[an_e_cut]-true_val[an_e_cut])/true_val[an_e_cut]
-                r_e_cut = np.logical_and(retro_true_val > minval, retro_true_val < maxval)
+                p.x = true_val[ccon]
+                p.cnn_res = (cnn_val[ccon]-true_val[ccon])/true_val[ccon]
+                con = np.logical_and(fit_success_cut, np.logical_and(true_val > minval, true_val < maxval))
+                rcon = np.logical_and(retro_true_val > minval, retro_true_val < maxval)
+                print(sum(con),sum(rcon))
                 r = dm.PointData()
-                r.x = retro_true_val[r_e_cut]
-                r.res =  (retro_val[r_e_cut]-retro_true_val[r_e_cut])/retro_true_val[r_e_cut]
+                r.x = retro_true_val[rcon]
+                r.cnn_res =  (cnn_val[con]-retro_true_val[rcon])/retro_true_val[rcon]
+                r.retro_res =  (retro_val[rcon]-retro_true_val[rcon])/retro_true_val[rcon]
+                cnn_labels = ['CNN 68%', 'CNN Median']
+                retro_labels = ['Likelihood 68%', 'Likelihood Median']
+                #frame = r.binwise(x=np.linspace(minval,maxval,syst_bin)).quantile(q=[0.15865, 0.5, 0.8414])
+                plt.figure(figsize=(10,7))
+                r.binwise(x=np.linspace(minval,maxval,syst_bin)).quantile(q=[0.15865, 0.5, 0.8414]).plot_bands('retro_res',lines=True, filled=False, linestyles=['--', '-'], lw=2,labels=retro_labels,linecolors=['orange']*2)
+                p.binwise(x=np.linspace(minval,maxval,syst_bin)).quantile(q=[0.15865, 0.5, 0.8414]).plot_bands('cnn_res',cmap="Blues", lw=2,labels=cnn_labels)
+                plt.hlines(0.0,minval,maxval,color="k",linestyle=":",label="ideal")
+                plt.title(r'Energy Resolution Dependence for $\nu_\mu$ CC',fontsize=25)
+                plt.xlabel("True Energy (GeV)",fontsize=20)
+                plt.ylabel(r'Fractional Resolution: $\frac{reconstruction - truth}{truth}$',fontsize=20)
+                plt.legend(fontsize=15)
+                plt.savefig("%sSmoothLines_Erange_%i_%i.png"%(save_folder_name,minval,maxval),bbox_inches='tight')
+
+                plt.figure(figsize=(10,7))
+                r.binwise(x=np.linspace(minval,maxval,syst_bin)).quantile(q=[0.15865, 0.5, 0.8414]).plot_bands('retro_res',lines=True, filled=True, linestyles=['--', '-'], lw=2,labels=retro_labels,cmap="Oranges",linecolors=['orange']*2,alpha=0.5)
+                p.binwise(x=np.linspace(minval,maxval,syst_bin)).quantile(q=[0.15865, 0.5, 0.8414]).plot_bands('cnn_res', lines=True, filled=True,linestyles=['--', '-'],lw=2,cmap="Blues",linecolors=['blue']*2,labels=cnn_labels,alpha=0.5)
+                plt.hlines(0.0,minval,maxval,color="k",linestyle=":",label="ideal")
+                plt.title(r'Energy Resolution Dependence for $\nu_\mu$ CC',fontsize=25)
+                plt.xlabel("True Energy (GeV)",fontsize=20)
+                plt.ylabel(r'Fractional Resolution: $\frac{reconstruction - truth}{truth}$',fontsize=20)
+                plt.legend(fontsize=15)
+                plt.savefig("%sSmoothLines_Erange_%i_%i_v3.png"%(save_folder_name,minval,maxval),bbox_inches='tight')
+
+                """
+                cnn_labels = ['CNN 90%', 'CNN 68%', 'CNN Median']
+                retro_labels = ['Likelihood 90%','Likelihood 68%', 'Likelihood Median']
+                plt.figure(figsize=(10,7))
+                r.binwise(x=np.linspace(minval,maxval,syst_bin)).quantile(q=[0.05,0.15865, 0.5, 0.8414,0.95]).plot_bands('retro_res',lines=True, filled=False, linestyles=[':','--', '-'], lw=2,labels=retro_labels,linecolors=['orange']*3)
+                p.binwise(x=np.linspace(minval,maxval,syst_bin)).quantile(q=[0.10, 0.15865, 0.5, 0.8414, 0.9]).plot_bands('cnn_res',cmap="Blues", lw=2,labels=cnn_labels)
+                plt.hlines(0.0,minval,maxval,color="k",linestyle=":",label="ideal")
+                plt.title(r'Energy Resolution Dependence for $\nu_\mu$ CC',fontsize=25)
+                plt.xlabel("True Energy (GeV)",fontsize=20)
+                plt.ylabel(r'Fractional Resolution: $\frac{reconstruction - truth}{truth}$',fontsize=20)
+                plt.legend(fontsize=15)
+                plt.savefig("%sSmoothLines_Erange_%i_%i_v2.png"%(save_folder_name,minval,maxval),bbox_inches='tight')
+                """
                 plt.figure()
-                p.binwise(x=np.linspace(minval,maxval,syst_bin)).quantile(q=[0.15865, 0.5, 0.8414]).plot_bands(lines=True, filled=True, linestyles=[':', '--', '-'], lw=2,labels=["CNN"])
-                r.binwise(x=np.linspace(minval,maxval,syst_bin)).quantile(q=[0.15865, 0.5, 0.8414]).plot_bands(lines=True, filled=False, linestyles=[':', '--', '-'], lw=2,linecolors=["orange"])
-                plt.hlines(0.0,minval,maxval,color="red",linestyle=":")
-                plt.savefig("%sSmoothLines_Erange_%i_%i.png"%(save_folder_name,minval,maxval))
-                
-                plt.figure()
-                p.binwise(x=syst_bin).quantile(q=[0.15865, 0.5, 0.8414]).plot_bands()
-                r.binwise(x=syst_bin).quantile(q=[0.15865, 0.5, 0.8414]).plot_bands(filled=False,linecolors="orange")
-                plt.savefig("%sStepLines_Erange_%i_%i.png"%(save_folder_name,minval,maxval))
+                #r.binwise(x=syst_bin).quantile(q=[0.15865, 0.5, 0.8414]).plot_bands('res')
+                r.binwise(x=syst_bin).quantile(q=[0.15865, 0.5, 0.8414]).plot_bands('cnn_res',filled=False)
+                plt.savefig("%sStepLines_Erange_%i_%i.png"%(save_folder_name,minval,maxval),bbox_inches='tight')
             
-            if plot_others:
-                plot_bin_slices(true_val, cnn_val, weights=true_weights,  
-                            old_reco = retro_val,old_reco_truth=retro_true_val,
-                            old_reco_weights=true_weights, vs_predict = True,\
-                            use_fraction = True, bins=syst_bin, min_val=minval, max_val=maxval,\
-                            save=save, savefolder=save_folder_name,\
-                            variable=plot_name, units=plot_units, reco_name=reco_name)
             
             
 
@@ -479,7 +598,7 @@ for cut_index in [0]: #,2,3,4]: #range(1,len(cut_list)):
                             variable="True Neutrino Energy", units=plot_units, reco_name=reco_name)
 
 
-    if all_NuMu and (cut_index > 5):
+    if all_NuMu and (cut_index > 7):
         ROC(true_isTrack,cnn_class,mask=cuts,mask_name="",reco=reco_class,save=save,save_folder_name=save_folder_name)
         plot_classification_hist(true_isTrack,cnn_class,reco=reco_class,mask=cuts,mask_name="", variable="Classification",units="",bins=50,log=False,save=save,save_folder_name=save_folder_name)
 

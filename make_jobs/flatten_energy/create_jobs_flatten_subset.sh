@@ -11,7 +11,9 @@ OUTDIR="single_file/${NUM}9999/"
 #for THOUS in 0 1 2 3 4 5 6 7 8;
 for CUTS in NC CC;
 do
-    for THOUS in 52 53;
+    #for THOUS in 52 53;
+    #for THOUS in 54 55 56 57 58 59 60 61;
+    for THOUS in 62 63 64 65;
     do
         FILENUM=`printf "%02d\n" $THOUS`
         infile=Nu${FLV}_genie_${NUM}9999_0${FILENUM}???_level6.zst_cleanedpulses_transformed_IC19.hdf5

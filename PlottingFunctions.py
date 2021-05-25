@@ -269,20 +269,22 @@ def plot_distributions(truth,reco=None,save=False,savefolder=None,old_reco=None,
     Returns:
         1D histogram of variable's absolute distribution for truth and for reco overlaid
     """
-    if maxval is None and reco is not None:
-        if old_reco is None:
-            maxval = numpy.max([numpy.max(truth),numpy.max(reco)])
+    if maxval is None:
+        if reco is not None:
+            if old_reco is None:
+                maxval = numpy.max([numpy.max(truth),numpy.max(reco)])
+            else:
+                maxval = numpy.max([numpy.max([numpy.max(truth),numpy.max(reco)]),numpy.max(old_reco)])
         else:
-            maxval = numpy.max([numpy.max([numpy.max(truth),numpy.max(reco)]),numpy.max(old_reco)])
-    else:
-        maxval = numpy.max(truth)
-    if minval is None and reco is not None:
-        if old_reco is None:
-            minval = numpy.min([numpy.min(truth),numpy.min(reco)])
+            maxval = numpy.max(truth)
+    if minval is None:
+        if reco is not None:
+            if old_reco is None:
+                minval = numpy.min([numpy.min(truth),numpy.min(reco)])
+            else:
+                minval = numpy.min([numpy.min([numpy.min(truth),numpy.min(reco)]),numpy.min(old_reco)])
         else:
-            minval = numpy.min([numpy.min([numpy.min(truth),numpy.min(reco)]),numpy.min(old_reco)])
-    else:
-        minval = numpy.min(truth)
+            minval = numpy.min(truth)
     print("Using", minval, maxval)
     plt.figure(figsize=(10,7))
     name = ""
@@ -295,12 +297,17 @@ def plot_distributions(truth,reco=None,save=False,savefolder=None,old_reco=None,
         plt.title("%s"%(title),fontsize=25)
     else:
         plt.title("%s %s Distribution"%(name,variable),fontsize=25)
+
     plt.hist(truth, bins=bins,color='g',alpha=0.5,range=[minval,maxval],weights=weights,label="Truth");
     maskT = numpy.logical_and(truth > minval, truth < maxval)
     print("Truth Total: %i, Events in Plot: %i, Overflow: %i"%(len(truth),sum(maskT),len(truth)-sum(maskT)))
     if weights is not None:
         print("WEIGHTED Truth Total: %.2f, Events in Plot: %.2f, Overflow: %.2f"%(sum(weights)*weights_factor,sum(weights[maskT])*weights_factor,(sum(weights)-sum(weights[maskT]))*weights_factor))
+        plt.ylabel("weighted event count")
+    else:
+        plt.ylabel("event count")
     name += "T"
+    
     if reco is not None:
         plt.hist(reco, bins=bins,color='b', alpha=0.5,range=[minval,maxval],weights=weights,label=cnn_name);
         name += "R"
@@ -318,7 +325,8 @@ def plot_distributions(truth,reco=None,save=False,savefolder=None,old_reco=None,
     plt.xlabel("%s %s"%(variable,units),fontsize=20)
     if log:
         plt.yscale("log")
-    plt.legend(fontsize=10)
+    if reco is not None or old_reco is not None:
+        plt.legend(fontsize=20)
 
     name += "%s"%variable.replace(" ","")
     if save:
@@ -331,6 +339,7 @@ def plot_2D_prediction(truth, nn_reco, \
                         bins=60,minval=None,maxval=None, switch_axis=False,\
                         cut_truth = False, axis_square =False, zmax=None,log=True,
                         variable="Energy", units = "(GeV)", epochs=None,\
+                        flavor="NuMu", sample="CC",\
                         variable_type="True", reco_name="CNN",new_labels=None,new_units=None):
     """
     Plot testing set reconstruction vs truth
@@ -399,7 +408,16 @@ def plot_2D_prediction(truth, nn_reco, \
     if new_labels is not None:
         plt.ylabel("%s %s"%(new_labels[0],new_units[0]),fontsize=20)
         plt.xlabel("%s %s"%(new_labels[1],new_units[1]),fontsize=20)
+    
+    #NAMING
     title = "%s vs %s for %s %s"%(reco_name,variable_type,variable,syst_set)
+    if flavor == "NuMu" or flavor == "numu":
+        title += r' for $\nu_\mu$ '
+    elif flavor == "NuE" or flavor == "nue":
+        title += r' for $\nu_e$ '
+    else:
+        title += flavor
+    title += sample
     #if weights is not None:
     #    title += " Weighted"
     if epochs:
@@ -559,6 +577,7 @@ def plot_single_resolution(truth,nn_reco,weights=None, \
                            mintrue=None,maxtrue=None,\
                            minaxis=None,maxaxis=None,\
                            save=False,savefolder=None,
+                           flavor="NuMu", sample="CC",
                            variable="Energy", units = "GeV", epochs=None,
                            reco_name="CNN", old_reco_name="Retro"):
     """Plots resolution for dict of inputs, one of which will be a second reco
@@ -599,8 +618,9 @@ def plot_single_resolution(truth,nn_reco,weights=None, \
     #    truth2 = truth2[not_nan]
     #    weights_reco = weights_reco[not_nan]
     #Check nan
-    is_nan = numpy.isnan(old_reco)
-    assert sum(is_nan) == 0, "OLD RECO HAS NAN"
+    if old_reco is not None:
+        is_nan = numpy.isnan(old_reco)
+        assert sum(is_nan) == 0, "OLD RECO HAS NAN"
     is_nan = numpy.isnan(nn_reco)
     assert sum(is_nan) == 0, "CNN RECO HAS NAN"
     
@@ -618,6 +638,14 @@ def plot_single_resolution(truth,nn_reco,weights=None, \
         xlabel = "reconstruction - truth %s"%units
     if epochs:
         title += " at %i Epochs"%epochs
+    if flavor == "NuMu" or flavor == "numu":
+        title += r' for $\nu_\mu$ ' 
+    elif flavor == "NuE" or flavor == "nue":
+        title += r' for $\nu_e$ '
+    else:
+        title += flavor
+    title += sample
+
     #if weights is not None:
     #    title += " Weighted"
     original_size = len(nn_resolution)
@@ -675,7 +703,7 @@ def plot_single_resolution(truth,nn_reco,weights=None, \
             r'$\mathrm{events}=%.0f$' % (total_events*weights_factor, ),
             r'$\mathrm{median}=%.2f$' % (median, ),
             r'$\mathrm{overflow}=%.0f$' % (overflow*weights_factor, ),
-            r'$\mathrm{RMS}=%.2f$' % (rms_nn, ),
+            #r'$\mathrm{RMS}=%.2f$' % (rms_nn, ),
             r'$\mathrm{1\sigma}=%.2f,%.2f$' % (r1,r2 )))
     props = dict(boxstyle='round', facecolor='blue', alpha=0.3)
     ax.text(0.6, 0.95, textstr, transform=ax.transAxes, fontsize=20,
@@ -692,7 +720,7 @@ def plot_single_resolution(truth,nn_reco,weights=None, \
             r'$\mathrm{events}=%.0f$' % (total_events_reco*weights_factor, ),
             r'$\mathrm{median}=%.2f$' % (median_old_reco, ),
             r'$\mathrm{overflow}=%.0f$' % (overflow_reco*weights_factor, ),
-            r'$\mathrm{RMS}=%.2f$' % (rms_old_reco, ),
+            #r'$\mathrm{RMS}=%.2f$' % (rms_old_reco, ),
             r'$\mathrm{1\sigma}=%.2f,%.2f$' % (r1_old_reco,r2_old_reco )))
         props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
         ax.text(0.6, 0.55, textstr, transform=ax.transAxes, fontsize=20,
@@ -714,6 +742,8 @@ def plot_single_resolution(truth,nn_reco,weights=None, \
         savename += "_Compare%sReco"%reco_name
     if axis_cut:
         savename += "_xlim"
+    if maxtrue or mintrue:
+        savename += "_truthcut"
     if save == True:
         plt.savefig("%s%s.png"%(savefolder,savename),bbox_inches='tight')
     plt.close()
@@ -961,8 +991,9 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
                        reco_energy_truth=None,old_reco_weights=None,\
                        bins=10,min_val=0.,max_val=60., ylim = None,\
                        save=False,savefolder=None,vs_predict=False,\
+                       flavor="NuMu", sample="CC",style="contours",\
                        variable="Energy",units="(GeV)",xvariable="Energy",xunits="(GeV)",\
-                       epochs=None,reco_name="PegLeg",cnn_name="CNN"):
+                       epochs=None,reco_name="Retro",cnn_name="CNN"):
     """Plots different variable slices vs each other (systematic set arrays)
     Receives:
         truth= array with truth labels for this one variable
@@ -974,6 +1005,7 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
         min_val = minimum value for variable to start cut at (default = 0.)
         max_val = maximum value for variable to end cut at (default = 60.)
         ylim = List with two entries of ymin and ymax for plot [min, max], leave as None for no ylim applied
+        style= contours or errorbars
     Returns:
         Scatter plot with energy values on x axis (median of bin width)
         y axis has median of resolution with error bars containing 68% of resolution
@@ -996,8 +1028,9 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
     else:
         energy_truth2 = numpy.array(reco_energy_truth)
     #Check nan
-    is_nan = numpy.isnan(old_reco)
-    assert sum(is_nan) == 0, "OLD RECO HAS NAN"
+    if old_reco is not None:
+        is_nan = numpy.isnan(old_reco)
+        assert sum(is_nan) == 0, "OLD RECO HAS NAN"
     is_nan = numpy.isnan(nn_reco)
     assert sum(is_nan) == 0, "CNN RECO HAS NAN"
     
@@ -1047,7 +1080,7 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
         
         if vs_predict:
             x_axis_array = nn_reco
-            x_axis_array2 = nn_reco
+            x_axis_array2 = old_reco #nn_reco
             title="%s Resolution Dependence"%(variable)
         else:
             if energy_truth is None:
@@ -1061,7 +1094,8 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
                 x_axis_array2 = energy_truth2
                 
         cut = (x_axis_array >= var_from) & (x_axis_array < var_to)
-        cut2 = (x_axis_array2 >= var_from) & (x_axis_array2 < var_to)
+        if old_reco is not None:
+            cut2 = (x_axis_array2 >= var_from) & (x_axis_array2 < var_to)
 
         if weights is not None:
             lower_lim = wq.quantile(resolution[cut],weights[cut],0.16)
@@ -1091,20 +1125,44 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
             err_to_reco[i] = upper_lim_reco
 
     plt.figure(figsize=(10,7))
-    (_, caps, _) = plt.errorbar(variable_centers, medians, yerr=[medians-err_from, err_to-medians], xerr=[ variable_centers-variable_ranges[:-1], variable_ranges[1:]-variable_centers ], capsize=5.0, fmt='o',label=cnn_name)
-    for cap in caps:
-        cap.set_markeredgewidth(5)
-    if old_reco is not None:
-        (_, caps_reco, _) = plt.errorbar(variable_centers, medians_reco, yerr=[medians_reco-err_from_reco, err_to_reco-medians_reco], xerr=[ variable_centers-variable_ranges[:-1], variable_ranges[1:]-variable_centers ], capsize=5.0, fmt='o',label="%s"%reco_name)
-        plt.legend(loc="upper center")
-        for cap in caps_reco:
-            cap.set_markeredgewidth(5)
     plt.plot([min_val,max_val], [0,0], color='k')
+    if style == "errorbars":
+        (_, caps, _) = plt.errorbar(variable_centers, medians, yerr=[medians-err_from, err_to-medians], xerr=[ variable_centers-variable_ranges[:-1], variable_ranges[1:]-variable_centers ], capsize=3.0, fmt='o',label=cnn_name)
+        for cap in caps:
+            cap.set_markeredgewidth(5)
+        if old_reco is not None:
+            (_, caps_reco, _) = plt.errorbar(variable_centers, medians_reco, yerr=[medians_reco-err_from_reco, err_to_reco-medians_reco], xerr=[ variable_centers-variable_ranges[:-1], variable_ranges[1:]-variable_centers ], capsize=3.0, fmt='o',label="%s"%reco_name)
+            for cap in caps_reco:
+                cap.set_markeredgewidth(5)
+            plt.legend(loc="upper center")
+            if vs_predict:
+                plt.legend(loc="lower center")
+    else: #countours
+        alpha=0.5
+        lwid=3
+        cmap = plt.get_cmap('Blues')
+        colors = cmap(numpy.linspace(0, 1, 2 + 2))[2:]
+        color=colors[0]
+        cmap = plt.get_cmap('Oranges')
+        rcolors = cmap(numpy.linspace(0, 1, 2 + 2))[2:]
+        rcolor=rcolors[0] 
+        ax = plt.gca()
+        ax.plot(variable_centers, medians,linestyle='-',label="%s median"%(cnn_name), color=color, linewidth=lwid)
+        ax.fill_between(variable_centers,medians, err_from,color=color, alpha=alpha)
+        ax.fill_between(variable_centers,medians, err_to, color=color, alpha=alpha,label=cnn_name + ' 68%')
+        if old_reco is not None:
+            ax.plot(variable_centers,medians_reco, color=rcolor, linestyle='-', label="%s median"%reco_name, linewidth=lwid)
+            ax.fill_between(variable_centers,medians_reco,err_from_reco, color=rcolor, alpha=alpha)
+            ax.fill_between(variable_centers,medians_reco,err_to_reco, color=rcolor,alpha=alpha,label=reco_name + ' 68%')
+        if vs_predict:
+            plt.legend(loc="lower center")
+        else:
+            plt.legend(loc="upper center")
     plt.xlim(min_val,max_val)
     if type(ylim) is not None:
         plt.ylim(ylim)
     if vs_predict:
-        plt.xlabel("CNN Predicted %s %s"%(variable,units),fontsize=20)
+        plt.xlabel("Reconstructed %s %s"%(variable,units),fontsize=20)
     elif energy_truth is not None:
         plt.xlabel("%s %s"%(xvariable,units),fontsize=20)
     else:
@@ -1115,6 +1173,13 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
          plt.ylabel("Resolution: \n reconstruction - truth %s"%units,fontsize=20)
     #if epochs:
     #    title += " at %i Epochs"%epochs
+    if flavor == "NuMu" or flavor == "numu":
+        title += r' for $\nu_\mu$ ' 
+    elif flavor == "NuE" or flavor == "nue":
+        title += r' for $\nu_e$ '
+    else:
+        title += flavor
+    title += sample
     plt.title(title,fontsize=25)
     
     reco_name = reco_name.replace(" ","")
@@ -1129,6 +1194,8 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
     if energy_truth is not None:
         xvar_no_space = xvariable.replace(" ","")
         savename += "_%sBinned"%xvar_no_space
+    if style == "errorbars":
+        savename += "ErrorBars"
     if old_reco is not None:
         savename += "_Compare%sReco"%reco_name
     if type(ylim) is not None:
@@ -1141,7 +1208,8 @@ def plot_rms_slices(truth, nn_reco, energy_truth=None, use_fraction = False,  \
                        old_reco=None,old_reco_truth=None, reco_energy_truth=None,\
                        bins=10,min_val=0.,max_val=60., ylim = None,weights=None,\
                        old_reco_weights=None,save=False,savefolder=None,\
-                       variable="Energy",units="(GeV)",epochs=None,reco_name="PegLeg"):
+                       variable="Energy",units="(GeV)",epochs=None,reco_name="Retro",
+                        flavor="NuMu", sample="CC"):
     """Plots different variable slices vs each other (systematic set arrays)
     Receives:
         truth= array with truth labels for this one variable
@@ -1251,6 +1319,13 @@ def plot_rms_slices(truth, nn_reco, energy_truth=None, use_fraction = False,  \
             plt.ylabel("RMS of Resolution: \n reconstruction - truth %s"%units,fontsize=20)
     #if epochs:
     #    title += " at %i Epochs"%epochs
+    if flavor == "NuMu" or flavor == "numu":
+        title += r' for $\nu_\mu$ ' 
+    elif flavor == "NuE" or flavor == "nue":
+        title += r' for $\nu_e$ '
+    else:
+        title += flavor
+    title += sample
     plt.title(title,fontsize=25)
     
     #print(rms_all,rms_reco_all)

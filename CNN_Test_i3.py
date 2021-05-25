@@ -67,6 +67,14 @@ parser.add_argument("--variable3",type=str,default="zenith",
                     dest="variable3", help="name of third variable to predict, class has specific unique function to run the classifier")
 parser.add_argument("--factor3", type=float, default=1.,
                     dest="factor3", help="transformation factor to adjust output by")
+parser.add_argument("--model_name4",default=None,
+                    dest="model_name4", help="name of output folder where model is located")
+parser.add_argument("--epochs4",default=None,
+                    dest="epochs4", help="epoch number for model 4 to use")
+parser.add_argument("--variable4",type=str,default="vertex",
+                    dest="variable4", help="name of fourth variable to predict, class has specific unique function to run the classifier")
+parser.add_argument("--factor4", type=float, default=1.,
+                    dest="factor4", help="transformation factor to adjust output by")
 parser.add_argument("--charge_min", type=float, default=0.25,
                     dest="charge_min", help="minimum charge pulse to keep, remove < this")
 args = parser.parse_args()
@@ -89,6 +97,7 @@ if args.epochs is None:
 else:
     model_name ="%s/%s_%sepochs_model.hdf5"%(model_path,model_name,args.epochs)
 print("Predicting: %s,\nOutput transformation scale factor: %.2f.,\nUsing model: %s"%(variable, scale_factor, model_name))
+assert variable is not "vertex", "Vertex only handled by variable4"
 
 variable2 = args.variable2
 scale_factor2=args.factor2
@@ -100,6 +109,7 @@ if model_name2 is not None:
     else:
         model_name2 ="%s/%s_%sepochs_model.hdf5"%(model_path2,model_name2,args.epochs2)
     print("ALSO Predicting: %s,\nOutput transformation scale factor: %.2f.,\nUsing model: %s"%(variable2, scale_factor2, model_name2))
+assert variable2 is not "vertex", "Vertex only handled by variable4"
 
 variable3 = args.variable3
 scale_factor3=args.factor3
@@ -111,6 +121,19 @@ if model_name3 is not None:
     else:
         model_name3 ="%s/%s_%sepochs_model.hdf5"%(model_path3,model_name3,args.epochs3)
     print("ALSO Predicting: %s,\nOutput transformation scale factor: %.2f.,\nUsing model: %s"%(variable3, scale_factor3, model_name3))
+assert variable3 is not "vertex", "Vertex only handled by variable4"
+
+variable4 = args.variable4
+scale_factor4=args.factor4
+model_name4 = args.model_name4
+model_path4 = args.model_dir + args.model_name4
+if model_name4 is not None:
+    if args.epochs4 is None:
+        model_name4 ="%s/%s_final_model.hdf5"%(model_path4,model_name4)
+    else:
+        model_name4 ="%s/%s_%sepochs_model.hdf5"%(model_path4,model_name4,args.epochs4)
+    print("ALSO Predicting: %s,\nOutput transformation scale factor: %.2f.,\nUsing model: %s"%(variable4, scale_factor4, model_name4))
+
 
 def get_observable_features(frame,low_window=-500,high_window=4000):
     """
@@ -386,6 +409,10 @@ def test_write(filename_list, model_name,output_dir, output_name, model_name2=No
             if model_name2 is not None:
                 if model_name3 is not None:
                     output_name = str(basename) + "_FLERCNN_" + model_type + "_" + model_type2 + "_" + model_type3
+                    if model_name4 is not None:
+                        output_name = str(basename) + "_FLERCNN_" + model_type + "_" + model_type2 + "_" + model_type3 + "_" + model_type4
+                    else:
+                        output_name = str(basename) + "_FLERCNN_" + model_type + "_" + model_type2 + "_" + model_type3
                 else:
                     output_name = str(basename) + "_FLERCNN_" + model_type + "_" + model_type2
             else:
@@ -413,6 +440,11 @@ def test_write(filename_list, model_name,output_dir, output_name, model_name2=No
             prediction3 = cnn_test(DC_array, IC_near_DC_array, model_name3,model_type=model_type3)
             t1 = time.time()
             print("Time to run CNN Test 3 on %i events: %f seconds"%(DC_array.shape[0],t1-t0))
+        if model_name4 is not None:
+            t0 = time.time()
+            prediction4 = cnn_test(DC_array, IC_near_DC_array, model_name4,model_type=model_type4)
+            t1 = time.time()
+            print("Time to run CNN Test 4 on %i events: %f seconds"%(DC_array.shape[0],t1-t0))
 
             
         index = 0
@@ -449,6 +481,21 @@ def test_write(filename_list, model_name,output_dir, output_name, model_name2=No
                     key_name3 = "FLERCNN_%s"%model_type3
                     adjusted_prediction3 = prediction3[index][0]*factor3
                     frame[key_name3] = dataclasses.I3Double(adjusted_prediction3)
+                
+                if model_name4 is not None:
+                    assert model_type4 != model_type, "Rewriting key, need different names"
+                    assert model_type4 != model_type2, "Rewriting key, need different names"
+                    assert model_type4 != model_type3, "Rewriting key, need different names"
+                    key_name4 = "FLERCNN_%s"%model_type4
+                    if model_type4 == "vertex":
+                        ending = ["_x", "_y", "_z"]
+                        for reco_i in range(prediction.shape[-1]):
+                            adjusted_prediction4 = prediction4[index][reco_i]*factor4
+                            key_name4_loop = key_name4 + ending[reco_i]
+                            frame[key_name4_loop] = dataclasses.I4Double(adjusted_prediction4)
+                    else:
+                        adjusted_prediction4 = prediction4[index][0]*factor4
+                        frame[key_name4] = dataclasses.I4Double(adjusted_prediction4)
 
                 outfile.push(frame)
                 index +=1

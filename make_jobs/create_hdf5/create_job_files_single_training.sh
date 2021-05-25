@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SYST_SET=0150
+SYST_SET=0000
 #INPUTFILES="/mnt/scratch/f0008480/simulation/level12/NuMu/NuMu_140000_0000??_level2.zst"
 #INPUTFILES="/mnt/research/IceCube/jpandre/Matt/level5p/nue/12${SYST_SET}/*"
 #INPUTFILES="/mnt/research/IceCube/jpandre/Matt/level5p/numu/14${SYST_SET}/Level*"
@@ -12,10 +12,10 @@ SYST_SET=0150
 #INPUTFILES="/mnt/scratch/micall12/oscnext_official/149999_v2/oscNext_genie_level6.5*"
 #INPUTFILES="/mnt/scratch/micall12/oscnext_official/130000/oscNext_muongun_level6_v02.00_pass2.130000.*"
 #INPUTFILES="/mnt/research/IceCube/le_osc/forJessie/L6/NuMu_genie_149999_*.zst"
-INPUTFILES="/mnt/research/IceCube/jmicallef/simulation/level6/149999/NuMu_genie_149999_06?*_level6.zst"
-#INPUTFILES=/mnt/research/IceCube/jmicallef/official_oscnext/level6/1[2,4]0000/oscNext_genie_level6_v02.00_pass2.1[2,4]0000.00????.i3.zst
+INPUTFILES="/mnt/research/IceCube/jmicallef/simulation/level6/149999/NuMu_genie_149999_06[6,7,8,9]*_level6.zst"
+#INPUTFILES="/mnt/research/IceCube/jmicallef/official_oscnext/level6/140000/oscNext_genie_level6.5_v02.00_pass2.140000.00????.i3.bz2"
 FILEPATH=/mnt/scratch/micall12/training_files
-LOG_FOLDER=$FILEPATH/job_logs/May4_149999
+LOG_FOLDER=$FILEPATH/job_logs/May18_149999
 outdir=single_file/149999
 
 [ ! -d $LOG_FOLDER ] && mkdir $LOG_FOLDER
