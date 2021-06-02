@@ -12,12 +12,14 @@ parser.add_argument("-n", "--outname",default=None,
                     dest="outname", help="name of output file")
 parser.add_argument("-o", "--outdir",type=str,default='/mnt/home/micall12/LowEnergyNeuralNetwork/output_plots/',
                     dest="output_dir", help="path of ouput file")
-parser.add_argument("--variable",type=str,default="energy",
+parser.add_argument("--variable",type=str,default=None,
                     dest="variable", help="name of variable that was predicted")
 parser.add_argument("--variable2",default=None,
                     dest="variable2", help="name of variable that was predicted")
 parser.add_argument("--variable3",default=None,
                     dest="variable3", help="name of variable that was predicted")
+parser.add_argument("--variable_list",nargs='+',default=[],
+                    dest="variable_list", help="names of variables that were predicted")
 args = parser.parse_args()
 
 input_file = args.input_file
@@ -25,6 +27,14 @@ save_folder_name=args.output_dir
 variable = args.variable
 variable2 = args.variable2
 variable3 = args.variable3
+variable_list = args.variable_list
+if variable is not None:
+    variable_list.append(variable_list)
+if variable2 is not None:
+    variable_list.append(variable2)
+if variable3 is not None:
+    variable_list.append(variable3)
+
 if args.outname is None:
     output_name = "prediction_values_%s"%variable #input_file.split("/")[-1]
 else:
@@ -51,16 +61,14 @@ def read_i3_files(filenames_list,variable, variable2,variable3):
             if frame.Stop == icetray.I3Frame.Physics:
 
                 #CNN Prediction
-                cnn_prediction = frame['FLERCNN_%s'%variable].value
-                if variable2 is not None:
-                    cnn_prediction2 = frame['FLERCNN_%s'%variable2].value
-                    if variable3 is not None:
-                        cnn_prediction3 = frame['FLERCNN_%s'%variable3].value
-                        output_cnn.append( np.array( [float(cnn_prediction), float(cnn_prediction2), float(cnn_prediction3) ]))
+                cnn_prediction = None
+                for var in variable_list:
+                    predict_var = np.array([float(frame['FLERCNN_%s'%var].value)])
+                    if cnn_prediction is None:
+                        cnn_prediction = predict_var
                     else:
-                        output_cnn.append( np.array( [float(cnn_prediction), float(cnn_prediction2) ]))
-                else:
-                    output_cnn.append( np.array( [float(cnn_prediction)]))
+                        cnn_prediction = np.concatenate((cnn_prediction,predict_var))
+                output_cnn.append(cnn_prediction)
 
                 #Truth 
                 tree = frame["I3MCTree"]

@@ -93,7 +93,7 @@ scale_factor=args.factor
 model_name = args.model_name
 model_path = args.model_dir + args.model_name
 if args.epochs is None:
-    model_name ="%s/%s_final_model.hdf5"%(model_path,model_name)
+    model_name ="%s.hdf5"%(model_path)
 else:
     model_name ="%s/%s_%sepochs_model.hdf5"%(model_path,model_name,args.epochs)
 print("Predicting: %s,\nOutput transformation scale factor: %.2f.,\nUsing model: %s"%(variable, scale_factor, model_name))
@@ -102,10 +102,10 @@ assert variable is not "vertex", "Vertex only handled by variable4"
 variable2 = args.variable2
 scale_factor2=args.factor2
 model_name2 = args.model_name2
-model_path2 = args.model_dir + args.model_name2
 if model_name2 is not None:
+    model_path2 = args.model_dir + args.model_name2
     if args.epochs2 is None:
-        model_name2 ="%s/%s_final_model.hdf5"%(model_path2,model_name2)
+        model_name2 ="%s.hdf5"%(model_path2)
     else:
         model_name2 ="%s/%s_%sepochs_model.hdf5"%(model_path2,model_name2,args.epochs2)
     print("ALSO Predicting: %s,\nOutput transformation scale factor: %.2f.,\nUsing model: %s"%(variable2, scale_factor2, model_name2))
@@ -114,10 +114,10 @@ assert variable2 is not "vertex", "Vertex only handled by variable4"
 variable3 = args.variable3
 scale_factor3=args.factor3
 model_name3 = args.model_name3
-model_path3 = args.model_dir + args.model_name3
 if model_name3 is not None:
+    model_path3 = args.model_dir + args.model_name3
     if args.epochs3 is None:
-        model_name3 ="%s/%s_final_model.hdf5"%(model_path3,model_name3)
+        model_name3 ="%s.hdf5"%(model_path3)
     else:
         model_name3 ="%s/%s_%sepochs_model.hdf5"%(model_path3,model_name3,args.epochs3)
     print("ALSO Predicting: %s,\nOutput transformation scale factor: %.2f.,\nUsing model: %s"%(variable3, scale_factor3, model_name3))
@@ -126,13 +126,26 @@ assert variable3 is not "vertex", "Vertex only handled by variable4"
 variable4 = args.variable4
 scale_factor4=args.factor4
 model_name4 = args.model_name4
-model_path4 = args.model_dir + args.model_name4
 if model_name4 is not None:
+    model_path4 = args.model_dir + args.model_name4
     if args.epochs4 is None:
-        model_name4 ="%s/%s_final_model.hdf5"%(model_path4,model_name4)
+        model_name4 ="%s.hdf5"%(model_path4)
     else:
         model_name4 ="%s/%s_%sepochs_model.hdf5"%(model_path4,model_name4,args.epochs4)
     print("ALSO Predicting: %s,\nOutput transformation scale factor: %.2f.,\nUsing model: %s"%(variable4, scale_factor4, model_name4))
+
+model_name_list = [model_name, model_name2, model_name3, model_name4]
+variable_list = [variable, variable2, variable3, variable4]
+scale_factor_list = [scale_factor, scale_factor2, scale_factor3, scale_factor4]
+number_cnns = 4
+for network in range(number_cnns):
+    if model_name_list[network] is not None:
+        number_cnns = network + 1
+print("Using %i cnn models to reconstruct variables"%number_cnns)
+model_name_list = model_name_list[:number_cnns]
+variable_list = variable_list[:number_cnns]
+scale_factor_list = scale_factor_list[:number_cnns]
+
 
 
 def get_observable_features(frame,low_window=-500,high_window=4000):
@@ -399,24 +412,14 @@ def read_files(filename):
     return  output_features_DC, output_features_IC, output_headers
 
 
-def test_write(filename_list, model_name,output_dir, output_name, model_name2=None,factor=100.,model_type="energy",model_type2="class",factor2=1., model_name3=None, model_type3="zenith",factor3=1.):
+def test_write(filename_list, model_name_list,output_dir, output_name, model_factor_list=[100.,1.,1.,1.], model_type_list=["energy","class","zenith","vertex"]):
 
 
     for a_file in filename_list:
         if output_name is None:
             basename = a_file.split("/")[-1] 
             basename = basename[:-7]
-            if model_name2 is not None:
-                if model_name3 is not None:
-                    output_name = str(basename) + "_FLERCNN_" + model_type + "_" + model_type2 + "_" + model_type3
-                    if model_name4 is not None:
-                        output_name = str(basename) + "_FLERCNN_" + model_type + "_" + model_type2 + "_" + model_type3 + "_" + model_type4
-                    else:
-                        output_name = str(basename) + "_FLERCNN_" + model_type + "_" + model_type2 + "_" + model_type3
-                else:
-                    output_name = str(basename) + "_FLERCNN_" + model_type + "_" + model_type2
-            else:
-                output_name = str(basename) + "_FLERCNN_" + model_type
+            output_name = str(basename) + "_FLERCNN"
         outfile = dataio.I3File(output_dir+output_name+".i3.zst",'w')
         print("Writing to %s"%(output_dir+output_name+".i3.zst"))
         
@@ -424,28 +427,16 @@ def test_write(filename_list, model_name,output_dir, output_name, model_name2=No
         print(DC_array.shape, IC_near_DC_array.shape)
         DC_array, IC_near_DC_array = apply_transform(DC_array, IC_near_DC_array)
 
-
-        t0 = time.time()
-        prediction = cnn_test(DC_array, IC_near_DC_array, model_name,model_type=model_type)
-        t1 = time.time()
-        print("Time to run CNN Test on %i events: %f seconds"%(DC_array.shape[0],t1-t0))
-        if model_name2 is not None:
+        cnn_predictions=[]
+        for network in range(len(model_name_list)):
+            if model_type_list[network] == "vertex":
+                output_var = 3
+            else:
+                output_var = 1
             t0 = time.time()
-            prediction2 = cnn_test(DC_array, IC_near_DC_array, model_name2,model_type=model_type2)
+            cnn_predictions.append(cnn_test(DC_array, IC_near_DC_array, model_name_list[network],model_type=model_type_list[network], output_variables=output_var))
             t1 = time.time()
-            print("Time to run CNN Test 2 on %i events: %f seconds"%(DC_array.shape[0],t1-t0))
-        
-        if model_name3 is not None:
-            t0 = time.time()
-            prediction3 = cnn_test(DC_array, IC_near_DC_array, model_name3,model_type=model_type3)
-            t1 = time.time()
-            print("Time to run CNN Test 3 on %i events: %f seconds"%(DC_array.shape[0],t1-t0))
-        if model_name4 is not None:
-            t0 = time.time()
-            prediction4 = cnn_test(DC_array, IC_near_DC_array, model_name4,model_type=model_type4)
-            t1 = time.time()
-            print("Time to run CNN Test 4 on %i events: %f seconds"%(DC_array.shape[0],t1-t0))
-
+            print("Time to run CNN Predict %s on %i events: %f seconds"%(model_type_list[network],DC_array.shape[0],t1-t0))
             
         index = 0
         event_file = dataio.I3File(a_file)
@@ -465,37 +456,29 @@ def test_write(filename_list, model_name,output_dir, output_name, model_name2=No
                 if float(header.event_id) != header_array[index][2]:
                     print("Event ID is off")
                     continue
-
-                key_name = "FLERCNN_%s"%model_type
-                adjusted_prediction = prediction[index][0]*factor
-                frame[key_name] = dataclasses.I3Double(adjusted_prediction)
-                if model_name2 is not None:
-                    assert model_type2 != model_type, "Rewriting key, need different names"
-                    key_name2 = "FLERCNN_%s"%model_type2
-                    adjusted_prediction2 = prediction2[index][0]*factor2
-                    frame[key_name2] = dataclasses.I3Double(adjusted_prediction2)
                 
-                if model_name3 is not None:
-                    assert model_type3 != model_type, "Rewriting key, need different names"
-                    assert model_type3 != model_type2, "Rewriting key, need different names"
-                    key_name3 = "FLERCNN_%s"%model_type3
-                    adjusted_prediction3 = prediction3[index][0]*factor3
-                    frame[key_name3] = dataclasses.I3Double(adjusted_prediction3)
-                
-                if model_name4 is not None:
-                    assert model_type4 != model_type, "Rewriting key, need different names"
-                    assert model_type4 != model_type2, "Rewriting key, need different names"
-                    assert model_type4 != model_type3, "Rewriting key, need different names"
-                    key_name4 = "FLERCNN_%s"%model_type4
-                    if model_type4 == "vertex":
-                        ending = ["_x", "_y", "_z"]
-                        for reco_i in range(prediction.shape[-1]):
-                            adjusted_prediction4 = prediction4[index][reco_i]*factor4
-                            key_name4_loop = key_name4 + ending[reco_i]
-                            frame[key_name4_loop] = dataclasses.I4Double(adjusted_prediction4)
+                check_overwrite = []
+                for network in range(len(model_name_list)):
+                    factor = model_factor_list[network]
+                    model_type = model_type_list[network]
+                    prediction = cnn_predictions[network]
+                    for check in check_overwrite:
+                        assert check != model_type, "Rewriting key, need different names"
+                    if model_type == "class":
+                        key_name = "FLERCNN_prob_track"
                     else:
-                        adjusted_prediction4 = prediction4[index][0]*factor4
-                        frame[key_name4] = dataclasses.I4Double(adjusted_prediction4)
+                        key_name = "FLERCNN_%s"%model_type
+               
+                    if model_type == "vertex":
+                        ending = ["_x", "_y", "_z"] 
+                        for reco_i in range(prediction.shape[-1]):
+                            adjusted_prediction = prediction[index][reco_i]*factor
+                            key_name_loop = key_name + ending[reco_i]
+                            frame[key_name_loop] = dataclasses.I3Double(adjusted_prediction)
+                    else:
+                        adjusted_prediction = prediction[index][0]*factor
+                        frame[key_name] = dataclasses.I3Double(adjusted_prediction)
+                    
 
                 outfile.push(frame)
                 index +=1
@@ -509,7 +492,7 @@ import glob
 event_file_names = sorted(glob.glob(input_file))
 assert event_file_names,"No files loaded, please check path."
 time_start=time.time()
-test_write(event_file_names, model_name, output_dir, output_name, factor=scale_factor, model_type=variable,model_name2=model_name2,model_type2=variable2,factor2=scale_factor2,model_name3=model_name3,model_type3=variable3,factor3=scale_factor3)
+test_write(event_file_names, model_name_list, output_dir, output_name, model_factor_list=scale_factor_list, model_type_list=variable_list)
 time_end=time.time()
 print("Total time: %f"%(time_end-time_start))
 

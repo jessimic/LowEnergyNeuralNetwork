@@ -144,7 +144,7 @@ try:
 except:
     if file_was_transformed:
         output_names = ["Energy", "Cosine Zenith", "Track Length", "Time", "X", "Y", "Z", "Azimuth", "Zenith"]
-        output_factors = [emax, 1., tmax, 1., 1., 1., 1., 1., 1.]
+        output_factors = [energy_max, 1., track_max, 1., 1., 1., 1., 1., 1.]
         input_factors = [25., 4000., 4000., 4000., 2000.] 
         print("MULTIPLYING ENERGY BY %f and TRACK BY %f to undo transform"%(energy_max,track_max))
         print("ASSUMING TRACK IS AT INDEX 2")

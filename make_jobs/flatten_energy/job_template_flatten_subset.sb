@@ -13,7 +13,7 @@ INDIR=/mnt/home/micall12/LowEnergyNeuralNetwork
 
 source /mnt/home/micall12/setup_anaconda.sh
 
-python $INDIR/flatten_energy_distribution.py -i @@infile@@ -d /mnt/scratch/micall12/training_files/@@folder@@ -o @@name@@ --emax 500 --emin 1 --max_per_bin @@bin_max@@ --cuts @@cuts@@ --num_out 1 --start "all_start" --end "all_end" --transformed
+python $INDIR/flatten_energy_distribution.py -i @@infile@@ -d /mnt/scratch/micall12/training_files/@@folder@@ -o redo_28May/@@name@@ --emax 500 --emin 1 --max_per_bin @@bin_max@@ --cuts @@cuts@@ --num_out 1 --start "all_start" --end "all_end" --transformed
 
 exit $?
 

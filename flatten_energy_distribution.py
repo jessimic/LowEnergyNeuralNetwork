@@ -64,6 +64,8 @@ parser.add_argument("--verbose",default=False,action='store_true',
                     dest="verbose", help="Print histogram counts each file")
 parser.add_argument("--split",default=False,action='store_true',
                     dest="split", help="set flag if you want to split in to train, test, validate")
+parser.add_argument("--fraction_test",type=float,default=0.1,
+                    dest="fraction_test",help="Fraction of events to save as test sample if splitting")
 parser.add_argument("--no_validation",default=True,action='store_false',
                     dest="no_validation", help="set flag if you DO NOT want validation set when splitting")
 parser.add_argument("--no_flatten",default=False,action='store_true',
@@ -89,6 +91,7 @@ if not flatten:
 
 verbose = args.verbose
 split_data = args.split
+fraction_test = args.fraction_test
 create_validation = args.no_validation
 use_old_reco = args.reco
 if use_old_reco:
@@ -295,7 +298,7 @@ for a_file in event_file_names:
     if sum(keep_index) == 0:
         count_no_save += 1
 
-    quit_files = 5
+    quit_files = 1000
     if count_no_save > quit_files:
         print("Haven't seen any new events in %i files, quitting..."%quit_files)
         break
@@ -346,7 +349,7 @@ if split_data:
     = SplitTrainTest(full_features_DC,full_features_IC,full_labels,\
     reco=full_reco,use_old_reco=use_old_reco,\
     weights=full_weights,create_validation=create_validation,\
-    fraction_test=0.1,fraction_validate=0.2)
+    fraction_test=fraction_test,fraction_validate=0.2)
 
     #print(weights_train, weights_test, weights_validate)
 

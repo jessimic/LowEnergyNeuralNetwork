@@ -12,14 +12,14 @@
 INDIR=/mnt/home/micall12/LowEnergyNeuralNetwork
 INFILE=$1
 NAME=$2
-MAX=20000
-NUMOUT=$3
+MAX=$3 #20000
+NUMOUT=$4
 
 source /mnt/home/micall12/setup_anaconda.sh
 
-echo python $INDIR/flatten_energy_distribution.py -i $INFILE -d /mnt/scratch/micall12/training_files/newMC_EMequiv/ -o $NAME --emax 500 --emin 1 --max_per_bin $MAX --cuts CC --shuffle --num_out $NUMOUT --transformed --split
+echo python $INDIR/flatten_energy_distribution.py -i $INFILE -d /mnt/scratch/micall12/training_files/batch_file/149999/redo_28May/ -o $NAME --emax 500 --emin 1 --max_per_bin $MAX --cuts CC --shuffle --num_out $NUMOUT --transformed --split
 
-python $INDIR/flatten_energy_distribution.py -i $INFILE -o $NAME -d /mnt/scratch/micall12/training_files/batch_file/149999/ --emax 500 --emin 1 --max_per_bin $MAX --cuts CC --shuffle --num_out $NUMOUT --transformed --split
+python $INDIR/flatten_energy_distribution.py -i $INFILE -o $NAME -d /mnt/scratch/micall12/training_files/batch_file/149999/redo_28May/ --emax 500 --emin 1 --max_per_bin $MAX --cuts CC --shuffle --num_out $NUMOUT --transformed --split --fraction_test 0.0
 
 exit $?
 

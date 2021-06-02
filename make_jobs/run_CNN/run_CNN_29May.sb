@@ -1,0 +1,37 @@
+#!/bin/bash --login
+
+########## SBATCH Lines for Resource Request ##########
+
+#SBATCH --time=119:59:00             # limit of wall clock time - how long the job will run (same as -t)
+#SBATCH --gres=gpu:1                # number of different nodes - could be an exact number or a range of nodes (same as -N)
+#SBATCH --mem=40G            # memory required per allocated CPU (or core) - amount of memory (in bytes)
+#SBATCH --job-name CNN_classification      # you can give your job a name for easier identification (same as -J)
+#SBATCH --output /mnt/home/micall12/LowEnergyNeuralNetwork/make_jobs/run_CNN/CNN_energy_extended4_LRepoch50.out
+
+########## Command Lines to Run ##########
+
+INPUT="NuMu_genie_149999_level6_cleanedpulses_tranformed_IC19_E1to500_CC_all_start_all_end_flat_499bins_20000evtperbin_file??.hdf5"
+INDIR="/mnt/research/IceCube/jmicallef/DNN_files/"
+OUTDIR="/mnt/home/micall12/LowEnergyNeuralNetwork"
+NUMVAR=1
+LR_EPOCH=50
+LR_DROP=0.1
+LR=0.001
+OUTNAME="energy_numu_level6_cleanedpulses_IC19_E1to500_20000evtperbin_extended4_LRe-3DROPe-1EPOCHS50"
+
+START=0
+END=400
+STEP=12
+for ((EPOCH=$START;EPOCH<=$END;EPOCH+=$STEP));
+do
+    MODELNAME="$OUTDIR/output_plots/${OUTNAME}/${OUTNAME}_${EPOCH}epochs_model.hdf5"
+    
+    case $EPOCH in
+    0)
+        singularity exec -B /mnt/home/micall12:/mnt/home/micall12 -B /mnt/research/IceCube:/mnt/research/IceCube --nv /mnt/research/IceCube/Software/icetray_stable-tensorflow.sif python ${OUTDIR}/CNN_Training.py --input_files $INPUT --path $INDIR --output_dir $OUTDIR --name $OUTNAME -e $STEP --start $EPOCH --variables $NUMVAR --first_variable energy --lr $LR --lr_epoch $LR_EPOCH --lr_drop $LR_DROP
+    ;;
+    *)
+        singularity exec -B /mnt/home/micall12:/mnt/home/micall12 -B /mnt/research/IceCube:/mnt/research/IceCube --nv /mnt/research/IceCube/Software/icetray_stable-tensorflow.sif python ${OUTDIR}/CNN_Training.py --input_files $INPUT --path $INDIR --output_dir $OUTDIR --name $OUTNAME -e $STEP --start $EPOCH --variables $NUMVAR --model $MODELNAME --first_variable energy --lr $LR --lr_epoch $LR_EPOCH --lr_drop $LR_DROP
+    ;;
+    esac
+done

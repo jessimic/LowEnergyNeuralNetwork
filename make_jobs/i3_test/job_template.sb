@@ -11,6 +11,8 @@
 
 ########### Command Lines to Run ##################
 
-singularity exec -B /mnt/scratch/micall12:/mnt/scratch/micall12 --nv /mnt/research/IceCube/Software/icetray_stable-tensorflow.sif sh -c '/usr/local/icetray/env-shell.sh python /mnt/home/micall12/LowEnergyNeuralNetwork/CNN_Test_i3.py -i @@file@@ -o /mnt/research/IceCube/jmicallef/FLERCNN_i3_output/ --model_name @@model_name@@ --variable @@variable@@ -e @@epoch@@ --factor @@factor@@ --model_name2 @@model_name2@@ --epochs2 @@epoch2@@ --model_name3 @@model_name3@@ --epochs3 @@epoch3@@ --cleaned True'
+#OUTDIR=/mnt/research/IceCube/jmicallef/FLERCNN_i3_output/
+
+singularity exec -B /mnt/scratch/micall12:/mnt/scratch/micall12 --nv /mnt/research/IceCube/Software/icetray_stable-tensorflow.sif sh -c '/usr/local/icetray/env-shell.sh python /mnt/home/micall12/LowEnergyNeuralNetwork/CNN_Test_i3.py -i @@file@@ -o /mnt/scratch/micall12/training_files/i3_files/ --model_name @@model_name@@ --variable @@variable@@ -e @@epoch@@ --factor @@factor@@ --model_name2 @@model_name2@@ --epochs2 @@epoch2@@ --model_name3 @@model_name3@@ --epochs3 @@epoch3@@ --model_name4 @@model_name4@@ --epochs4 @@epoch4@@ --cleaned True'
 
 exit $?

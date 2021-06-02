@@ -52,6 +52,7 @@ else:
 f.close()
 del f
 
+
 cnn_energy = np.array(predict[:,0])
 try:
     cnn_class = np.array(predict[:,1])
@@ -62,6 +63,12 @@ try:
     cnn_coszenith = np.cos(cnn_zenith)
 except:
     pass
+try:
+    cnn_x = np.array(predict[:,3])
+    cnn_y = np.array(predict[:,4])
+    cnn_z = np.array(predict[:,5])
+except:
+    pass
 
 #Truth
 true_energy = np.array(truth[:,0])
@@ -69,10 +76,10 @@ em_equiv_energy = np.array(truth[:,14])
 true_x = np.array(truth[:,4])
 true_y = np.array(truth[:,5])
 true_z = np.array(truth[:,6])
-true_CC = np.array(truth[:,11])
-true_isTrack = np.array(truth[:,8])
 x_origin = np.ones((len(true_x)))*46.290000915527344
 y_origin = np.ones((len(true_y)))*-34.880001068115234
+true_CC = np.array(truth[:,11])
+true_isTrack = np.array(truth[:,8])
 true_r = np.sqrt( (true_x - x_origin)**2 + (true_y - y_origin)**2 )
 true_neutrino = np.array(truth[:,9],dtype=int)
 true_zenith = np.array(truth[:,12])
@@ -83,6 +90,9 @@ if sum(isNuMu) == len(true_neutrino):
     all_NuMu = True
 else:
     all_NuMu = False
+
+if cnn_x is not None:
+    cnn_r = np.sqrt( (cnn_x - x_origin)**2 + (cnn_y - y_origin)**2 )
 
 # Retro
 if reco is not None:
@@ -169,6 +179,7 @@ maskE2 = np.logical_and(true_energy > 1., true_energy < 200.)
 maskCNNE = np.logical_and(cnn_energy > 5., cnn_energy < 100.)
 maskCNNE2 = np.logical_and(cnn_energy > 1., cnn_energy < 100.)
 maskCNNZenith = cnn_coszenith <= 0.3
+maskCNNVertex = np.logical_and(cnn_r < 150, np.logical_and(cnn_z > -500, cnn_z < -200))
 
 #additional info Masks
 if info is not None:
@@ -204,25 +215,25 @@ if reco is not None:
 
 
 
-cut_list = [np.logical_and(maskHits8,maskCC), np.logical_and(maskANA, maskCC), np.logical_and(maskHLCVertex, np.logical_and(np.logical_and(maskCNNE2, maskCC),maskHits8)), np.logical_and(maskHLCVertex, np.logical_and(np.logical_and(maskCNNE, maskCC),maskHits8)),np.logical_and(maskCNNZenith,np.logical_and(maskHLCVertex, np.logical_and(np.logical_and(maskCNNE, maskCC),maskHits8))),np.logical_and(maskANA2, maskCC), np.logical_and(np.logical_not(maskPassRetro), np.logical_and(maskHits8,maskCC)),np.logical_and( maskE,np.logical_and(maskHits8,maskCC)) ]
-cut_names = ["Weighted_Hits8CC", "WeightedAnalysisCuts_CC", "WeightedCNN1100_HLCVertex_Hits8CC", "WeightedCNN5100_HLCVertex_Hits8CC", "WeightedCNN5100_ZenithHLCVertex_Hits8CC","WeightedAnalysisCuts_NoZen_CC","WeightsFailedRetro_Hits8CC", "WeightedTrueE5100_Hits8CC"]
-minvals_energy = [1, 5, 1, 5, 5, 5, 1,5]
-maxvals_energy = [200, 200, 100, 100, 100., 200, 200,100]
-minvals_zenith =  [-1., -1, -1, -1, -1, -1, -1,-1]
-maxvals_zenith = [1,1,1,1, 0.3, 1, 1,1]
-binss_energy = [199, 195, 199, 95, 95, 195, 199,95]
-syst_bins_energy = [20, 20, 20, 10, 10, 20, 20, 10]
-binss_zenith = [100, 100, 100, 100, 100, 100, 100, 100]
-syst_bins_zenith = [20, 20, 20, 20, 12, 20, 20, 20]
-sample_names = ["CC", "CC", "CC", "CC", "CC", "CC", "CC", "CC"]
-plot_main = True
+cut_list = [np.logical_and(maskHits8,maskCC), np.logical_and(maskANA, maskCC), np.logical_and(maskHLCVertex, np.logical_and(np.logical_and(maskCNNE2, maskCC),maskHits8)), np.logical_and(maskHLCVertex, np.logical_and(np.logical_and(maskCNNE, maskCC),maskHits8)),np.logical_and(maskCNNZenith,np.logical_and(maskHLCVertex, np.logical_and(np.logical_and(maskCNNE, maskCC),maskHits8))),np.logical_and(maskANA2, maskCC), np.logical_and(np.logical_not(maskPassRetro), np.logical_and(maskHits8,maskCC)),np.logical_and( maskE,np.logical_and(maskHits8,maskCC)) , np.logical_and(maskHLCVertex, np.logical_and(np.logical_and(maskCNNE, maskCC),maskHits8)),np.logical_and(maskCNNZenith,np.logical_and(maskCNNVertex, np.logical_and(np.logical_and(maskCNNE, maskCC),maskHits8)))]
+cut_names = ["Weighted_Hits8CC", "WeightedAnalysisCuts_CC", "WeightedCNN1100_HLCVertex_Hits8CC", "WeightedCNN5100_HLCVertex_Hits8CC", "WeightedCNN5100_ZenithHLCVertex_Hits8CC","WeightedAnalysisCuts_NoZen_CC","WeightsFailedRetro_Hits8CC", "WeightedTrueE5100_Hits8CC", "WeightedCNN5100_CNNZenithVertex_Hits8CC"]
+minvals_energy = [1, 5, 1, 5, 5, 5, 1,5,5]
+maxvals_energy = [200, 200, 100, 100, 100., 200, 200,100,100]
+minvals_zenith =  [-1., -1, -1, -1, -1, -1, -1,-1,-1]
+maxvals_zenith = [1,1,1,1, 0.3, 1, 1,1,0.3]
+binss_energy = [199, 195, 199, 95, 95, 195, 199,95,95]
+syst_bins_energy = [20, 20, 20, 10, 10, 20, 20, 10,10]
+binss_zenith = [100, 100, 100, 100, 100, 100, 100, 100,100]
+syst_bins_zenith = [20, 20, 20, 20, 12, 20, 20, 20,12]
+sample_names = ["CC", "CC", "CC", "CC", "CC", "CC", "CC", "CC","CC"]
+plot_main = False
 plot_EMequiv = False
-plot_switch = False
+plot_switch = True
 plot_others = False
 plot_philipp = False
 save_base_name = save_folder_name
 
-for cut_index in [0]: #,2,3,4]: #range(1,len(cut_list)):
+for cut_index in [8]: #,2,3,4]: #range(1,len(cut_list)):
     cuts = cut_list[cut_index]
     folder_name = cut_names[cut_index]
     true_energy_val = true_energy[cuts]
