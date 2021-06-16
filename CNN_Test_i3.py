@@ -393,17 +393,6 @@ def read_files(filename):
 
 
             DC_array, IC_near_DC_array, trig_time, extra_triggers, clean_pulses_8_or_more = get_observable_features(frame)
-
-            if extra_triggers > 0 or trig_time == None:
-                if extra_triggers > 0:
-                    frame["FLERCNN_numSMT3trig"] = icetray.I3Int(extra_triggers + 1)
-                if trig_time == None:
-                    frame["FLERCNN_numSMT3trig"] = icetray.I3Int(0)
-            else:
-                frame["FLERCNN_numSMT3trig"] = icetray.I3Int(1)
-            
-
-            frame["FLERCNN_gt8hits"] = icetray.I3Int(clean_pulses_8_or_more == True)
             
             # Cut events with...
             # Multiple SMT3 tiggers or no SMT3 trigger
