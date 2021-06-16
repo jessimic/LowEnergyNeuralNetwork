@@ -2,14 +2,15 @@
 
 ########### SBATCH Lines for Resource Request ##########
 
-#SBATCH --time=02:59:00             # limit of wall clock time - how long the job will run (same as -t)
+#SBATCH --time=03:59:00             # limit of wall clock time - how long the job will run (same as -t)
 #SBATCH --nodes=1                 # number of different nodes - could be an exact number or a range of nodes (same as -N)
-#SBATCH --mem=30G            # memory required per allocated CPU (or core) - amount of memory (in bytes)
+#SBATCH --mem=100G            # memory required per allocated CPU (or core) - amount of memory (in bytes)
 #SBATCH --job-name pull_labels      # you can give your job a name for easier identification (same as -J)
 
 ########### Command Lines to Run ##################
 source /mnt/home/micall12/setup_combo_stable.sh
 
-python /mnt/home/micall12/LowEnergyNeuralNetwork/pull_test_labels_i3_to_hdf5.py -i "/mnt/research/IceCube/jmicallef/FLERCNN_i3_output/oscNext_genie_level7_v02.00_pass2.1[2,4]0000.*_FLERCNN_energy_class_zenith.i3.zst" -o /mnt/home/micall12/LowEnergyNeuralNetwork/output_plots/Test_Level6.5/L7_official_NuENuMu/ --variable energy --variable2 class --variable3 zenith
+python /mnt/home/micall12/LowEnergyNeuralNetwork/pull_test_labels_i3_to_hdf5.py -i "/mnt/scratch/micall12/training_files/i3_files/oscNext_genie_level6.5_v02.00_pass2.1?0000.00????_FLERCNN.i3.zst" -n prediction_values_both -o /mnt/home/micall12/LowEnergyNeuralNetwork/output_plots/energy_numu_level6_cleanedpulses_IC19_E1to500_20000evtperbin_extended4_LRe-3DROPe-1EPOCHS200/epoch168/ --variable_list energy prob_track zenith vertex_x vertex_y vertex_z
+
 
 exit $?

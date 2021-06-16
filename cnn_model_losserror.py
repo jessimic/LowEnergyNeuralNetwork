@@ -124,12 +124,16 @@ def make_network(X_DC,X_IC,num_labels,DC_drop_value,IC_drop_value,connected_drop
 
 	output1 = Dense(1,activation='linear')(dropf)
 	error1 = Dense(1,activation=softplus)(dropf)
-	if num_labels == 1:
+	if num_labels >= 1:
         output = concatenate([output1,error1])
-    if num_labels == 2:
+    if num_labels >= 2:
 	    output2 = Dense(1,activation='linear')(dropf)
 	    error2 = Dense(1,activation=softplus)(dropf)
         output = concatenate([output1,error1,output2,error2])
+    if num_labels >= 3:
+	    output3 = Dense(1,activation='linear')(dropf)
+	    error3 = Dense(1,activation=softplus)(dropf)
+        output = concatenate([output1,error1,output2,error2,output3,error3])
     
     model_DC = Model(inputs=[input_DC,input_IC],outputs=output)    
  

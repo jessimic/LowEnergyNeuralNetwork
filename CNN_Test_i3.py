@@ -324,7 +324,7 @@ def get_observable_features(frame,low_window=-500,high_window=4000):
                 array_IC_near_DC[string_index,dom_index,3] = weighted_avg_time
                 array_IC_near_DC[string_index,dom_index,4] = weighted_std_time
 
-    return array_DC, array_IC_near_DC, trigger_time, num_extra_DC_triggers
+    return array_DC, array_IC_near_DC, trigger_time, num_extra_DC_triggers, clean_pulses_8_or_more
 
 
 def apply_transform(features_DC, features_IC, labels=None, energy_factor=100., track_factor=200.,transform="MaxAbs"):
@@ -380,6 +380,9 @@ def read_files(filename):
     output_features_DC = []
     output_features_IC = []
     output_headers = []
+    skipped_triggers = 0
+    skipped_8hits = 0
+    skip_event = []
 
     for frame in event_file:
         if frame.Stop == icetray.I3Frame.Physics:
@@ -389,14 +392,31 @@ def read_files(filename):
                 continue
 
 
-            DC_array, IC_near_DC_array, trig_time, extra_triggers = get_observable_features(frame)
+            DC_array, IC_near_DC_array, trig_time, extra_triggers, clean_pulses_8_or_more = get_observable_features(frame)
 
-            # Check if there were multiple SMT3 triggers or no SMT3 triggers
-            # Skip event if so
+            if extra_triggers > 0 or trig_time == None:
+                if extra_triggers > 0:
+                    frame["FLERCNN_numSMT3trig"] = icetray.I3Int(extra_triggers + 1)
+                if trig_time == None:
+                    frame["FLERCNN_numSMT3trig"] = icetray.I3Int(0)
+            else:
+                frame["FLERCNN_numSMT3trig"] = icetray.I3Int(1)
+            
+
+            frame["FLERCNN_gt8hits"] = icetray.I3Int(clean_pulses_8_or_more == True)
+            
+            # Cut events with...
+            # Multiple SMT3 tiggers or no SMT3 trigger
+            # Less than 8 hits in the cleaned pulse series
+            skip = False
             if extra_triggers > 0 or trig_time == None:
                 skipped_triggers +=1
-                continue
+                skip = True
+            if clean_pulses_8_or_more == False:
+                skipped_8hits +=1
+                skip = True
             
+            skip_event.append(skip)
             header_numbers = np.array( [ float(header.run_id), float(header.sub_run_id), float(header.event_id)] )
             output_headers.append(header_numbers)
             output_features_DC.append(DC_array)
@@ -408,8 +428,10 @@ def read_files(filename):
     output_headers = np.asarray(output_headers)
     output_features_DC = np.asarray(output_features_DC)
     output_features_IC = np.asarray(output_features_IC)
+    skip_event = np.asarray(skip_event)
+    print("Number events with 0 or > 1 SMT3 triggers: %i, Number events with less than 8 hits: %i"%(skipped_triggers, skipped_8hits))
 
-    return  output_features_DC, output_features_IC, output_headers
+    return  output_features_DC, output_features_IC, output_headers, skip_event
 
 
 def test_write(filename_list, model_name_list,output_dir, output_name, model_factor_list=[100.,1.,1.,1.], model_type_list=["energy","class","zenith","vertex"]):
@@ -423,7 +445,7 @@ def test_write(filename_list, model_name_list,output_dir, output_name, model_fac
         outfile = dataio.I3File(output_dir+output_name+".i3.zst",'w')
         print("Writing to %s"%(output_dir+output_name+".i3.zst"))
         
-        DC_array, IC_near_DC_array, header_array = read_files(a_file)
+        DC_array, IC_near_DC_array, header_array, skip_event = read_files(a_file)
         print(DC_array.shape, IC_near_DC_array.shape)
         DC_array, IC_near_DC_array = apply_transform(DC_array, IC_near_DC_array)
 
@@ -439,6 +461,7 @@ def test_write(filename_list, model_name_list,output_dir, output_name, model_fac
             print("Time to run CNN Predict %s on %i events: %f seconds"%(model_type_list[network],DC_array.shape[0],t1-t0))
             
         index = 0
+        skipped_write = 0
         event_file = dataio.I3File(a_file)
         for frame in event_file:
             if frame.Stop == icetray.I3Frame.Physics:
@@ -457,6 +480,12 @@ def test_write(filename_list, model_name_list,output_dir, output_name, model_fac
                     print("Event ID is off")
                     continue
                 
+                #Check for multiple triggers or 8 hit flag
+                if skip_event[index] == True:
+                    skipped_write +=1
+                    index+=1
+                    continue
+
                 check_overwrite = []
                 for network in range(len(model_name_list)):
                     factor = model_factor_list[network]
@@ -484,6 +513,7 @@ def test_write(filename_list, model_name_list,output_dir, output_name, model_fac
                 index +=1
             else:
                 outfile.push(frame)
+        print("Removed %i events due to cuts"%skipped_write)
     return 0
 
 #Construct list of filenames

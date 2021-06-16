@@ -30,11 +30,17 @@ parser.add_argument("--start", type=int, default=49,
                     dest="start",help="start epoch for plotting (skipping first epochs outliers)")
 parser.add_argument("--num_files", type=int, default=7,
                     dest="num_files",help="number of input files used for training, uses to average over in case of plots")
+parser.add_argument("--lr_epoch", type=int, default=50,
+                    dest="lr_epoch",help="Number of epochs that the LR changes at")
+parser.add_argument("--lr_drop", type=float, default=0.1,
+                    dest="lr_drop",help="Number that the LR changes by")
+parser.add_argument("--lr_start", type=float, default=0.001,
+                    dest="lr_start",help="Number that the LR starts at")
 args = parser.parse_args()
 
-lr_start=0.001
-lr_drop=0.1
-lr_epoch=50
+lr_start=args.lr_start
+lr_drop=args.lr_drop
+lr_epoch=args.lr_epoch
 
 plot_folder = args.input_folder
 outplots_dir = args.outplots_dir

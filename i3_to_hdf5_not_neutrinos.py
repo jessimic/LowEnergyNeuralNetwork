@@ -540,7 +540,7 @@ def read_files(filename_list, use_old_reco, check_filters, true_name, reco_type)
                         output_weights.append( np.array([ float(header.run_id), float(header.sub_run_id), float(header.event_id), float(weights["NEvents"]), float(weights["OneWeight"]),  float(weights["GENIEWeight"]), float(weights["PowerLawIndex"]), float(0.3)]) ) #, float(the_weight)  ]) )
                     else:
                         if isOther:
-                            output_weights.append( np.array([ float(header.run_id), float(header.sub_run_id), float(header.event_id), float(np.nan), float(np.nan),  float(np.nan), float(np.nan), float(np.nan)]) ) #, float(the_weight)  ]) )
+                            output_weights.append( np.array([ float(header.run_id), float(header.sub_run_id), float(header.event_id), float(np.nan), float(np.nan),  float(np.nan), float(np.nan), float(weights["weight"]) ]) ) #, float(the_weight)  ]) )
                         else:
                             output_weights.append( np.array([ float(header.run_id), float(header.sub_run_id), float(header.event_id), float(weights["NEvents"]), float(weights["OneWeight"]), float(weights["GENIEWeight"]),float(weights["PowerLawIndex"]), float(weights["gen_ratio"]), float(weights["weight"]) ]) )
             # close the input file once we are done

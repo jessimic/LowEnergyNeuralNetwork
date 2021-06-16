@@ -691,7 +691,7 @@ def plot_single_resolution(truth,nn_reco,weights=None, \
 
     hist_nn, bins, p = ax.hist(nn_resolution, bins=bins, range=[minaxis,maxaxis], weights=weights, alpha=0.5, label=reco_name);
     weights_factor = 1 #1e7
-    total_events = len(weights) #sum(weights)
+    total_events = len(nn_resolution) #sum(weights)
     outside_range = numpy.logical_or(nn_resolution < minaxis, nn_resolution > maxaxis)
     overflow = sum(outside_range) #sum(weights[outside_range])
 
@@ -711,7 +711,7 @@ def plot_single_resolution(truth,nn_reco,weights=None, \
 
     if use_old_reco:
         ax.hist(old_reco_resolution, bins=bins, range=[minaxis,maxaxis], weights=weights_reco, alpha=0.5, label="%s"%old_reco_name);
-        total_events_reco = len(weights_reco) #sum(weights_reco) #len(weights_reco)
+        total_events_reco = len(old_reco_resolution) #sum(weights_reco) #len(weights_reco)
         outside_range_reco = numpy.logical_or(old_reco_resolution < minaxis, old_reco_resolution > maxaxis)
         overflow_reco = sum(outside_range_reco) #sum(weights_reco[outside_range_reco]) #sum(outside_range_reco)
         ax.legend(loc="upper left",fontsize=20)
