@@ -95,9 +95,9 @@ plt.savefig("%s%s.png"%(full_path,savename))
 
 # Loss Plots
 print(args.title,variable)
-plot_history_from_list(data['loss'],data['val_loss'],save=True,savefolder=full_path,logscale=True,ymin=ymin,ymax=ymax,title=args.title,variable=variable,pick_epoch=best_epoch,lr_start=lr_start,lr_drop=lr_drop,lr_epoch=lr_epoch)
+plot_history_from_list(data['loss'],data['val_loss'],save=True,savefolder=full_path,logscale=True,ymin=ymin,ymax=ymax,title=args.title,variable=variable,pick_epoch=best_epoch,lr_start=lr_start,lr_drop=lr_drop,lr_epoch=lr_epoch,step=1/num_files)
 if len(header)-3 == 6:
-    plot_history_from_list_split(data['EnergyLoss'],data['val_EnergyLoss'],data['ZenithLoss'],loss['val_ZenithLoss'],save=True,savefolder=full_path,logscale=True,ymin=ymin,ymax=ymax)
+    plot_history_from_list_split(data['EnergyLoss'],data['val_EnergyLoss'],data['ErrorLoss'],data['val_ErrorLoss'],save=True,savefolder=full_path,logscale=True,ymin=ymin,ymax=ymax)
 
 
 # Average Validation Plot

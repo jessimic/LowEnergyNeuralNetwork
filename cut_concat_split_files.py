@@ -57,13 +57,17 @@ parser.add_argument("--no_validation",default=False,action='store_true',
 parser.add_argument("--test_only", default=False,action='store_true',
                         dest='test_only',help="Put all events into test arrays only")
 parser.add_argument("--no_cuts",default=False,action='store_true',
-                    dest='no_cuts',help="set flag to NOT APPLY energy, vertex, or type cut")
+                    dest='no_cuts',help="set flag to NOT APPLY energy, vertex, or type cut. WILL NOT AFFECT COS ZENITH CUT.")
+parser.add_argument("--do_upgoing_cut",default=False,action='store_true',
+                    dest='do_upgoing_cut',help="set flag to cut on cosine zenith < 0.3 (cut out downgoing events)")
 parser.add_argument("--split_train",default=False,action='store_true',
                     dest='split_train',help="set flag to split into train, test, validation sets")
 parser.add_argument("--max_count",default=None,
                     dest="max_count",help="Max number of files to use")
 parser.add_argument("--total_events",default=None,
                     dest="total_events",help="Total number of events to use, cut after shuffle")
+parser.add_argument("--test_fraction",default=0.1,type=float,
+                    dest="test_fraction",help="Fraction of events for testing sample")
 parser.add_argument
 args = parser.parse_args()
 input_files = args.input_files
@@ -75,11 +79,13 @@ assert num_outputs<100, "NEED TO CHANGE FILENAME TO ACCOMODATE THIS MANY NUMBERS
 max_count = args.max_count
 
 do_cuts = not(args.no_cuts)
+do_upgoing_cut = args.do_upgoing_cut
 transformed = not(args.not_transformed)
 split_train = args.split_train
 shuffle = args.shuffle
 create_validation = not(args.no_validation)
 total_events = args.total_events
+test_fraction = args.test_fraction
 if total_events is not None:
     assert shuffle == True, "Must shuffle if you wanted to make a cut on total number of events"
     total_events = int(total_events)
@@ -117,6 +123,8 @@ if total_events is not None:
     print("Cutting total events to be at or less than %i"%total_events)
 if do_cuts:
     print("\nEnergy Max: %f GeV \nEnergy Min: %f GeV \nStarting Vertex Cut: %s \nEnding Vertex Cut: %s \nType Cut: %s\n"%(emax,emin,start_cut,end_cut,cut_name)) 
+if do_upgoing_cut:
+    print("Applying cut on upgoing events, keeping cosine zenith < 0.3")
 
 file_names = path + input_files
 event_file_names = sorted(glob.glob(file_names))
@@ -157,7 +165,14 @@ for a_file in event_file_names:
     #if file_labels.shape[-1] != 12:
     #    print("Skipping file %s, output labels not expected and CutMask could be cutting the wrong thing"%a_file)
     #    continue
-   
+  
+    if do_upgoing_cut:
+        if transformed:
+            mask_coszen = file_labels[:,1] < 0.3
+        else:
+            mask_coszen = np.cos(file_labels[:,1] < 0.3)
+        keep_index = mask_coszen
+
     if do_cuts:
         from handle_data import CutMask
         from handle_data import VertexMask
@@ -222,8 +237,9 @@ if total_events is not None:
     if full_labels.shape[0] <= total_events:
         print("Total number of events is %i, which is less than requested total events at %i. NO CUT ON TOTAL EVENTS APPLIED"%(full_labels.shape[0], total_events))
     else:
-        full_fetures_DC = full_features_DC[:total_events]
-        full_fetures_IC = full_features_IC[:total_events]
+        print("Only saving %i events of %i available, with total_events arg in play"%(total_events,full_labels.shape[0]))
+        full_features_DC = full_features_DC[:total_events]
+        full_features_IC = full_features_IC[:total_events]
         full_labels = full_labels[:total_events]
         if full_reco is not None:
             full_reco = full_reco[:total_events]
@@ -267,7 +283,7 @@ if split_train:
     = SplitTrainTest(full_features_DC,full_features_IC,full_labels,\
     reco=full_reco,use_old_reco=use_old_reco,\
     weights=full_weights,create_validation=create_validation,\
-    fraction_test=0.1,fraction_validate=0.2)
+    fraction_test=test_fraction,fraction_validate=0.2)
 
 
 #Save output to hdf5 file

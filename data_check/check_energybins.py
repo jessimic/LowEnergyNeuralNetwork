@@ -150,7 +150,7 @@ if type(min_bin) is tuple:
     min_bin = min_bin[0][0]
 print("Minimum bin value %i events at %i GeV"%(min_number_events,energy_bin_array[min_bin]))
 print("Cutting there gives total events: %i"%(min_number_events*bins))
-print("Total of %i events without flattening"%sum(energy_bin_array))
+print("Total of %i events without flattening"%sum(count_energy))
 print(count_energy)
 
 afile = open("%s/final_distribution_emin%.0femax%.0f_%s.txt"%(outdir,emin,emax,cut_name),"w")

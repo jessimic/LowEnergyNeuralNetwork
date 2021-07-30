@@ -36,14 +36,17 @@ parser.add_argument("--variables", type=int,default=1,
 parser.add_argument("--model",default=None,
                     dest="model",help="Name of file with model weights to load--will start from here if file given")
 parser.add_argument("--first_variable", type=str,default="energy",
-                    dest="first_variable", help = "name for first variable (energy, zenith only two supported)")
+                    dest="first_variable", help = "name for first variable (energy, zenith, or class are the only supported)")
 parser.add_argument("--lr", type=float,default=0.001,
                     dest="learning_rate",help="learning rate as a FLOAT")
 parser.add_argument("--lr_drop", type=float,default=0.1,
                     dest="lr_drop",help="factor to drop learning rate by each lr_epoch")
 parser.add_argument("--lr_epoch", type=int,default=None,
                     dest="lr_epoch",help="step size for number of epochs LR changes")
-
+parser.add_argument("--error",default=False,action='store_true',
+                    dest="do_error",help="Add flag if want to train for error (only single variable supported, not for classification)")
+parser.add_argument("--cut_downgoing",default=False,action='store_true',
+                    dest="cut_downgoing",help="Add flag if you want to only train on upgoing events (cosine zenith < 0.3)")
 args = parser.parse_args()
 
 # Settings from args
@@ -72,6 +75,8 @@ DC_drop_value = dropout
 IC_drop_value =dropout
 connected_drop_value = dropout
 start_epoch = args.start_epoch
+do_error = args.do_error
+cut_downgoing = args.cut_downgoing
 
 old_model_given = args.model
 
@@ -86,6 +91,11 @@ elif args.first_variable == "class" or args.first_variable == "classification" o
     first_var = "class"
 else:
     first_var = None
+
+if do_error:
+    assert first_var != "class", "Cannot do error with current classificaiton setup"
+    assert train_variables < 2, "Cannot do error with current classificaiton setup"
+    print("Training for error")
 
 assert first_var is not None, "Only supports energy and zenith and classification right now! Please choose one of those."
 
@@ -124,7 +134,10 @@ print("Train Data IC", X_train_IC.shape)
 if first_var == "class":
     from cnn_model_classification import make_network
 else:
-    from cnn_model import make_network
+    if do_error:
+        from cnn_model_losserror import make_network
+    else:
+        from cnn_model import make_network
 model_DC = make_network(X_train_DC,X_train_IC,train_variables,DC_drop_value,IC_drop_value,connected_drop_value)
 
 # WRITE OWN LOSS FOR MORE THAN ONE REGRESSION OUTPUT
@@ -146,9 +159,15 @@ if first_var == "energy":
     def ZenithLoss(y_truth,y_predicted):
         return mean_squared_error(y_truth[:,1],y_predicted[:,1])
 
+    def ErrorLoss(y_truth,y_predicted):
+        return mean_squared_error(tf.stop_gradient(tf.math.abs(y_truth[:,0]-y_predicted[:,0])),y_predicted[:,1])
+
 if first_var == "zenith":
     def ZenithLoss(y_truth,y_predicted):
         return mean_squared_error(y_truth[:,1],y_predicted[:,0])
+
+    def ErrorLoss(y_truth,y_predicted):
+        return mean_squared_error(tf.stop_gradient(tf.math.abs(y_truth[:,1]-y_predicted[:,0])),y_predicted[:,1])
 
 def TrackLoss(y_truth,y_predicted):
     return mean_squared_error(y_truth[:,2],y_predicted[:,2])
@@ -204,17 +223,41 @@ for epoch in range(start_epoch,end_epoch):
     f.close()
     del f
   
+    if cut_downgoing:
+        print("Cutting downgoing events, only keeping cosine zenith < 0.3")
+        check_coszenith = numpy.logical_or(Y_train[:,1] > 1, Y_train[:,1] < -1)
+        assert sum(check_coszenith)==0, "check truth label for train, not in cosine potentially (numbers > 1 or < -1"
+        check_coszenith = numpy.logical_or(Y_validate[:,1] > 1, Y_validate[:,1] < -1)
+        assert sum(check_coszenith)==0, "check truth label for validate, not in cosine potentially (numbers > 1 or < -1"
+        mask_train = Y_train[:,1] < 0.3
+        mask_validate = Y_validate[:,1] < 0.3
+        Y_train = Y_train[mask_train]
+        X_train_DC = X_train_DC[mask_train]
+        X_train_IC = X_train_IC[mask_train]
+        Y_validate = Y_validate[mask_validate]
+        X_validate_DC = X_validate_DC[mask_validate]
+        X_validate_IC = X_validate_IC[mask_validate]
 
     # Compile model
     if train_variables == 1:
         if first_var == "energy":
-            model_DC.compile(loss=CustomLoss,
-                optimizer=Adam(lr=learning_rate),
-                metrics=[EnergyLoss])
+            if do_error:
+                model_DC.compile(loss=CustomLoss,
+                    optimizer=Adam(lr=learning_rate),
+                    metrics=[EnergyLoss,ErrorLoss])
+            else:
+                model_DC.compile(loss=CustomLoss,
+                    optimizer=Adam(lr=learning_rate),
+                    metrics=[EnergyLoss,ErrorLoss])
         if first_var == "zenith":
-            model_DC.compile(loss=CustomLoss,
-                optimizer=Adam(lr=learning_rate),
-                metrics=[ZenithLoss])
+            if do_error:
+                model_DC.compile(loss=CustomLoss,
+                    optimizer=Adam(lr=learning_rate),
+                    metrics=[ZenithLoss,ErrorLoss])
+            else:
+                model_DC.compile(loss=CustomLoss,
+                    optimizer=Adam(lr=learning_rate),
+                    metrics=[ZenithLoss])
         if first_var == "class":
             Y_train = numpy.array(Y_train[:,8],dtype=int)
             Y_validate = numpy.array(Y_validate[:,8],dtype=int)

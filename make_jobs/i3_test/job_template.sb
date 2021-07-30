@@ -13,6 +13,6 @@
 
 #OUTDIR=/mnt/research/IceCube/jmicallef/FLERCNN_i3_output/
 
-singularity exec -B /mnt/scratch/micall12:/mnt/scratch/micall12 --nv /mnt/research/IceCube/Software/icetray_stable-tensorflow.sif sh -c '/usr/local/icetray/env-shell.sh python /mnt/home/micall12/LowEnergyNeuralNetwork/CNN_Test_i3.py -i @@file@@ -o /mnt/scratch/micall12/training_files/i3_files/ --model_name @@model_name@@ --variable @@variable@@ -e @@epoch@@ --factor @@factor@@ --model_name2 @@model_name2@@ --epochs2 @@epoch2@@ --model_name3 @@model_name3@@ --epochs3 @@epoch3@@ --model_name4 @@model_name4@@ --epochs4 @@epoch4@@ --cleaned True'
+singularity exec -B /mnt/scratch/micall12:/mnt/scratch/micall12 -B /cvmfs/icecube.opensciencegrid.org:/cvmfs/icecube.opensciencegrid.org --nv /mnt/research/IceCube/Software/icetray_stable-tensorflow.sif sh -c '/usr/local/icetray/env-shell.sh python /mnt/home/micall12/LowEnergyNeuralNetwork/CNN_Test_i3.py -i @@file@@ -o @@outdir@@ --model_dir /cvmfs/icecube.opensciencegrid.org/users/shiqiyu/FLERCNN/ --model_name @@model_name@@ --variable energy --factor 100 --model_name2 @@model_name2@@ --variable2 class --model_name3 @@model_name3@@ --variable3 zenith --model_name4 @@model_name4@@ --variable4 vertex --model_name5 @@model_name5@@ --variable5 muon --cleaned True'
 
 exit $?

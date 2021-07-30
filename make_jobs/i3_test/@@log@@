@@ -1,0 +1,40 @@
+Using TensorFlow backend.
+Using TensorFlow backend.
+Using TensorFlow backend.
+usage: CNN_Test_i3.py [-h] [-i INPUT_FILE] [-n OUTPUT_NAME] [-o OUTPUT_DIR]
+                      [--model_dir MODEL_DIR] [--model_name MODEL_NAME]
+                      [--variable VARIABLE] [-e EPOCHS] [-f FACTOR]
+                      [--cleaned CLEANED] [--model_name2 MODEL_NAME2]
+                      [--epochs2 EPOCHS2] [--variable2 VARIABLE2]
+                      [--factor2 FACTOR2] [--model_name3 MODEL_NAME3]
+                      [--epochs3 EPOCHS3] [--variable3 VARIABLE3]
+                      [--factor3 FACTOR3] [--model_name4 MODEL_NAME4]
+                      [--epochs4 EPOCHS4] [--variable4 VARIABLE4]
+                      [--factor4 FACTOR4] [--model_name5 MODEL_NAME5]
+                      [--epochs5 EPOCHS5] [--variable5 VARIABLE5]
+                      [--factor5 FACTOR5] [--charge_min CHARGE_MIN]
+CNN_Test_i3.py: error: argument -f/--factor: invalid float value: '@@factor@@'
+usage: CNN_Test_i3.py [-h] [-i INPUT_FILE] [-n OUTPUT_NAME] [-o OUTPUT_DIR]
+                      [--model_dir MODEL_DIR] [--model_name MODEL_NAME]
+                      [--variable VARIABLE] [-e EPOCHS] [-f FACTOR]
+                      [--cleaned CLEANED] [--model_name2 MODEL_NAME2]
+                      [--epochs2 EPOCHS2] [--variable2 VARIABLE2]
+                      [--factor2 FACTOR2] [--model_name3 MODEL_NAME3]
+                      [--epochs3 EPOCHS3] [--variable3 VARIABLE3]
+                      [--factor3 FACTOR3] [--model_name4 MODEL_NAME4]
+                      [--epochs4 EPOCHS4] [--variable4 VARIABLE4]
+                      [--factor4 FACTOR4] [--model_name5 MODEL_NAME5]
+                      [--epochs5 EPOCHS5] [--variable5 VARIABLE5]
+                      [--factor5 FACTOR5] [--charge_min CHARGE_MIN]
+CNN_Test_i3.py: error: argument -f/--factor: invalid float value: '@@factor@@'
+Predicting: energy,
+Output transformation scale factor: 100.00.,
+Using model: /mnt/home/micall12/LowEnergyNeuralNetwork/output_plots/energy_numu_flat_1_500_level6_cleanedpulses_IC19_CC_20000evtperbin_lrEpochs50_extended/energy_numu_flat_1_500_level6_cleanedpulses_IC19_CC_20000evtperbin_lrEpochs50_extended_152epochs_model.hdf5
+ALSO Predicting: class,
+Output transformation scale factor: 1.00.,
+Using model: /mnt/home/micall12/LowEnergyNeuralNetwork/output_plots/PID_level6_cleanedpulses_IC19_E5to200_30000evtperbin_sigmoid_binarycross_LRe-3DROPe-1EPOCHS50/PID_level6_cleanedpulses_IC19_E5to200_30000evtperbin_sigmoid_binarycross_LRe-3DROPe-1EPOCHS50_192epochs_model.hdf5
+Using 2 cnn models to reconstruct variables
+Traceback (most recent call last):
+  File "/mnt/home/micall12/LowEnergyNeuralNetwork/CNN_Test_i3.py", line 537, in <module>
+    assert event_file_names,"No files loaded, please check path."
+AssertionError: No files loaded, please check path.

@@ -2,9 +2,9 @@
 
 ########### SBATCH Lines for Resource Request ##########
 
-#SBATCH --time=00:29:00             # limit of wall clock time - how long the job will run (same as -t)
+#SBATCH --time=00:09:00             # limit of wall clock time - how long the job will run (same as -t)
 #SBATCH --nodes=1                 # number of different nodes - could be an exact number or a range of nodes (same as -N)
-#SBATCH --mem=5G            # memory required per allocated CPU (or core) - amount of memory (in bytes)
+#SBATCH --mem=1G            # memory required per allocated CPU (or core) - amount of memory (in bytes)
 #SBATCH --job-name @@name@@      # you can give your job a name for easier identification (same as -J)
 #SBATCH --output @@log@@
 
@@ -12,6 +12,8 @@
 
 source ~/setup_combo_stable.sh
 
-python /mnt/home/micall12/LowEnergyNeuralNetwork/i3_to_hdf5_not_neutrinos.py  -i @@file@@ -o /mnt/scratch/micall12/training_files/@@folder@@/ --cleaned True 
+echo python /mnt/home/micall12/LowEnergyNeuralNetwork/i3_to_hdf5.py  -i @@file@@ -o /mnt/scratch/micall12/training_files/@@folder@@/ --cleaned True --simtype muongun
+
+python /mnt/home/micall12/LowEnergyNeuralNetwork/i3_to_hdf5.py  -i @@file@@ -o /mnt/scratch/micall12/training_files/@@folder@@/ --cleaned True --sim_type muongun
 
 exit $?

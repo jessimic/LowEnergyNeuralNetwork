@@ -75,6 +75,14 @@ parser.add_argument("--variable4",type=str,default="vertex",
                     dest="variable4", help="name of fourth variable to predict, class has specific unique function to run the classifier")
 parser.add_argument("--factor4", type=float, default=1.,
                     dest="factor4", help="transformation factor to adjust output by")
+parser.add_argument("--model_name5",default=None,
+                    dest="model_name5", help="name of output folder where model is located")
+parser.add_argument("--epochs5",default=None,
+                    dest="epochs5", help="epoch number for model 4 to use")
+parser.add_argument("--variable5",type=str,default="muon",
+                    dest="variable5", help="name of fifth variable to predict, class & muon specific unique function to run the classifier")
+parser.add_argument("--factor5", type=float, default=1.,
+                    dest="factor5", help="transformation factor to adjust output by")
 parser.add_argument("--charge_min", type=float, default=0.25,
                     dest="charge_min", help="minimum charge pulse to keep, remove < this")
 args = parser.parse_args()
@@ -134,19 +142,30 @@ if model_name4 is not None:
         model_name4 ="%s/%s_%sepochs_model.hdf5"%(model_path4,model_name4,args.epochs4)
     print("ALSO Predicting: %s,\nOutput transformation scale factor: %.2f.,\nUsing model: %s"%(variable4, scale_factor4, model_name4))
 
-model_name_list = [model_name, model_name2, model_name3, model_name4]
-variable_list = [variable, variable2, variable3, variable4]
-scale_factor_list = [scale_factor, scale_factor2, scale_factor3, scale_factor4]
-number_cnns = 4
-for network in range(number_cnns):
+variable5 = args.variable5
+scale_factor5=args.factor5
+model_name5 = args.model_name5
+if model_name5 is not None:
+    model_path5 = args.model_dir + args.model_name5
+    if args.epochs5 is None:
+        model_name5 ="%s.hdf5"%(model_path5)
+    else:
+        model_name5 ="%s/%s_%sepochs_model.hdf5"%(model_path5,model_name5,args.epochs5)
+    print("ALSO Predicting: %s,\nOutput transformation scale factor: %.2f.,\nUsing model: %s"%(variable5, scale_factor5, model_name5))
+
+model_name_list = [model_name, model_name2, model_name3, model_name4, model_name5]
+variable_list = [variable, variable2, variable3, variable4, variable5]
+scale_factor_list = [scale_factor, scale_factor2, scale_factor3, scale_factor4, scale_factor5]
+max_number_cnns = 5
+number_cnns = 0
+for network in range(max_number_cnns):
     if model_name_list[network] is not None:
         number_cnns = network + 1
+assert number_cnns > 0, "NO MODELS GIVEN TO RECONSTRUCT WITH"
 print("Using %i cnn models to reconstruct variables"%number_cnns)
 model_name_list = model_name_list[:number_cnns]
 variable_list = variable_list[:number_cnns]
 scale_factor_list = scale_factor_list[:number_cnns]
-
-
 
 def get_observable_features(frame,low_window=-500,high_window=4000):
     """
@@ -344,7 +363,7 @@ def apply_transform(features_DC, features_IC, labels=None, energy_factor=100., t
 
 
 def cnn_test(features_DC, features_IC, load_model_name, output_variables=1,DC_drop_value=0.2,IC_drop_value=0.2,connected_drop_value=0.2,model_type="energy"):
-    if model_type == "class":
+    if model_type == "class" or model_type == "muon":
         from cnn_model_classification import make_network
     else:
         from cnn_model import make_network
@@ -423,7 +442,7 @@ def read_files(filename):
     return  output_features_DC, output_features_IC, output_headers, skip_event
 
 
-def test_write(filename_list, model_name_list,output_dir, output_name, model_factor_list=[100.,1.,1.,1.], model_type_list=["energy","class","zenith","vertex"]):
+def test_write(filename_list, model_name_list,output_dir, output_name, model_factor_list=[100.,1.,1.,1.], model_type_list=["energy","class","zenith","vertex","muon"]):
 
 
     for a_file in filename_list:
@@ -436,19 +455,23 @@ def test_write(filename_list, model_name_list,output_dir, output_name, model_fac
         
         DC_array, IC_near_DC_array, header_array, skip_event = read_files(a_file)
         print(DC_array.shape, IC_near_DC_array.shape)
-        DC_array, IC_near_DC_array = apply_transform(DC_array, IC_near_DC_array)
 
-        cnn_predictions=[]
-        for network in range(len(model_name_list)):
-            if model_type_list[network] == "vertex":
-                output_var = 3
-            else:
-                output_var = 1
-            t0 = time.time()
-            cnn_predictions.append(cnn_test(DC_array, IC_near_DC_array, model_name_list[network],model_type=model_type_list[network], output_variables=output_var))
-            t1 = time.time()
-            print("Time to run CNN Predict %s on %i events: %f seconds"%(model_type_list[network],DC_array.shape[0],t1-t0))
-            
+        if DC_array.shape[0] == 0:
+            print("THERE ARE P-FRAME EVENTS IN THIS FILE")
+        else:
+            DC_array, IC_near_DC_array = apply_transform(DC_array, IC_near_DC_array)
+
+            cnn_predictions=[]
+            for network in range(len(model_name_list)):
+                if model_type_list[network] == "vertex":
+                    output_var = 3
+                else:
+                    output_var = 1
+                t0 = time.time()
+                cnn_predictions.append(cnn_test(DC_array, IC_near_DC_array, model_name_list[network],model_type=model_type_list[network], output_variables=output_var))
+                t1 = time.time()
+                print("Time to run CNN Predict %s on %i events: %f seconds"%(model_type_list[network],DC_array.shape[0],t1-t0))
+                
         index = 0
         skipped_write = 0
         event_file = dataio.I3File(a_file)
@@ -484,6 +507,8 @@ def test_write(filename_list, model_name_list,output_dir, output_name, model_fac
                         assert check != model_type, "Rewriting key, need different names"
                     if model_type == "class":
                         key_name = "FLERCNN_prob_track"
+                    elif model_type == "muon":
+                        key_name = "FLERCNN_prob_muon"
                     else:
                         key_name = "FLERCNN_%s"%model_type
                
@@ -493,9 +518,20 @@ def test_write(filename_list, model_name_list,output_dir, output_name, model_fac
                             adjusted_prediction = prediction[index][reco_i]*factor
                             key_name_loop = key_name + ending[reco_i]
                             frame[key_name_loop] = dataclasses.I3Double(adjusted_prediction)
+                        x = prediction[index][0]*factor 
+                        y = prediction[index][1]*factor 
+                        x_origin = 46.290000915527344
+                        y_origin = -34.880001068115234
+                        r = np.sqrt( (x - x_origin)**2 + (y - y_origin)**2 )
+                        frame["FLERCNN_vertex_rho36"] = dataclasses.I3Double(r)
                     else:
                         adjusted_prediction = prediction[index][0]*factor
                         frame[key_name] = dataclasses.I3Double(adjusted_prediction)
+                        if model_type == "muon":
+                            frame["FLERCNN_prob_nu"] = dataclasses.I3Double(1. - adjusted_prediction)
+                        if model_type == "zenith":
+                            frame["FLERCNN_coszen"] = dataclasses.I3Double(np.cos(adjusted_prediction))
+
                     
 
                 outfile.push(frame)

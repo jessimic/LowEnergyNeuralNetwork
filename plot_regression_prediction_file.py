@@ -39,16 +39,15 @@ except:
     info = None
 if args.no_old_reco:
     reco = None
-    weights = None
 else:
     try:
         reco = f["reco_test"][:]
     except:
         reco = None
-    try:
-        weights = f["weights_test"][:]
-    except:
-        weights = None
+try:
+    weights = f["weights_test"][:]
+except:
+    weights = None
 f.close()
 del f
 
@@ -72,6 +71,7 @@ except:
 
 #Truth
 true_energy = np.array(truth[:,0])
+true_error = abs(true_energy - cnn_energy)
 em_equiv_energy = np.array(truth[:,14])
 true_x = np.array(truth[:,4])
 true_y = np.array(truth[:,5])
@@ -221,7 +221,15 @@ if reco is not None:
     maskANA2 = np.logical_and(np.logical_and(np.logical_and(maskRecoDC,  maskRetro2), maskMC),maskHits8)
     assert sum(maskANA)!=len(maskANA), "No events after ANA mask"
     print(sum(weights[np.logical_and(maskANA,maskCC)]))
-
+    no_retro = False
+else:
+    maskANA = np.ones(true_energy.shape[0])
+    maskANA2 = np.ones(true_energy.shape[0])
+    maskRetroZenith = np.ones(true_energy.shape[0])
+    maskRetroEnergy =  np.ones(true_energy.shape[0])
+    maskRetroEnergy100 =  np.ones(true_energy.shape[0])
+    maskPassRetro = np.ones(true_energy.shape[0])
+    no_retro = True
 
 
 cut_list = [np.logical_and(maskHits8,maskCC), 
@@ -237,24 +245,35 @@ np.logical_and(maskCNNZ, np.logical_and(maskCNNR90 ,np.logical_and(maskCNNZenith
 maskHits8,
 np.logical_and(maskCNNZ, np.logical_and(maskCNNR150 ,np.logical_and(maskCNNZenith, np.logical_and(maskCNNE,maskHits8))))]
 
-cut_list_retro = [None, None, None, None, None, None, None, None,
-np.logical_and(maskRecoZ, np.logical_and(maskRecoR150,np.logical_and(maskRetroZenith, np.logical_and(np.logical_and(maskRetroEnergy100, maskCC),maskHits8)))), 
-np.logical_and(maskRecoZ, np.logical_and(maskRecoR90,np.logical_and(maskRetroZenith, np.logical_and(np.logical_and(maskRetroEnergy100, maskCC),maskHits8)))),
+cut_list_retro = [None, None, None, None, None, None, None, None, None, None, None, None]
+#np.logical_and(maskRecoZ, np.logical_and(maskRecoR150,np.logical_and(maskRetroZenith, np.logical_and(np.logical_and(maskRetroEnergy100, maskCC),maskHits8)))), 
+#np.logical_and(maskRecoZ, np.logical_and(maskRecoR90,np.logical_and(maskRetroZenith, np.logical_and(np.logical_and(maskRetroEnergy100, maskCC),maskHits8)))),
 None,
-np.logical_and(maskRecoZ, np.logical_and(maskRecoR150,np.logical_and(maskRetroZenith, np.logical_and(maskRetroEnergy100,maskHits8))))]
+#np.logical_and(maskRecoZ, np.logical_and(maskRecoR150,np.logical_and(maskRetroZenith, np.logical_and(maskRetroEnergy100,maskHits8))))]
 
-cut_names = ["Weighted_Hits8CC", "WeightedAnalysisCuts_CC", "WeightedCNN1100_HLCVertex_Hits8CC", "WeightedCNN5100_HLCVertex_Hits8CC", "WeightedCNN5100_ZenithHLCVertex_Hits8CC","WeightedAnalysisCuts_NoZen_CC","WeightsFailedRetro_Hits8CC", "WeightedTrueE5100_Hits8CC", "WeightedReco5100_ZenithZR150_Hits8CC", "WeightedReco5100_ZenithZR90_Hits8CC", "Weighted_Hits8","WeightedReco5100_ZenithZR150_Hits8"]
+cut_names = ["Weighted_Hits8CC",
+"WeightedAnalysisCuts_CC",
+"WeightedCNN1100_HLCVertex_Hits8CC",
+"WeightedCNN5100_HLCVertex_Hits8CC",
+"WeightedCNN5100_ZenithHLCVertex_Hits8CC",
+"WeightedAnalysisCuts_NoZen_CC",
+"WeightsFailedRetro_Hits8CC", 
+"WeightedTrueE5100_Hits8CC", 
+"WeightedReco5100_ZenithZR150_Hits8CC", 
+"WeightedReco5100_ZenithZR90_Hits8CC", 
+"Weighted_Hits8",
+"WeightedReco5100_ZenithZR150_Hits8"]
 
 minvals_energy = [1, 5, 1, 5, 5, 5, 1,5,5,5,5,5]
 maxvals_energy = [200, 200, 100, 100, 100., 200, 200,100,100,100,100,100]
-minvals_zenith =  [-1., -1, -1, -1, -1, -1, -1,-1,-1,-1,-1,-1]
-maxvals_zenith = [1,1,1,1, 0.3, 1, 1,1,0.3,0.3,1,0.3]
 binss_energy = [199, 195, 199, 95, 95, 195, 199,95,95,95,195,95]
 syst_bins_energy = [20, 20, 20, 10, 10, 20, 20, 10,10,10,20,10]
+minvals_zenith =  [-1., -1, -1, -1, -1, -1, -1,-1,-1,-1,-1,-1]
+maxvals_zenith = [1,1,1,1, 0.3, 1, 1,1,0.3,0.3,1,0.3]
 binss_zenith = [100, 100, 100, 100, 100, 100, 100, 100,100,100,100,100]
 syst_bins_zenith = [20, 20, 20, 20, 12, 20, 20, 20,12,12,20,12]
 sample_names = ["CC", "CC", "CC", "CC", "CC", "CC", "CC", "CC","CC", "CC","CC&NC","CC&NC"]
-plot_main = False
+plot_main = True
 plot_EMequiv = False
 plot_switch = False
 plot_others = False
@@ -262,18 +281,17 @@ plot_vertex = False
 plot_PID = False
 save_base_name = save_folder_name
 
-
-for cut_index in [8]: #0,6,8,9 range(1,len(cut_list)):
+for cut_index in [0]: #0,6,8,9 range(1,len(cut_list)):
     cuts = cut_list[cut_index]
     cuts_retro = cut_list_retro[cut_index]
     if cuts_retro is None:
         print("cuts retro is none, assigning it to same as cnn")
         cuts_retro = cuts
     folder_name = cut_names[cut_index]
-    if cut_index == 2 or cut_index == 4:
-        reco_class = retro_PID_up
-    else:
-        reco_class = retro_PID_full
+    #if cut_index == 2 or cut_index == 4:
+    #    reco_class = retro_PID_up
+    #else:
+    #    reco_class = retro_PID_full
     reco_name = "Retro"
     sample_name = sample_names[cut_index]
     print("Number of events. CNN: %i, Retro: %i"%(sum(cuts),sum(cuts_retro)))
@@ -295,12 +313,12 @@ for cut_index in [8]: #0,6,8,9 range(1,len(cut_list)):
     true_Z = true_z[cuts]
     cnn_R = cnn_r[cuts]
     cnn_Z = cnn_z[cuts]
-    retro_R = reco_r[cuts_retro]
-    retro_Z = reco_z[cuts_retro]
-    retro_true_R = true_r[cuts_retro]
-    retro_true_Z = true_z[cuts_retro]
-    print(len(fit_success_cut),len(retro_R))
-    if cut_index == 6:
+    #retro_R = reco_r[cuts_retro]
+    #retro_Z = reco_z[cuts_retro]
+    #retro_true_R = true_r[cuts_retro]
+    #retro_true_Z = true_z[cuts_retro]
+    #print(len(fit_success_cut),len(retro_R))
+    if cut_index == 6 or no_retro:
         retro_R = None
         retro_Z = None
         retro_true_R = None
@@ -315,7 +333,7 @@ for cut_index in [8]: #0,6,8,9 range(1,len(cut_list)):
         retro_true_Z = retro_true_Z[fit_success_cut]
         retro_weights = retro_true_weights[fit_success_cut]
 
-    for variable in ["zenith"]:
+    for variable in ["energy"]:
 
         save_folder_name = save_cut_name + "/%s/"%variable
         if os.path.isdir(save_folder_name) != True:
@@ -330,9 +348,9 @@ for cut_index in [8]: #0,6,8,9 range(1,len(cut_list)):
             bins = binss_energy[cut_index]
             cnn_val = np.copy(cnn_energy[cuts])
             true_val = np.copy(true_energy[cuts])
-            retro_true_val = np.copy(true_energy[cuts_retro])
-            retro_val = np.copy(retro_energy[cuts_retro])
-        if variable == "zenith":
+            #retro_true_val = np.copy(true_energy[cuts_retro])
+            #retro_val = np.copy(retro_energy[cuts_retro])
+        elif variable == "zenith":
             plot_name = "Cosine Zenith"
             plot_units = ""
             minval = minvals_zenith[cut_index]
@@ -343,16 +361,18 @@ for cut_index in [8]: #0,6,8,9 range(1,len(cut_list)):
             true_val = np.copy(true_coszenith[cuts])
             retro_true_val = np.copy(true_coszenith[cuts_retro])
             retro_val = np.copy(retro_coszenith[cuts_retro])
+        else:
+            print("ONLY work with 3 variables (energy, zenith, error) currently")
     
         print("With cuts, CNN E range is %f - %f, CNN Cos Zen range is %f - %f"%(min(cnn_energy[cuts]),max(cnn_energy[cuts]),min(cnn_coszenith[cuts]),max(cnn_coszenith[cuts])))
-        if cut_index != 6:
-            check_retro_zen = retro_coszenith[cuts_retro]
-            check_retro_en = retro_energy[cuts_retro]
-            print("With cuts, Retro E range is %f - %f, Retro Cos Zen range is %f - %f"%(min(check_retro_en[fit_success_cut]),max(check_retro_en[fit_success_cut]),min(check_retro_zen[fit_success_cut]),max(check_retro_zen[fit_success_cut])))
+        #if cut_index != 6 or (no_retro == False):
+        #    check_retro_zen = retro_coszenith[cuts_retro]
+        #    check_retro_en = retro_energy[cuts_retro]
+            #print("With cuts, Retro E range is %f - %f, Retro Cos Zen range is %f - %f"%(min(check_retro_en[fit_success_cut]),max(check_retro_en[fit_success_cut]),min(check_retro_zen[fit_success_cut]),max(check_retro_zen[fit_success_cut])))
 
 
         #Cut out failed Retro or set it to none if all failed retro
-        if cut_index == 6:
+        if cut_index == 6 or no_retro:
             retro_val = None
             retro_true_val = None
         else:
@@ -371,19 +391,19 @@ for cut_index in [8]: #0,6,8,9 range(1,len(cut_list)):
             dist_title += nu_type
         dist_title += sample_name
         #tretro_energy_val, retro_weights
-        plot_distributions(retro_true_val,log=True, 
-                            save=save, savefolder=save_folder_name, 
-                            weights=retro_weights,reco_name = reco_name,
-                            variable=plot_name, units= plot_units,
-                            bins=bins,
-                            title="Testing Zenith Distribution for %s"%dist_title)
+        #plot_distributions(retro_true_val,log=True, 
+        #                    save=save, savefolder=save_folder_name, 
+        #                    weights=retro_weights,reco_name = reco_name,
+        #                    variable=plot_name, units= plot_units,
+        #                    bins=bins,
+        #                    title="Testing Zenith Distribution for %s"%dist_title)
         #true_val, true_weights
-        plot_distributions(retro_true_val,log=True,minval=-1,maxval=1, 
-                            save=save, savefolder=save_folder_name, 
-                            weights=retro_weights,reco_name = reco_name,
-                            variable=plot_name, units= plot_units,
-                            bins=bins,
-                            title="Testing Zenith Distribution for %s"%dist_title)
+        #plot_distributions(retro_true_val,log=True,minval=-1,maxval=1, 
+        #                    save=save, savefolder=save_folder_name, 
+        #                    weights=retro_weights,reco_name = reco_name,
+        #                    variable=plot_name, units= plot_units,
+        #                    bins=bins,
+        #                    title="Testing Zenith Distribution for %s"%dist_title)
     
 
         if plot_main:

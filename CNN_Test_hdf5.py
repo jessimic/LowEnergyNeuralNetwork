@@ -27,6 +27,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import argparse
+import tensorflow as tf
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input_file",type=str,default=None,
@@ -59,6 +60,8 @@ parser.add_argument("--transform_zenith",default=False,action='store_true',
                     dest="transform_zenith",help="transform zenith")
 parser.add_argument("--no_plots",default=False,action='store_true',
                     dest="no_plots",help="add flag if you don't want any plots, just the prediction file")
+parser.add_argument("--error",default=False,action='store_true',
+                    dest="error",help="add flag if doing error CNN")
 args = parser.parse_args()
 
 test_file = args.path + args.input_file
@@ -76,6 +79,7 @@ connected_drop_value = dropout
 min_energy = 5
 max_energy = args.emax
 energy_factor = args.efactor
+do_error = args.error
 
 mask_zenith = args.mask_zenith
 z_values = args.z_values
@@ -101,6 +105,8 @@ elif args.first_variable == "energy" or args.first_variable == "energy" or args.
     print("testing with energy as the first index")
 elif args.first_variable == "class" or args.first_variable == "classification" or args.first_variable == "Class" or args.first_variable == "Classification" or args.first_variable == "C" or args.first_variable == "c":
     first_var = "class"
+elif args.first_variable == "muon" or args.first_variable == "Muon":
+    first_var = "muon"
 else:
     first_var = None
 assert first_var is not None, "Only supports energy and zenith and classification right now! Please choose one of those."
@@ -161,8 +167,11 @@ from keras.optimizers import Adam
 from keras.callbacks import EarlyStopping
 from keras.callbacks import ModelCheckpoint
 
-if first_var == "class":
+if first_var == "class" or first_var == "muon":
     from cnn_model_classification import make_network
+elif do_error:
+    from cnn_model_losserror import make_network
+    assert output_variables == 1, "Training for error an only handle 1 output variable right now"
 else:
     from cnn_model import make_network
 model_DC = make_network(X_test_DC_use,X_test_IC_use,output_variables,DC_drop_value,IC_drop_value,connected_drop_value)
@@ -179,17 +188,25 @@ if first_var == "zenith":
         #return logcosh(y_truth[:,1],y_predicted[:,1])
         return mean_squared_error(y_truth[:,1],y_predicted[:,0])
 
-    def CustomLoss(y_truth,y_predicted):
-            zenith_loss = ZenithLoss(y_truth,y_predicted)
-            return zenith_loss
+    def ErrorLoss(y_truth,y_predicted):
+        return mean_squared_error(tf.stop_gradient(tf.math.abs(y_truth[:,1]-y_predicted[:,0])),y_predicted[:,1])
 
-    model_DC.compile(loss=ZenithLoss,
+    def CustomLoss(y_truth,y_predicted):
+        zenith_loss = ZenithLoss(y_truth,y_predicted)
+        return zenith_loss
+
+    if do_error:
+        model_DC.compile(loss=CustomLoss,
+            optimizer=Adam(lr=learning_rate),
+            metrics=[ZenithLoss,ErrorLoss])
+    else: 
+        model_DC.compile(loss=ZenithLoss,
                 optimizer=Adam(lr=learning_rate),
                 metrics=[ZenithLoss])
     
     print("zenith first")
 
-elif first_var == "class":
+elif first_var == "class" or first_var == "muon":
     def ClassificationLoss(y_truth,y_predicted):
         return binary_crossentropy(y_truth[:,0],y_predicted[:,0])
     
@@ -204,6 +221,9 @@ elif first_var == "class":
 else: 
     def EnergyLoss(y_truth,y_predicted):
         return mean_absolute_percentage_error(y_truth[:,0],y_predicted[:,0])
+
+    def ErrorLoss(y_truth,y_predicted):
+            return mean_squared_error(tf.stop_gradient(tf.math.abs(y_truth[:,0]-y_predicted[:,0])),y_predicted[:,1])
 
     def ZenithLoss(y_truth,y_predicted):
         return mean_squared_error(y_truth[:,1],y_predicted[:,1])
@@ -236,15 +256,26 @@ else:
             energy_loss = EnergyLoss(y_truth,y_predicted)
             return energy_loss
 
-        model_DC.compile(loss=EnergyLoss,
-                    optimizer=Adam(lr=learning_rate),
-                    metrics=[EnergyLoss])
+        if do_error:
+            model_DC.compile(loss=CustomLoss,
+                optimizer=Adam(lr=learning_rate),
+                metrics=[EnergyLoss,ErrorLoss])
+        else:
+            model_DC.compile(loss=EnergyLoss,
+                        optimizer=Adam(lr=learning_rate),
+                        metrics=[EnergyLoss])
 
 # Run prediction
 if first_var == "class":
     Y_test_compare = Y_test_use[:,8]
     score = model_DC.evaluate([X_test_DC_use,X_test_IC_use], Y_test_compare, batch_size=256)
     print("Evaluate:",score)
+if first_var == "muon":
+    muon_mask_test = (Y_test_use[:,9]) == 13
+    Y_test_compare = np.array(muon_mask_test,dtype=int)
+    score = model_DC.evaluate([X_test_DC_use,X_test_IC_use], Y_test_compare, batch_size=256)
+    print("Evaluate:",score)
+
 t0 = time.time()
 Y_test_predicted = model_DC.predict([X_test_DC_use,X_test_IC_use])
 t1 = time.time()

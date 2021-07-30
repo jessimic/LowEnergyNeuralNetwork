@@ -1,0 +1,18 @@
+#!/bin/bash --login
+
+########## SBATCH Lines for Resource Request ##########
+
+#SBATCH --time=119:59:00             # limit of wall clock time - how long the job will run (same as -t)
+#SBATCH --gres=gpu:1                # number of different nodes - could be an exact number or a range of nodes (same as -N)
+#SBATCH --mem=26G            # memory required per allocated CPU (or core) - amount of memory (in bytes)
+#SBATCH --job-name CNN_classification      # you can give your job a name for easier identification (same as -J)
+#SBATCH --output /mnt/home/micall12/LowEnergyNeuralNetwork/make_jobs/run_CNN/CNN_energy_error.out
+
+########## Command Lines to Run ##########
+INPUT="oscNext_genie_level6.5_v02.00_pass2.140000.00h_to_04h.cleanedpulses_transformed_IC19.no_cuts.test_only.hdf5"
+INDIR="/mnt/research/IceCube/jmicallef/official_oscnext/level6.5/140000/"
+OUTDIR="/mnt/home/micall12/LowEnergyNeuralNetwork/"
+OUTNAME="energy_numu_level6_cleanedpulses_IC19_E1to500_20000evtperbin_ERROR_LRe-3DROPe-.5EPOCHS200"
+EPOCH=96
+
+singularity exec -B /mnt/home/micall12:/mnt/home/micall12 -B /mnt/research/IceCube:/mnt/research/IceCube --nv /mnt/research/IceCube/Software/icetray_stable-tensorflow.sif python ${OUTDIR}/CNN_Test_hdf5.py --input_file $INPUT --path $INDIR --output_dir $OUTDIR --name $OUTNAME -e $EPOCH --first_variable energy --efactor 100 --no_plots --error

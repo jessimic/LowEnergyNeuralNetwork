@@ -33,7 +33,7 @@ def find_percision(truth,prediction,contamination=0.1):
     return [precision[index_track], recall[index_track], threshold_track], [p_casc[index_casc], r_casc[index_casc], t_casc[index_casc]]
 
 
-def plot_classification_hist(truth,prediction,reco=None,reco_mask=None,mask=None,mask_name="", variable="Classification",units="",bins=50,log=False,save=True,save_folder_name=None,weights=None,contamination=0.1):
+def plot_classification_hist(truth,prediction,reco=None,reco_mask=None,mask=None,mask_name="", reco_name="CNN",units="",bins=50,log=False,save=True,save_folder_name=None,weights=None,contamination=0.1,normed=False,savename=None,name_prob1="Track",name_prob0="Cascade"):
 
     if mask is not None:
         print("Masking, using %f of input"%(sum(mask)/len(truth)))
@@ -50,57 +50,69 @@ def plot_classification_hist(truth,prediction,reco=None,reco_mask=None,mask=None
         #if os.path.isdir(save_folder_name) != True:
         #            os.mkdir(save_folder_name)
 
-    maskTrack = truth == 1
-    maskCascade = truth == 0
+    mask1 = truth == 1
+    mask0 = truth == 0
     
 
     fig,ax = plt.subplots(figsize=(10,7))
-    name = ""
+    name = "%s"%reco_name
     if weights is not None:
         name += "Weighted"
-        weights_track = weights[maskTrack]
-        weights_cascade = weights[maskCascade]
+        weights1 = weights[mask1]
+        weights0 = weights[mask0]
     else:
-        weights_track = None
-        weights_cascade = None
-    ax.set_title("%s %s %s"%(name,variable,mask_name),fontsize=25)
-    ax.set_xlabel("%s %s"%(variable,units),fontsize=20)
+        weights1 = None
+        weights0 = None
+    ax.set_title("%s %s Classification %s"%(name,name_prob1,mask_name),fontsize=25)
+    ax.set_xlabel("Probability %s"%(name_prob1),fontsize=20)
+    if weights is not None:
+        ax.set_ylabel("Rate (Hz)",fontsize=20)
+    else:
+        ax.set_ylabel("Counts",fontsize=20)
+
     if log:
         ax.set_yscale("log")
 
     if reco is not None:
-        ax.hist(reco[maskTrack], bins=bins,color='r',alpha=1,range=[0.,1.],weights=weights_track,label="True Retro Track");
-        ax.hist(reco[maskCascade], bins=bins,color='orange',alpha=1,range=[0.,1.],weights=weights_cascade,label="True Retro Cascade");
-        track_label = "True CNN Track"
-        casc_label = "True CNN Cascade"
+        ax.hist(reco[mask1], bins=bins,color='r',alpha=1,range=[0.,1.],weights=weights1,label="True Retro %s"%name_prob1,density=normed);
+        ax.hist(reco[mask0], bins=bins,color='orange',alpha=1,range=[0.,1.],weights=weights0,label="True Retro %s"%name_prob0,density=normed);
+        label1 = "True CNN %s"%name_prob1
+        label0 = "True CNN %s"%name_prob0
     else:
-        track_label = "True Track"
-        casc_label = "True Cascade"
-    ax.hist(prediction[maskTrack], bins=bins,color='g',alpha=0.5,range=[0.,1.],weights=weights_track,label=track_label);
-    ax.hist(prediction[maskCascade], bins=bins,color='b',alpha=0.5,range=[0.,1.],weights=weights_cascade,label=casc_label);
+        label1 = "True %s"%name_prob1
+        label0 = "True %s"%name_prob0
+    print(sum(mask0),sum(mask1),len(mask1))
+    print(sum(weights[mask0])/sum(weights),sum(weights[mask1])/sum(weights))
+    ax.hist(prediction[mask1], bins=bins,color='g',alpha=0.5,range=[0.,1.],weights=weights1,label=label1,density=normed);
+    ax.hist(prediction[mask0], bins=bins,color='b',alpha=0.5,range=[0.,1.],weights=weights0,label=label0,density=normed);
     
     #Plot contamination lines
-    threshold_track, threshold_casc, rates_t, rates_c = find_thresholds(truth, prediction, contamination)
-    binary_track = prediction > threshold_track
-    binary_casc = prediction < threshold_casc
+    threshold1, threshold0, rates_t, rates_c = find_thresholds(truth, prediction, contamination)
+    binary1 = prediction > threshold1
+    binary0 = prediction < threshold0
 #    print("True Track Rate: %.2f, False Track Rate: %.2f"%)
-    print("Events predicted to be track: ", sum(binary_track), "number of true tracks there: ", sum(np.logical_and(maskTrack,binary_track)), "number of true cascades there: ", sum(np.logical_and(maskCascade,binary_track)))
+    print("Events predicted to be track: ", sum(binary1), "number of true tracks there: ", sum(np.logical_and(mask1,binary1)), "number of true cascades there: ", sum(np.logical_and(mask0,binary1)))
     #ax.axvline(threshold_track,linewidth=3,color='green',label=r'10% Track Contamination')
     #ax.axvline(threshold_casc,linewidth=3,color='blue',label=r'10% Cascade Contamination')
 
     ax.legend(fontsize=20)
-
-    name += "%s"%(variable.replace(" ",""))
+    
+    if savename is None:
+        name += "%s%s"%(reco_name, name_prob1.replace(" ",""))
+    else:
+        name = savename
     end = "Hist"
     if reco is not None:
         end += "_compareReco"
+    if normed:
+        end += "Normalized"
     if mask is not None:
         end += "_%s"%(mask_name.replace(" ",""))
     if save:
         plt.savefig("%s%s%s.png"%(save_folder_name,name,end))
     plt.close()
 
-    return threshold_track, threshold_casc
+    return threshold1, threshold0
 
 def precision(truth, prediction, reco=None, mask=None, mask_name="", reco_mask = None,save=True,save_folder_name=None,reco_name="Retro",contamination=0.1):
 
@@ -159,7 +171,7 @@ def precision(truth, prediction, reco=None, mask=None, mask_name="", reco_mask =
     if save:
         plt.savefig("%sPrecision%s.png"%(save_folder_name,name))
 
-def ROC(truth, prediction,reco=None,reco_truth=None,mask=None,mask_name="",reco_mask=None,save=True,save_folder_name=None,reco_name="Retro",contamination=0.1):
+def ROC(truth, prediction,reco=None,reco_truth=None,mask=None,mask_name="",reco_mask=None,save=True,save_folder_name=None,reco_name="Retro",variable="Probability Track",contamination=0.1):
 
     if mask is not None:
         print(sum(mask)/len(truth))
@@ -197,7 +209,7 @@ def ROC(truth, prediction,reco=None,reco_truth=None,mask=None,mask_name="",reco_
     ax.set_ylim([0.0, 1.0])
     ax.set_xlabel('False Positive Rate',fontsize=20)
     ax.set_ylabel('True Positive Rate',fontsize=20)
-    ax.set_title('ROC Curve %s'%mask_name,fontsize=25)
+    ax.set_title('ROC %s %s'%(variable,mask_name),fontsize=25)
     #ax.plot(rates_t[0],rates_t[1],"g*",markersize=10,label="10% Track Contamination")
     #ax.plot(rates_c[0],rates_c[1],"b*",markersize=10,label="10% Cascade Contamination")
     props = dict(boxstyle='round', facecolor='blue', alpha=0.3)
@@ -209,7 +221,7 @@ def ROC(truth, prediction,reco=None,reco_truth=None,mask=None,mask_name="",reco_
             transform=ax.transAxes, fontsize=20, verticalalignment='top', bbox=props)
     ax.legend(loc="lower right",fontsize=20)
 
-    end = "ROC%s"%reco_name.replace(" ","")
+    end = "ROC_%s"%variable.replace(" ","")
     if reco is not None:
         end += "_compare%s"%reco_name.replace(" ","")
     if mask is not None:
@@ -267,7 +279,7 @@ def ROC_dict(truth_dict, prediction_dict,namelist, reco_dict=None,mask_dict=None
 
     return threshold_track, threshold_casc
 
-def confusion_matrix(truth, prediction, threshold, mask=None, mask_name="", weights=None,save=True, save_folder_name=None):
+def confusion_matrix(truth, prediction, threshold, mask=None, mask_name="", weights=None,save=True, save_folder_name=None,name_prob1 = "Track", name_prob0 = "Cascade",normed=False):
     if mask is not None:
         truth = truth[mask]
         prediction = prediction[mask]
@@ -275,36 +287,39 @@ def confusion_matrix(truth, prediction, threshold, mask=None, mask_name="", weig
             weights = weights[mask]
 
     #Change to 0 or 1
-    predictionCascade = prediction < threshold
-    predictionTrack = prediction >= threshold
-    prediction[predictionCascade] = 0
-    prediction[predictionTrack] = 1
-    #isTrack = truth == 1
-    #isCasc = truth == 0
-    #truth[isCasc] = .5
-    #truth[isTrack] = 1.5
+    prediction0 = prediction < threshold
+    prediction1 = prediction >= threshold
+    prediction[prediction0] = 0.5
+    prediction[prediction1] = 1.5
+    is1 = truth == 1
+    is0 = truth == 0
+    truth[is0] = .5
+    truth[is1] = 1.5
 
     
-    cm = confusion_matrix(truth, prediction)
-    cm_display = ConfusionMatrixDisplay(cm,display_labels=["Cascade","Track"]).plot()
+    #cm = confusion_matrix(truth, prediction)
+    #cm_display = ConfusionMatrixDisplay(cm,display_labels=[name_prob0,name_prob1]).plot()
     fig, ax = plt.subplots()
-    #cts,xbin,ybin,img = plt.hist2d(prediction, truth, bins=2,range=[[0,2],[0,2]],cmap='viridis_r', weights=weights,density=True)
-    #cbar = plt.colorbar()
-    #cbar.ax.set_ylabel('Counts', rotation=90)
+    cts,xbin,ybin,img = plt.hist2d(prediction, truth, bins=2,range=[[0,2],[0,2]],cmap=plt.cm.get_cmap('Blues'), weights=weights,density=normed)
+    cbar = plt.colorbar()
+    cbar.ax.set_ylabel('Rate (Hz)', rotation=90)
 
     name = ""
     if weights is not None:
         name +="Weighted"
-    ax.set_title("%s Normalized Confusion Matrix"%name,fontsize=20)
+    if normed:
+        ax.set_title("%s Normalized Confusion Matrix"%name,fontsize=20)
+    else:
+        ax.set_title("%s Confusion Matrix"%name,fontsize=20)
     ax.set_xlabel("Predicted Label",fontsize=20)
     ax.set_ylabel("True Label",fontsize=20)
     ax.set_xticks([0.5,1.5])
     ax.set_yticks([0.5,1.5])
-    ax.set_xticklabels(["Cascade","Track"],fontsize=15)
-    ax.set_yticklabels(["Cascade","Track"],fontsize=15)
+    ax.set_xticklabels([name_prob0,name_prob1],fontsize=15)
+    ax.set_yticklabels([name_prob0,name_prob1],fontsize=15)
     for i in range(len(ybin)-1):
         for j in range(len(xbin)-1):
-            ax.text(xbin[j]+0.5,ybin[i]+0.5, "%.4f"%cts.T[i,j],
+            ax.text(xbin[j]+0.5,ybin[i]+0.5, "%.2e"%cts.T[i,j],
             color="w", ha="center", va="center", fontweight="bold",fontsize=20)
     if save:
         plt.savefig("%s%sConfusionMaxtrix.png"%(save_folder_name,name),bbox_inches='tight')

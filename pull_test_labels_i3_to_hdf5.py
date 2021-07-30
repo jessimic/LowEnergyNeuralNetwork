@@ -20,10 +20,14 @@ parser.add_argument("--variable3",default=None,
                     dest="variable3", help="name of variable that was predicted")
 parser.add_argument("--variable_list",nargs='+',default=[],
                     dest="variable_list", help="names of variables that were predicted")
+parser.add_argument("--simtype",type=str,default="genie",
+                    dest="simtype", help="name of sim type, only muongun is set to do anything special at the moment")
 args = parser.parse_args()
 
 input_file = args.input_file
 save_folder_name=args.output_dir
+sim_type = args.simtype
+
 variable = args.variable
 variable2 = args.variable2
 variable3 = args.variable3
@@ -72,7 +76,14 @@ def read_i3_files(filenames_list,variable, variable2,variable3):
 
                 #Truth 
                 tree = frame["I3MCTree"]
-                nu = tree[0]
+                if sim_type == "muongun":
+                    nu = tree[1]
+                    isCC = 2
+                    isTrack = 2
+                    isOther = 2
+                else:
+                    nu = tree[0]
+                    isCC = frame['I3MCWeightDict']['InteractionType']==1.
                 nu_x = nu.pos.x
                 nu_y = nu.pos.y
                 nu_z = nu.pos.z
@@ -80,7 +91,7 @@ def read_i3_files(filenames_list,variable, variable2,variable3):
                 nu_azimuth = nu.dir.azimuth
                 nu_energy = nu.energy
                 nu_time = nu.time
-                isCC = frame['I3MCWeightDict']['InteractionType']==1.
+                
 
                 #Setting isTrack and track_length
                 if ((nu.type == dataclasses.I3Particle.NuMu or nu.type == dataclasses.I3Particle.NuMuBar) and isCC):
@@ -95,28 +106,37 @@ def read_i3_files(filenames_list,variable, variable2,variable3):
                     isCascade = True
                     track_length = 0
                 
-                #Particle ID & neutrino/antineutrino
-                if (nu.type == dataclasses.I3Particle.NuMu):
-                    neutrino_type = 14
-                    particle_type = 0 #particle
-                elif (nu.type == dataclasses.I3Particle.NuMuBar):
-                    neutrino_type = 14
-                    particle_type = 1 #antiparticle
-                elif (nu.type == dataclasses.I3Particle.NuE):
-                    neutrino_type = 12
-                    particle_type = 0 #particle
-                elif (nu.type == dataclasses.I3Particle.NuEBar):
-                    neutrino_type = 12
-                    particle_type = 1 #antiparticle
-                elif (nu.type == dataclasses.I3Particle.NuTau):
-                    neutrino_type = 16
-                    particle_type = 0 #particle
-                elif (nu.type == dataclasses.I3Particle.NuTauBar):
-                    neutrino_type = 16
-                    particle_type = 1 #antiparticle
+                if sim_type == "muongun":
+                    if nu.type == dataclasses.I3Particle.MuMinus or nu.type == dataclasses.I3Particle.MuPlus:
+                        track_length = frame["I3MCTree"][1].length
+                        neutrino_type = 13
+                        particle_type = 1
+                    else:
+                        print("Do not know first particle type in MCTree, should be muon for muongun sim, skipping this event")
+                        continue
                 else:
-                    print("Do not know first particle type in MCTree, should be neutrino, skipping this event")
-                    continue
+                    #Particle ID & neutrino/antineutrino
+                    if (nu.type == dataclasses.I3Particle.NuMu):
+                        neutrino_type = 14
+                        particle_type = 0 #particle
+                    elif (nu.type == dataclasses.I3Particle.NuMuBar):
+                        neutrino_type = 14
+                        particle_type = 1 #antiparticle
+                    elif (nu.type == dataclasses.I3Particle.NuE):
+                        neutrino_type = 12
+                        particle_type = 0 #particle
+                    elif (nu.type == dataclasses.I3Particle.NuEBar):
+                        neutrino_type = 12
+                        particle_type = 1 #antiparticle
+                    elif (nu.type == dataclasses.I3Particle.NuTau):
+                        neutrino_type = 16
+                        particle_type = 0 #particle
+                    elif (nu.type == dataclasses.I3Particle.NuTauBar):
+                        neutrino_type = 16
+                        particle_type = 1 #antiparticle
+                    else:
+                        print("Do not know first particle type in MCTree, should be neutrino, skipping this event")
+                        continue
 
                 # Find EM equivalent energy
                 total_daughter_energy = 0
@@ -184,22 +204,34 @@ def read_i3_files(filenames_list,variable, variable2,variable3):
                 #Additional Info
                 try:
                     coin_muon = frame['L7_CoincidentMuon_bool'].value > 0
-                    prob_nu = frame['L7_MuonClassifier_Upgoing_ProbNu'].value
-                    prob_nu2 = frame['L7_MuonClassifier_FullSky_ProbNu'].value
-                    n_top15 = frame['L7_CoincidentMuon_Variables']['n_top15']
-                    n_outer = frame['L7_CoincidentMuon_Variables']['n_outer']
                 except:
                     coin_muon = np.nan
+                try:
+                    prob_nu = frame['L7_MuonClassifier_Upgoing_ProbNu'].value
+                except:
                     prob_nu = np.nan
+                try:
+                    prob_nu2 = frame['L7_MuonClassifier_FullSky_ProbNu'].value
+                except:
                     prob_nu2 = np.nan
+                try:
+                    n_top15 = frame['L7_CoincidentMuon_Variables']['n_top15']
+                except:
                     n_top15 = np.nan
+                try:
+                    n_outer = frame['L7_CoincidentMuon_Variables']['n_outer']
+                except:
                     n_outer = np.nan
                 try:
                     fit_success = ( "retro_crs_prefit__fit_status" in frame ) and (frame["retro_crs_prefit__fit_status"] == 0)
                 except:
                     fit_success = np.nan
                     
-                
+                #if prob_nu < 0.3:
+                #    print("Prob Upgoing: %f"%prob_nu)
+                #if prob_nu2 < 0.3:
+                #    print("Prob All: %f"%prob_nu2)
+
                 true_ndoms = frame['IC2018_LE_L3_Vars']['NchCleaned']
                 HLC_vertex = frame['L4_first_hlc'].pos
                 noise_class = frame['L4_NoiseClassifier_ProbNu'].value
@@ -229,7 +261,10 @@ def read_i3_files(filenames_list,variable, variable2,variable3):
                 #Weights
                 weights = frame['I3MCWeightDict']
                 header = frame["I3EventHeader"]
-                output_weights.append( np.array([ float(header.run_id), float(header.sub_run_id), float(header.event_id), float(weights["NEvents"]), float(weights["OneWeight"]), float(weights["GENIEWeight"]),float(weights["PowerLawIndex"]), float(weights["gen_ratio"]), float(weights["weight"]) ]) )                
+                if sim_type == "muongun":
+                    output_weights.append( np.array([ float(header.run_id), float(header.sub_run_id), float(header.event_id), float(weights["num_events"]), float(weights["raw_weight"]), float(weights["power_law_offset"]),float(weights["power_law_index"]), float(weights["prob_passing_KDE"]), float(weights["weight"]) ]) )
+                else:
+                    output_weights.append( np.array([ float(header.run_id), float(header.sub_run_id), float(header.event_id), float(weights["NEvents"]), float(weights["OneWeight"]), float(weights["GENIEWeight"]),float(weights["PowerLawIndex"]), float(weights["gen_ratio"]), float(weights["weight"]) ]) )                
 
         count +=1
         if (max_files > 10) and (count%ten_percent == 0):

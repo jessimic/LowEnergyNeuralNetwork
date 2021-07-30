@@ -21,7 +21,7 @@ OUTNAME="energy_numu_level6_cleanedpulses_IC19_E1to500_12000evtperbin_extended4_
 
 START=192
 END=600
-STEP=12
+STEP=8
 for ((EPOCH=$START;EPOCH<=$END;EPOCH+=$STEP));
 do
     MODELNAME="$OUTDIR/output_plots/${OUTNAME}/${OUTNAME}_${EPOCH}epochs_model.hdf5"

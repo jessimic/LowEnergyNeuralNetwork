@@ -70,9 +70,12 @@ true_y = np.array(truth[:,5])
 true_z = np.array(truth[:,6])
 true_CC = np.array(truth[:,11])
 true_isTrack = np.array(truth[:,8])
+muon_mask_test = (truth[:,9]) == 13
+true_isMuon = np.array(muon_mask_test,dtype=int)
 x_origin = np.ones((len(true_x)))*46.290000915527344
 y_origin = np.ones((len(true_y)))*-34.880001068115234
 true_r = np.sqrt( (true_x - x_origin)**2 + (true_y - y_origin)**2 )
+no_cut = true_energy > 0
 
 maskCNNE = np.ones(len(true_energy),dtype=bool) #np.logical_and(cnn_energy > 5., cnn_energy < 100.)
 maskCNNE2 = np.ones(len(true_energy),dtype=bool) #np.logical_and(cnn_energy > 1., cnn_energy < 100.)
@@ -170,42 +173,59 @@ from PlottingFunctionsClassification import confusion_matrix
 from PlottingFunctionsClassification import plot_classification_hist
 from PlottingFunctionsClassification import precision
 
-cut_list = [np.logical_and(maskHits8,maskCC), np.logical_and(maskANA,maskCC), np.logical_and(maskHLCVertex, np.logical_and(np.logical_and(maskCNNE, maskCC),maskHits8)), np.logical_and(maskHLCVertex, np.logical_and(np.logical_and(maskCNNE, maskCC),maskHits8)),np.logical_and(maskCNNZenith,np.logical_and(maskHLCVertex, np.logical_and(np.logical_and(maskCNNE, maskCC),maskHits8)))]
-cut_names = ["Weighted_Hits8CC", "Weighted_CC", "WeightedCNN5100_HLCVertex_Hits8CC", "WeightedCNN5100_HLCVertex_Hits8CC", "WeightedCNN5100_ZenithHLCVertex_Hits8CC"]
+#cut_list = [np.logical_and(maskHits8,maskCC), np.logical_and(maskANA,maskCC), np.logical_and(maskHLCVertex, np.logical_and(np.logical_and(maskCNNE, maskCC),maskHits8)), np.logical_and(maskHLCVertex, np.logical_and(np.logical_and(maskCNNE, maskCC),maskHits8)),np.logical_and(maskCNNZenith,np.logical_and(maskHLCVertex, np.logical_and(np.logical_and(maskCNNE, maskCC),maskHits8))),maskHits8,no_cut]
+#cut_names = ["Weighted_Hits8CC", "Weighted_CC", "WeightedCNN5100_HLCVertex_Hits8CC", "WeightedCNN5100_HLCVertex_Hits8CC", "WeightedCNN5100_ZenithHLCVertex_Hits8CC","Hits8","no_cuts"]
 
-print(sum(np.logical_and(maskCNNZenith,mask_nue)), sum(np.logical_and(mask_nue,maskHLCVertex)), sum(np.logical_and(mask_nue,maskCNNE)), sum(np.logical_and(mask_nue,maskCC)), sum(np.logical_and(mask_nue,maskHits8)), sum(mask_nue) )
+#print(sum(np.logical_and(maskCNNZenith,mask_nue)), sum(np.logical_and(mask_nue,maskHLCVertex)), sum(np.logical_and(mask_nue,maskCNNE)), sum(np.logical_and(mask_nue,maskCC)), sum(np.logical_and(mask_nue,maskHits8)), sum(mask_nue) )
+
+cut_list = [no_cut]
+cut_names = ["NoCuts"]
 
 emin=5
 emax=200
 estep=1
-a_mask = cut_list[1]
+a_mask = cut_list[-1]
 mask_here = a_mask
-mask_name_here = cut_names[1]
+mask_name_here = cut_names[-1]
+#fit_success_cut = np.array(fit_success[a_mask],dtype=bool)
 save_folder += "/%s/"%mask_name_here
-print(sum(a_mask))
+print(sum(a_mask),len(a_mask))
 print(min(true_energy[a_mask]),max(true_energy[a_mask]))
-print(sum(true_isTrack),sum(true_isTrack)- len(true_isTrack), sum(np.logical_and(mask_nue,a_mask)))
+print(sum(true_isTrack),len(true_isTrack) -sum(true_isTrack), sum(np.logical_and(mask_nue,a_mask)))
 
 print("Working on %s"%save_folder)
 
 if os.path.isdir(save_folder) != True:
     os.mkdir(save_folder)
-fit_success_cut = np.array(fit_success[a_mask],dtype=bool)
 
 #All events
 do_general_plots = True
 if do_general_plots:
 
-    ROC(true_isTrack,cnn_predict,mask=mask_here,mask_name=mask_name_here,reco=retro_PID_up,save=save,save_folder_name=save_folder)
-    ROC(true_isTrack,cnn_predict,mask=mask_here,mask_name=mask_name_here,save=save,save_folder_name=save_folder)
+    plt.figure(figsize=(10,7))
+    muon_energy = true_energy[true_isMuon]
+    plt.hist(muon_energy,range=[0,100],label="muon")
+    numu_mask_test = (truth[:,9]) == 14
+    true_isNuMu = np.array(numu_mask_test,dtype=int)
+    numu_energy = true_energy[true_isNuMu]
+    plt.hist(numu_energy,range=[0,100],label="numu")
+    nue_mask_test = (truth[:,9]) == 12
+    true_isNuMu = np.array(nue_mask_test,dtype=int)
+    nue_energy = true_energy[true_isNuMu]
+    plt.hist(nue_energy,range=[0,100],label="nue")
+    plt.savefig("%sEnergyParticleHist.png"%(save_folder))
+    plt.close()
+
+    #ROC(true_isTrack,cnn_predict,mask=mask_here,mask_name=mask_name_here,reco=retro_PID_up,save=save,save_folder_name=save_folder)
+    ROC(true_isMuon,cnn_predict,mask=mask_here,mask_name=mask_name_here,save=save,save_folder_name=save_folder)
     #plot_classification_hist(true_isTrack,cnn_predict,mask=mask_here,mask_name=mask_name_here, variable="CNN Classification",units="",bins=50,log=False,save=save,save_folder_name=save_folder)
-    plot_classification_hist(true_isTrack,cnn_predict,mask=mask_here,mask_name=mask_name_here, variable="CNN Classification",units="",weights=weights,bins=50,log=False,save=save,save_folder_name=save_folder)
-    plot_classification_hist(true_isTrack,retro_PID_up,mask=mask_here,mask_name=mask_name_here, variable="L7_PIDClassifier_Upgoing_ProbTrack",units="",weights=weights,bins=50,log=False,save=save,save_folder_name=save_folder)
+    plot_classification_hist(true_isMuon,cnn_predict,mask=mask_here,mask_name=mask_name_here, variable="Probabiliy Muon",units="",weights=weights,bins=50,log=False,save=save,save_folder_name=save_folder)
+    #plot_classification_hist(true_isTrack,retro_PID_up,mask=mask_here,mask_name=mask_name_here, variable="L7_PIDClassifier_Upgoing_ProbTrack",units="",weights=weights,bins=50,log=False,save=save,save_folder_name=save_folder)
     #confusion_matrix(true_isTrack, cnn_predict, track_threshold, mask=mask_here, mask_name=mask_name_here, weights=None,save=save, save_folder_name=save_folder)
     #confusion_matrix(true_isTrack, cnn_predict, track_threshold, mask=mask_here, mask_name=mask_name_here, weights=weights,save=save, save_folder_name=save_folder)
     #precision(true_isTrack, cnn_predict, reco=retro_PID_all, mask=mask_here, mask_name = mask_name_here,save=save,save_folder_name=save_folder)
 
-do_energy_auc = True
+do_energy_auc = False
 if do_energy_auc:
 # Energy vs AUC
     energy_auc = []
@@ -261,7 +281,7 @@ if do_energy_auc:
     #plt.plot(energy_range, energy_thres, 'b-')
     #plt.savefig("%SensvsEnergy.png"%(save_folder))
     
-do_energy_range = True
+do_energy_range = False
 if do_energy_range:
     #Break down energy range
     energy_ranges = [5, 10, 20, 30, 40, 60, 80, 100, 150, 200]

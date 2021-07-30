@@ -3,58 +3,72 @@ import argparse
 import os, sys
 import numpy as np
 
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-from matplotlib.collections import PatchCollection
-import matplotlib.colors as colors
+parser = argparse.ArgumentParser()
+parser.add_argument("-i","--inputs",nargs="+",default=[],
+                    dest="input_files",help="list of strings, paths + filesnames")
+parser.add_argument("-n","--outname",default=None,
+                    dest="outname",help="name for output file (do not need .hdf5)")
+parser.add_argument("-o","--outdir",type=str,default="/mnt/home/micall12/LowEnergyNeuralNetwork/output_plots/",
+                    dest="output_dir",help="path for output file")
+args = parser.parse_args()
 
-input_file = "/mnt/home/micall12/LowEnergyNeuralNetwork/output_plots/Test_Level6.5/L7_nue_official/prediction_values.hdf5"
-input_file2 = "/mnt/home/micall12/LowEnergyNeuralNetwork/output_plots/Test_Level6.5/L7_nue_official/prediction_values.hdf5"
-outdir = "/mnt/home/micall12/LowEnergyNeuralNetwork/output_plots/Test_Level6.5/L7_PID"
-output_name = "prediction_values"
+input_files = args.input_files
+outdir = args.output_dir
+if args.outname is None:
+    output_name = "prediction_values"
+else:
+    output_name = args.outname
 
-f = h5py.File(input_file, "r")
-truth = f["Y_test_use"][:]
-predict = f["Y_predicted"][:]
-try:
-    reco = f["reco_test"][:]
-except:
-    reco = None
-try:
-    weights = f["weights_test"][:]
-except:
-    weights = None
-try:
-    info = f["additional_info"][:]
-except: 
-    info = None
-f.close()
-del f
+count_files_concatted = 0
+truth = None
+predict = None
+reco = None
+weights = None
+info = None
+for input_file in input_files:
+    print("Concatting file %s"%input_file)
+    f = h5py.File(input_file, "r")
+    file_truth = f["Y_test_use"][:]
+    file_predict = f["Y_predicted"][:]
+    try:
+        file_reco = f["reco_test"][:]
+    except:
+        file_reco = None
+    try:
+        file_weights = f["weights_test"][:]
+    except:
+        file_weights = None
+    try:
+        file_info = f["additional_info"][:]
+    except: 
+        file_info = None
+    f.close()
+    del f
 
-f = h5py.File(input_file2, "r")
-truth2 = f["Y_test_use"][:]
-predict2 = f["Y_predicted"][:]
-try:
-    reco2 = f["reco_test"][:]
-except:
-    reco2 = None
-try:
-    weights2 = f["weights_test"][:]
-except:
-    weights2 = None
-try:
-    info2 = f["additional_info"][:]
-except: 
-    info2 = None
-f.close()
-del f
+    if truth is None:
+        truth = file_truth
+    else:
+        truth = np.concatenate((truth, file_truth))
+    if predict is None:
+        predict = file_predict
+    else:
+        predict = np.concatenate((predict, file_predict))
+    if reco is None:
+        reco = file_reco
+    else:
+        reco = np.concatenate((reco, file_reco))
+    if weights is None:
+        weights = file_weights
+    else:
+        weights = np.concatenate((weights, file_weights))
+    if info is None:
+        info = file_info
+    else:
+        info = np.concatenate((info, file_info))
 
-truth = np.concatenate((truth, truth2))
-predict = np.concatenate((predict, predict2))
-reco = np.concatenate((reco, reco2))
-weights = np.concatenate((weights, weights2))
-info = np.concatenate((info, info2))
+    count_files_concatted += 1
 
+print("Concatted %i files together"%count_files_concatted)
 f = h5py.File("%s/%s.hdf5"%(outdir,output_name), "w")
 f.create_dataset("Y_predicted", data=predict)
 f.create_dataset("Y_test_use", data=truth)

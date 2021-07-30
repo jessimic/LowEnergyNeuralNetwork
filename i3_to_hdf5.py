@@ -38,6 +38,8 @@ parser.add_argument("-r", "--reco",type=str,default="False",
                     dest="reco", help="True if using Level5p or have a pegleg reco")
 parser.add_argument("--reco_type",type=str,default="retro",
                     dest="reco_type", help="Options are pegleg or retro")
+parser.add_argument("--sim_type",type=str,default="genie",
+                    dest="sim_type", help="Option muongun will do something, nothing else will as of now")
 parser.add_argument("--efactor",type=float,default=100.0,
                     dest="efactor",help="Value to transform (divide by) energy")
 parser.add_argument("--tfactor",type=float,default=200.0,
@@ -57,6 +59,7 @@ efactor=args.efactor
 tfactor=args.tfactor
 true_name = args.true_name
 reco_type = args.reco_type
+sim_type = args.sim_type
 if args.reco == 'True' or args.reco == 'true':
     use_old_reco = True
     print("Expecting old reco values in files, pulling from %s frames"%reco_type)
@@ -272,7 +275,7 @@ def apply_transform(features_DC, features_IC, output_labels=None, energy_factor=
     features_IC = new_transform(features_IC)
     features_IC = TransformData(features_IC, low_stats=low_stat_IC, high_stats=high_stat_IC, scaler=transform)
 
-    output_label_names = np.array(["Energy", "Zenith", "Aziuth", "Time", "X", "Y", "Z", "Track", "IsTrack", "Flavor", "IsAntineutrino", "IsCC"])
+    output_label_names = np.array(["Energy", "Zenith", "Azimuth", "Time", "X", "Y", "Z", "Track", "IsTrack", "Flavor", "IsAntineutrino", "IsCC"])
     output_names = np.array(output_label_names)
     output_transform_factors = np.ones((len(output_names)))
     if transform_output:
@@ -363,16 +366,19 @@ def read_files(filename_list, use_old_reco, check_filters, true_name, reco_type)
                 # GET TRUTH LABELS
                 tree = frame["I3MCTree"]
                 nu = tree[0]
+                if sim_type == "muongun":
+                    nu = tree[1]
                 
                 if true_name:
                     nu_check = frame[true_name]
                     assert nu==nu_check,"CHECK I3MCTree[0], DOES NOT MATCH TRUTH IN GIVEN KEY"
                 
-                if (nu.type != dataclasses.I3Particle.NuMu and nu.type != dataclasses.I3Particle.NuMuBar\
-                    and nu.type != dataclasses.I3Particle.NuE and nu.type != dataclasses.I3Particle.NuEBar\
-                    and nu.type != dataclasses.I3Particle.NuTau and nu.type != dataclasses.I3Particle.NuTauBar):
-                    print("PARTICLE IS NOT NEUTRUNO!! Skipping event...")
-                    continue           
+                if sim_type != "muongun":
+                    if (nu.type != dataclasses.I3Particle.NuMu and nu.type != dataclasses.I3Particle.NuMuBar\
+                        and nu.type != dataclasses.I3Particle.NuE and nu.type != dataclasses.I3Particle.NuEBar\
+                        and nu.type != dataclasses.I3Particle.NuTau and nu.type != dataclasses.I3Particle.NuTauBar):
+                        print("PARTICLE IS NOT NEUTRUNO!! Skipping event...")
+                        continue           
  
                 nu_x = nu.pos.x
                 nu_y = nu.pos.y
@@ -381,11 +387,17 @@ def read_files(filename_list, use_old_reco, check_filters, true_name, reco_type)
                 nu_azimuth = nu.dir.azimuth
                 nu_energy = nu.energy
                 nu_time = nu.time
-                isTrack = frame['I3MCWeightDict']['InteractionType']==1.   # it is a cascade with a trac
-                isCascade = frame['I3MCWeightDict']['InteractionType']==2. # it is just a cascade
-                isCC = frame['I3MCWeightDict']['InteractionType']==1.
-                isNC = frame['I3MCWeightDict']['InteractionType']==2.
-                isOther = not isCC and not isNC
+
+                if sim_type != "muongun":
+                    isTrack = frame['I3MCWeightDict']['InteractionType']==1.   # it is a cascade with a trac
+                    isCascade = frame['I3MCWeightDict']['InteractionType']==2. # it is just a cascade
+                    isCC = frame['I3MCWeightDict']['InteractionType']==1.
+                    isNC = frame['I3MCWeightDict']['InteractionType']==2.
+                    isOther = not isCC and not isNC
+                else:
+                    isTrack = 2
+                    isCC = 2
+                    isOther = 2.
                 L4_NoiseClassifier_ProbNu = frame['L4_NoiseClassifier_ProbNu'].value
                
                 # Find EM equivalent energy
@@ -461,7 +473,7 @@ def read_files(filename_list, use_old_reco, check_filters, true_name, reco_type)
 
 
                 # input file sanity check: this should not print anything since "isOther" should always be false
-                if isOther:
+                if isOther and sim_type!= "muongun":
                     print("isOTHER - not Track or Cascade...skipping event...")
                     isOther_count += 1
                     continue
@@ -483,27 +495,40 @@ def read_files(filename_list, use_old_reco, check_filters, true_name, reco_type)
                     track_length = 0
             
                 #Save flavor and particle type (anti or not)
-                if (nu.type == dataclasses.I3Particle.NuMu):
-                    neutrino_type = 14
-                    particle_type = 0 #particle
-                elif (nu.type == dataclasses.I3Particle.NuMuBar):
-                    neutrino_type = 14
-                    particle_type = 1 #antiparticle
-                elif (nu.type == dataclasses.I3Particle.NuE):
-                    neutrino_type = 12
-                    particle_type = 0 #particle
-                elif (nu.type == dataclasses.I3Particle.NuEBar):
-                    neutrino_type = 12
-                    particle_type = 1 #antiparticle
-                elif (nu.type == dataclasses.I3Particle.NuTau):
-                    neutrino_type = 16
-                    particle_type = 0 #particle
-                elif (nu.type == dataclasses.I3Particle.NuTauBar):
-                    neutrino_type = 16
-                    particle_type = 1 #antiparticle
+                if sim_type == "muongun":
+                    isTrack = 2.
+                    track_length = frame["I3MCTree"][1].length
+                    if (nu.type == dataclasses.I3Particle.MuPlus):
+                        neutrino_type = 13
+                        particle_type = 1
+                    elif (nu.type == dataclasses.I3Particle.MuMinus):
+                        neutrino_type = 13
+                        particle_type = 0
+                    else:
+                        print("Do not know second particle type in MCTree for muongun, should be muon, skipping this event")
+                        continue
                 else:
-                    print("Do not know first particle type in MCTree, should be neutrino, skipping this event")
-                    continue
+                    if (nu.type == dataclasses.I3Particle.NuMu):
+                        neutrino_type = 14
+                        particle_type = 0 #particle
+                    elif (nu.type == dataclasses.I3Particle.NuMuBar):
+                        neutrino_type = 14
+                        particle_type = 1 #antiparticle
+                    elif (nu.type == dataclasses.I3Particle.NuE):
+                        neutrino_type = 12
+                        particle_type = 0 #particle
+                    elif (nu.type == dataclasses.I3Particle.NuEBar):
+                        neutrino_type = 12
+                        particle_type = 1 #antiparticle
+                    elif (nu.type == dataclasses.I3Particle.NuTau):
+                        neutrino_type = 16
+                        particle_type = 0 #particle
+                    elif (nu.type == dataclasses.I3Particle.NuTauBar):
+                        neutrino_type = 16
+                        particle_type = 1 #antiparticle
+                    else:
+                        print("Do not know first particle type in MCTree, should be neutrino, skipping this event")
+                        continue
                 
                 DC_array, IC_near_DC_array,initial_stats,num_pulses_per_dom, trig_time, extra_triggers, ICstrings, has_8_hits  = get_observable_features(frame)
 
@@ -538,7 +563,10 @@ def read_files(filename_list, use_old_reco, check_filters, true_name, reco_type)
                     #the_weight = weight_frame(frame)
                     output_weights.append( np.array([ float(header.run_id), float(header.sub_run_id), float(header.event_id), float(weights["NEvents"]), float(weights["OneWeight"]),  float(weights["GENIEWeight"]), float(weights["PowerLawIndex"]), float(0.3)]) ) #, float(the_weight)  ]) )
                 else:
-                    output_weights.append( np.array([ float(header.run_id), float(header.sub_run_id), float(header.event_id), float(weights["NEvents"]), float(weights["OneWeight"]), float(weights["GENIEWeight"]),float(weights["PowerLawIndex"]), float(weights["gen_ratio"]), float(weights["weight"]) ]) )
+                    if sim_type == "muongun":
+                        output_weights.append( np.array([ float(header.run_id), float(header.sub_run_id), float(header.event_id), float(weights["num_events"]), float(weights["raw_weight"]), float(weights["power_law_offset"]),float(weights["power_law_index"]), float(weights["prob_passing_KDE"]), float(weights["weight"]) ]) )
+                    else:
+                        output_weights.append( np.array([ float(header.run_id), float(header.sub_run_id), float(header.event_id), float(weights["NEvents"]), float(weights["OneWeight"]), float(weights["GENIEWeight"]),float(weights["PowerLawIndex"]), float(weights["gen_ratio"]), float(weights["weight"]) ]) )
             # close the input file once we are done
         
 

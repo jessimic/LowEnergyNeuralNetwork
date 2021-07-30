@@ -135,10 +135,12 @@ def plot_history(network_history,save=False,savefolder=None,use_logscale=False):
 
     plt.show()
 
-def plot_history_from_list(loss,val,save=False,savefolder=None,logscale=False,ymin=None,ymax=None,title=None,variable="Energy",pick_epoch=None,lr_start=None,lr_drop=None,lr_epoch=None):
+def plot_history_from_list(loss,val,save=False,savefolder=None,logscale=False,ymin=None,ymax=None,title=None,variable="Energy",pick_epoch=None,lr_start=None,lr_drop=None,lr_epoch=None,step=1):
     
     fig,ax = plt.subplots(figsize=(10,7))
-    epochs = numpy.arange(1,len(loss)+1)
+    start=step
+    end=len(loss)*step
+    epochs = numpy.arange(start,end+step,step)
     ax.plot(epochs,loss,'b',label="Training")
     ax.plot(epochs,val,'c',label="Validation")
    
@@ -157,14 +159,14 @@ def plot_history_from_list(loss,val,save=False,savefolder=None,logscale=False,ym
     ax.set_ylim(ymin,ymax)
     
     if pick_epoch is not None:
-        ax.axvline(pick_epoch,linewidth=4, color='g',alpha=0.5,label="Chosen Model")
+        ax.axvline(pick_epoch*step,linewidth=4, color='g',alpha=0.5,label="Chosen Model")
 
     if lr_epoch is not None:
-        epoch_drop = numpy.arange(0,len(loss),lr_epoch)
+        epoch_drop = numpy.arange(0,end,lr_epoch*step)
         for lr_print in range(len(epoch_drop)):
             lrate = lr_start*(lr_drop**lr_print)
             ax.axvline(epoch_drop[lr_print],linewidth=1, color='r',linestyle="--")
-            ax.annotate(s='lrate='+str("{:.0e}".format(lrate)),xy=(epoch_drop[lr_print]+1,ymax),rotation=90,verticalalignment='top')
+            ax.annotate(s='lrate='+str("{:.0e}".format(lrate)),xy=(epoch_drop[lr_print]+step,ymax),rotation=90,verticalalignment='top')
 
     #Add labels
     if title:
@@ -256,7 +258,7 @@ def plot_distributions_CCNC(truth_all_labels,truth,reco,save=False,savefolder=No
         plt.savefig("%sNNEnergyDistribution_CCNC.png"%savefolder)
     plt.close()
 
-def plot_distributions(truth,reco=None,save=False,savefolder=None,old_reco=None,weights=None,variable="Energy",units="(GeV)",reco_name="Retro", minval=None, maxval=None,bins=100,cnn_name="CNN",log=False,old_reco_weights=None,title=None):
+def plot_distributions(truth,reco=None,save=False,savefolder=None,old_reco=None,weights=None,variable="Energy",units="(GeV)",reco_name="Retro", minval=None, maxval=None,bins=100,cnn_name="CNN",log=False,old_reco_weights=None,title=None,xline=None,xline_label=None):
     """
     Plot testing set distribution
     Recieves:
@@ -325,22 +327,29 @@ def plot_distributions(truth,reco=None,save=False,savefolder=None,old_reco=None,
     plt.xlabel("%s %s"%(variable,units),fontsize=20)
     if log:
         plt.yscale("log")
-    if reco is not None or old_reco is not None:
+    if xline is not None:
+        plt.axvline(xline,linewidth=3,color='k',linestyle="-",label="%s"%xline_label)
+    if reco is not None or old_reco is not None or xline is not None:
         plt.legend(fontsize=20)
 
+    if title is not None:
+        name += "%s"%title.replace(" ", "")
     name += "%s"%variable.replace(" ","")
     if save:
-        plt.savefig("%s%sDistribution_%ito%i.png"%(savefolder,name,int(minval),int(maxval)))
+        plt.savefig("%s%sDistribution_%ito%i.png"%(savefolder,name,int(minval),int(maxval)),bbox_inches='tight')
     plt.close()
 
 
 def plot_2D_prediction(truth, nn_reco, \
                         save=False,savefolder=None,weights=None,syst_set="",\
                         bins=60,minval=None,maxval=None, switch_axis=False,\
-                        cut_truth = False, axis_square =False, zmax=None,log=True,
+                        cut_truth = False, axis_square =False,
+                        zmin = None, zmax=None,log=True,
                         variable="Energy", units = "(GeV)", epochs=None,\
-                        flavor="NuMu", sample="CC",\
-                        variable_type="True", reco_name="CNN",new_labels=None,new_units=None):
+                        flavor="NuMu", sample=None,\
+                        variable_type="True", reco_name="CNN",new_labels=None,
+                        new_units=None,save_name=None,no_contours=False,
+                        xline=None,yline=None):
     """
     Plot testing set reconstruction vs truth
     Recieves:
@@ -386,6 +395,8 @@ def plot_2D_prediction(truth, nn_reco, \
         cmin = 1
     else:
         cmin = 1e-12
+    if zmin is not None:
+        cmin = zmin
  
     plt.figure(figsize=(10,7))
     if log:
@@ -399,7 +410,10 @@ def plot_2D_prediction(truth, nn_reco, \
         else:
             cts,xbin,ybin,img = plt.hist2d(truth, nn_reco, bins=bins,range=[[xmin,xmax],[ymin,ymax]],cmap='viridis_r', weights=weights, cmax=zmax, cmin=cmin)
     cbar = plt.colorbar()
-    cbar.ax.set_ylabel('counts', rotation=90)
+    if weights is None:
+        cbar.ax.set_ylabel('counts', rotation=90)
+    else:
+        cbar.ax.set_ylabel('Rate (Hz)', rotation=90)
     plt.xlabel("%s %s %s"%(variable_type,variable,units),fontsize=20)
     plt.ylabel("%s Reconstructed %s %s"%(reco_name,variable,units),fontsize=20)
     if switch_axis:
@@ -415,9 +429,16 @@ def plot_2D_prediction(truth, nn_reco, \
         title += r' for $\nu_\mu$ '
     elif flavor == "NuE" or flavor == "nue":
         title += r' for $\nu_e$ '
+    elif flavor == "NuTau" or flavor == "nutau":
+        title += r' for $\nu_\tau$ '
+    elif flavor == "Mu" or flavor == "mu":
+        title += r' for $\mu$ '
+    elif flavor == "Nu" or flavor == "nu":
+        title += r' for $\nu$ '
     else:
         title += flavor
-    title += sample
+    if sample is not None:
+        title += sample
     #if weights is not None:
     #    title += " Weighted"
     if epochs:
@@ -437,23 +458,38 @@ def plot_2D_prediction(truth, nn_reco, \
     else:
         x, y, y_l, y_u = find_contours_2D(truth,nn_reco,xbin,weights=weights)
 
-    plt.plot(x,y,color='r',label='Median')
-    plt.plot(x,y_l,color='r',label='68% band',linestyle='dashed')
-    plt.plot(x,y_u,color='r',linestyle='dashed')
-    plt.legend(fontsize=20)
-    
+    if not no_contours:
+        plt.plot(x,y,color='r',label='Median')
+        plt.plot(x,y_l,color='r',label='68% band',linestyle='dashed')
+        plt.plot(x,y_u,color='r',linestyle='dashed')
+        plt.legend(fontsize=20)
+    if yline is not None:
+        plt.axhline(yline,linewidth=3,color='red',label="CNN Cut")
+        plt.legend(fontsize=20)
+    if xline is not None:
+        plt.axvline(xline,linewidth=3,color='magenta',linestyle="dashed",label="Retro Cut")
+        plt.legend(fontsize=20)
+
     reco_name = reco_name.replace(" ","")
     variable = variable.replace(" ","")
     variable_type = variable_type.replace(" ","")
     nocut_name = ""
     if weights is not None:
         nocut_name="Weighted"
+    if flavor is not None:
+        nocut_name += "%s"%flavor.replace(" ","")
+    if sample is not None:
+        nocut_name += "%s"%sample
     if not axis_square:
         nocut_name ="_nolim"
     if zmax:
-        nocut_name += "_zmax%i"%zmax    
+        nocut_name += "_zmax%.1e"%zmax    
+    if zmin:
+        nocut_name += "_zmin%.1e"%zmin  
     if switch_axis:
         nocut_name +="_SwitchedAxis"
+    if save_name is not None:
+        nocut_name += "%s"%save_name.replace(" ","")
     if save:
         plt.savefig("%s%s%sReco%s_2DHist%s%s.png"%(savefolder,variable_type,reco_name,variable,syst_set,nocut_name),bbox_inches='tight')
     plt.close()
@@ -577,7 +613,7 @@ def plot_single_resolution(truth,nn_reco,weights=None, \
                            mintrue=None,maxtrue=None,\
                            minaxis=None,maxaxis=None,\
                            save=False,savefolder=None,
-                           flavor="NuMu", sample="CC",
+                           flavor="NuMu", sample=None,
                            variable="Energy", units = "GeV", epochs=None,
                            reco_name="CNN", old_reco_name="Retro"):
     """Plots resolution for dict of inputs, one of which will be a second reco
@@ -642,9 +678,14 @@ def plot_single_resolution(truth,nn_reco,weights=None, \
         title += r' for $\nu_\mu$ ' 
     elif flavor == "NuE" or flavor == "nue":
         title += r' for $\nu_e$ '
+    elif flavor == "NuTau" or flavor == "nutau":
+        title += r' for $\nu_\tau$ '
+    elif flavor == "Mu" or flavor == "mu":
+        title += r' for $\mu$ '
     else:
         title += flavor
-    title += sample
+    if sample is not None:
+        title += sample
 
     #if weights is not None:
     #    title += " Weighted"
@@ -1098,13 +1139,13 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
             cut2 = (x_axis_array2 >= var_from) & (x_axis_array2 < var_to)
 
         if weights is not None:
-            lower_lim = wq.quantile(resolution[cut],weights[cut],0.16)
-            upper_lim = wq.quantile(resolution[cut],weights[cut],0.84)
+            lower_lim = wq.quantile(resolution[cut],weights[cut],left_tail_percentile/100.)
+            upper_lim = wq.quantile(resolution[cut],weights[cut], right_tail_percentile/100.)
             median = wq.median(resolution[cut],weights[cut])
         else:
-            lower_lim = numpy.percentile(resolution[cut], left_tail_percentile)
-            upper_lim = numpy.percentile(resolution[cut], right_tail_percentile)
-            median = numpy.percentile(resolution[cut], 50.)
+            lower_lim = numpy.percentile(resolution[cut], left_tail_percentile/100.)
+            upper_lim = numpy.percentile(resolution[cut], right_tail_percentile/100.)
+            median = numpy.percentile(resolution[cut], 0.50)
 
         medians[i] = median
         err_from[i] = lower_lim
@@ -1112,8 +1153,8 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
 
         if old_reco is not None:
             if reco_weights is not None:
-                lower_lim_reco = wq.quantile(resolution_reco[cut2],reco_weights[cut2],0.16)
-                upper_lim_reco = wq.quantile(resolution_reco[cut2],reco_weights[cut2],0.84)
+                lower_lim_reco = wq.quantile(resolution_reco[cut2],reco_weights[cut2],left_tail_percentile)
+                upper_lim_reco = wq.quantile(resolution_reco[cut2],reco_weights[cut2],right_tail_percentile)
                 median_reco = wq.median(resolution_reco[cut2],reco_weights[cut2])
             else:
                 lower_lim_reco = numpy.percentile(resolution_reco[cut2], left_tail_percentile)
@@ -1159,7 +1200,7 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
         else:
             plt.legend(loc="upper center")
     plt.xlim(min_val,max_val)
-    if type(ylim) is not None:
+    if ylim is not None:
         plt.ylim(ylim)
     if vs_predict:
         plt.xlabel("Reconstructed %s %s"%(variable,units),fontsize=20)
@@ -1181,7 +1222,8 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
         title += flavor
     title += sample
     plt.title(title,fontsize=25)
-    
+    print("ylim: ", ylim)
+
     reco_name = reco_name.replace(" ","")
     variable = variable.replace(" ","")
     savename = "%s%sResolutionSlices"%(variable,cnn_name)
@@ -1198,7 +1240,7 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
         savename += "ErrorBars"
     if old_reco is not None:
         savename += "_Compare%sReco"%reco_name
-    if type(ylim) is not None:
+    if ylim is not None:
         savename += "_ylim"
     if save == True:
         plt.savefig("%s%s.png"%(savefolder,savename),bbox_inches='tight')
