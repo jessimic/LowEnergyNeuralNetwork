@@ -85,7 +85,7 @@ def plot_classification_hist(truth,prediction,reco=None,reco_mask=None,mask=None
     print(sum(weights[mask0])/sum(weights),sum(weights[mask1])/sum(weights))
     ax.hist(prediction[mask1], bins=bins,color='g',alpha=0.5,range=[0.,1.],weights=weights1,label=label1,density=normed);
     ax.hist(prediction[mask0], bins=bins,color='b',alpha=0.5,range=[0.,1.],weights=weights0,label=label0,density=normed);
-    
+
     #Plot contamination lines
     threshold1, threshold0, rates_t, rates_c = find_thresholds(truth, prediction, contamination)
     binary1 = prediction > threshold1
@@ -108,6 +108,8 @@ def plot_classification_hist(truth,prediction,reco=None,reco_mask=None,mask=None
         end += "Normalized"
     if mask is not None:
         end += "_%s"%(mask_name.replace(" ",""))
+    if log:
+        end+= "log"
     if save:
         plt.savefig("%s%s%s.png"%(save_folder_name,name,end))
     plt.close()

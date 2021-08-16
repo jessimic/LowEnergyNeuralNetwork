@@ -471,6 +471,18 @@ def read_files(filename_list, use_old_reco, check_filters, true_name, reco_type)
                         reco_track_energy = frame['IC86_Dunkman_L6_PegLeg_MultiNest8D_Track'].energy
                         reco_em_casc_energy = frame['IC86_Dunkman_L6_PegLeg_MultiNest8D_EMCasc'].energy
 
+                    if reco_type == "flercnn":
+                        reco_length = np.nan
+                        reco_time = np.nan
+                        reco_azimuth = np.nan
+                        reco_energy = frame["FLERCNN_energy"].value
+                        reco_zenith = frame["FLERCNN_zenith"].value
+                        reco_x = frame["FLERCNN_vertex_x"].value
+                        reco_y = frame["FLERCNN_vertex_y"].value
+                        reco_z = frame["FLERCNN_vertex_z"].value
+                        reco_casc_energy = np.nan
+                        reco_track_energy = np.nan
+                        reco_em_casc_energy = np.nan
 
                 # input file sanity check: this should not print anything since "isOther" should always be false
                 if isOther and sim_type!= "muongun":

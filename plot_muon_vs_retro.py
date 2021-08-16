@@ -120,6 +120,13 @@ true_z = np.array(truth[:,6])
 true_track = np.array(truth[:,8])
 true_PID = np.array(truth[:,9])
 true_isTrack = np.array(true_track,dtype=bool)
+true_CC = np.array(truth[:,11])
+true_isCC = true_CC == 1
+
+noise_class = info[:,4]
+nhit_doms = info[:,5]
+ntop = info[:,6]
+nouter = info[:,7]
 
 x_origin = np.ones((len(true_x)))*46.290000915527344
 y_origin = np.ones((len(true_y)))*-34.880001068115234
@@ -163,13 +170,34 @@ if no_weights:
     print("NOT USING ANY WEIGHTING")
 
 # Cuts
+z_cut_max = -225
+z_cut_min = -495
+r_cut_val = 165
 no_cut = true_energy > 0
 mask_upgoing = cnn_coszen < 0.3
 mask_upgoing_retro = retro_coszen < 0.3
-retro_prob_nu_range = np.logical_and(retro_prob_nu >= 0, retro_prob_nu <= 1)
-r_cut = cnn_r < 150
-z_cut = np.logical_and(cnn_z > -500, cnn_z < -200)
+#retro_prob_nu_range = np.logical_and(retro_prob_nu >= 0, retro_prob_nu <= 1)
+r_cut = cnn_r < r_cut_val
+z_cut = np.logical_and(cnn_z > z_cut_min, cnn_z < z_cut_max)
 vertex_cut = np.logical_and(r_cut, z_cut)
+
+cnn_mu_cut = 0.45
+cnn_nu_cut = 1 - cnn_mu_cut
+retro_nu_cut = .3
+cnn_nu = cnn_prob_mu <= cnn_mu_cut
+cnn_mu = cnn_prob_mu > cnn_mu_cut
+retro_nu = retro_prob_nu >= retro_nu_cut
+retro_mu = retro_prob_nu < retro_nu_cut
+
+noise_cut = noise_class > 0.95
+nhits_cut = nhit_doms >= 3
+ntop_cut = ntop < 3
+nouter_cut = nouter < 8
+
+#cnn_nu = cnn_prob_mu < 0.66
+#retro_nu = retro_prob_nu > 0.3
+cnn_mask = mask_upgoing_retro & fit_success #retro_prob_nu_range
+retro_mask = mask_upgoing_retro & fit_success #retro_prob_nu_range
 
 from PlottingFunctionsClassification import ROC
 from PlottingFunctionsClassification import plot_classification_hist
@@ -182,27 +210,52 @@ mask_name_here="Upgoing_L7Retro"
 if no_weights:
     mask_name_here += "_NoWeights"
 
-#cnn_nu = cnn_prob_mu < 0.66
-#retro_nu = retro_prob_nu > 0.3
-cnn_mask = mask_upgoing_retro & fit_success #retro_prob_nu_range
-retro_mask = mask_upgoing_retro & fit_success #retro_prob_nu_range
 
-cnn_mu_cut = 0.73
-cnn_nu_cut = 1 - cnn_mu_cut
-retro_nu_cut = .3
-cnn_nu = cnn_prob_mu <= cnn_mu_cut
-cnn_mu = cnn_prob_mu > cnn_mu_cut
-retro_nu = retro_prob_nu >= retro_nu_cut
-retro_mu = retro_prob_nu < retro_nu_cut
 
 print("Rates:\t Mu\t NuE\t NuMu\t NuTau\t Nu\n")
 print("CNN:\t %.2e\t %.2e\t %.2e\t %.2e\t %.2e\t"%(sum(weights[true_isMuon&cnn_mask]),sum(weights[true_isNuE&cnn_mask]),sum(weights[true_isNuMu&cnn_mask]),sum(weights[true_isNuTau&cnn_mask]),sum(weights[true_isNu&cnn_mask])))
 print("Retro:\t %.2e\t %.2e\t %.2e\t %.2e\t %.2e\t"%(sum(weights[true_isMuon&retro_mask]),sum(weights[true_isNuE&retro_mask]),sum(weights[true_isNuMu&retro_mask]),sum(weights[true_isNuTau&retro_mask]),sum(weights[true_isNu&retro_mask])))
 
+print("Rates After NHit Cut:\t Mu\t NuE\t NuMu\t NuTau\t Nu\n")
+quick_mask = retro_mask & ntop_cut
+print("nTop3:\t %.2e\t %.2e\t %.2e\t %.2e\t %.2e\t"%(sum(weights[true_isMuon&quick_mask]),sum(weights[true_isNuE&quick_mask]),sum(weights[true_isNuMu&quick_mask]),sum(weights[true_isNuTau&quick_mask]),sum(weights[true_isNu&quick_mask])))
+quick_mask= retro_mask & nouter_cut
+print("nOuter8:\t %.2e\t %.2e\t %.2e\t %.2e\t %.2e\t"%(sum(weights[true_isMuon&quick_mask]),sum(weights[true_isNuE&quick_mask]),sum(weights[true_isNuMu&quick_mask]),sum(weights[true_isNuTau&quick_mask]),sum(weights[true_isNu&quick_mask])))
+
 print("Rates After Cut:\t Mu\t NuE\t NuMu\t NuTau\t Nu\n")
 print("CNN:\t %.2e\t %.2e\t %.2e\t %.2e\t %.2e\t"%(sum(weights[true_isMuon&cnn_mask&cnn_nu]),sum(weights[true_isNuE&cnn_mask&cnn_nu]),sum(weights[true_isNuMu&cnn_mask&cnn_nu]),sum(weights[true_isNuTau&cnn_mask&cnn_nu]),sum(weights[true_isNu&cnn_mask&cnn_nu])))
 print("Retro:\t %.2e\t %.2e\t %.2e\t %.2e\t %.2e\t"%(sum(weights[true_isMuon&retro_mask&retro_nu]),sum(weights[true_isNuE&retro_mask&retro_nu]),sum(weights[true_isNuMu&retro_mask&retro_nu]),sum(weights[true_isNuTau&retro_mask&retro_nu]),sum(weights[true_isNu&retro_mask&retro_nu])))
 print("fit success muon:",sum(true_isMuon[fit_success]))
+
+minval = 0
+maxval = 15
+bins=15
+plt.figure(figsize=(10,7))
+plt.hist(nouter[true_isMuon],range=[minval,maxval],bins=bins,weights=weights[true_isMuon],label=r'$\mu$',alpha=0.5)
+plt.hist(nouter[true_isNuMu],range=[minval,maxval],bins=bins,weights=weights[true_isNuMu],label=r'$\nu_\mu$',alpha=0.5)
+plt.hist(nouter[true_isNuE],range=[minval,maxval],bins=bins,weights=weights[true_isNuE],label=r'$\nu_e$',alpha=0.5)
+plt.hist(nouter[true_isNuTau],range=[minval,maxval],bins=bins,weights=weights[true_isNuTau],label=r'$\nu_\tau$',alpha=0.5)
+#plt.yscale('log')
+plt.ylabel("Rate (Hz)",fontsize=20)
+plt.xlabel("Number DOMs Hit",fontsize=20)
+plt.title("DOMs Hit in Outermost IceCube Strings",fontsize=25)
+plt.legend()
+plt.savefig("%sNOuterHist.png"%(save_folder),bbox_inches='tight')
+plt.close()
+
+
+plt.figure(figsize=(10,7))
+plt.hist(ntop[true_isMuon],range=[minval,maxval],bins=bins,weights=weights[true_isMuon],label=r'$\mu$',alpha=0.5)
+plt.hist(ntop[true_isNuMu],range=[minval,maxval],bins=bins,weights=weights[true_isNuMu],label=r'$\nu_\mu$',alpha=0.5)
+plt.hist(ntop[true_isNuE],range=[minval,maxval],bins=bins,weights=weights[true_isNuE],label=r'$\nu_e$',alpha=0.5)
+plt.hist(ntop[true_isNuTau],range=[minval,maxval],bins=bins,weights=weights[true_isNuTau],label=r'$\nu_\tau$',alpha=0.5)
+#plt.yscale('log')
+plt.ylabel("Rate (Hz)",fontsize=20)
+plt.xlabel("Number DOMs Hit",fontsize=20)
+plt.title("DOMs Hit in Top 15 Layers of IceCube",fontsize=25)
+plt.legend()
+plt.savefig("%sNTopHist.png"%(save_folder),bbox_inches='tight')
+plt.close()
 
 plt.figure(figsize=(10,7))
 plt.hist(cnn_coszen[fit_success&true_isMuon],bins=50,weights=weights[fit_success&true_isMuon],label=r'Full $\mu$ Distribution',alpha=0.5,range=[-1,1])
@@ -252,8 +305,8 @@ plt.legend()
 plt.savefig("%sR2MuonDistHistRETRO.png"%(save_folder),bbox_inches='tight')
 plt.close()
 
-r_large_retro = retro_r > 125
-r_large_cnn = cnn_r > 125
+r_large_retro = retro_r > r_cut_val
+r_large_cnn = cnn_r > r_cut_val
 print(sum(weights[cnn_nu&true_isMuon&fit_success&r_large_cnn]),sum(weights[retro_nu&true_isMuon&fit_success&r_large_retro]))
 
 print("Whole hist: ", sum(weights[fit_success&true_isMuon]), "Post cnn cut: ",  sum(weights[cnn_nu&true_isMuon&fit_success]), "Post retro cut: ", sum(weights[retro_nu&true_isMuon&fit_success]))
@@ -283,14 +336,140 @@ retro_prob_nu = retro_prob_nu[mask_here]
 retro_prob_track = retro_prob_track[mask_here]
 """
 
-no_cuts = true_energy > 0
-print(len(no_cuts),sum(no_cuts), sum(weights))
 
 save_folder += "/%s/"%mask_name_here
 print("Working on %s"%save_folder)
 if os.path.isdir(save_folder) != True:
     os.mkdir(save_folder)
 
+"""
+from PlottingFunctions import plot_bin_slices
+a_mask = retro_mask & true_isNu & true_isCC
+variable_name = "Energy"
+units = "(GeV)"
+flavor_name = "Nu"
+plot_bin_slices(true_energy[a_mask], cnn_energy[a_mask],
+                        weights=weights[a_mask],old_reco = retro_energy[a_mask],
+                        vs_predict = True,use_fraction = True,
+                        specific_bins=[1,3,10,15,20,25,30,35,40,50,60,70,80,100,120,140,160,200],
+                        min_val=minval, max_val=200,
+                        save=save, savefolder=save_folder,\
+                        variable=variable_name, units=units,
+                        flavor=flavor_name,sample="CC")
+plot_bin_slices(true_energy[a_mask], cnn_energy[a_mask],
+                        weights=weights[a_mask],old_reco = retro_energy[a_mask],
+                        vs_predict = False,use_fraction = True,
+                        specific_bins=[1,3,10,15,20,25,30,35,40,50,60,70,80,100,120,140,160,200],
+                        min_val=minval, max_val=200,
+                        save=save, savefolder=save_folder,\
+                        variable=variable_name, units=units,
+                        flavor=flavor_name,sample="CC")
+a_mask = retro_mask & true_isNuMu & true_isCC
+flavor_name = "NuMu"
+plot_bin_slices(true_energy[a_mask], cnn_energy[a_mask],
+                        weights=weights[a_mask],old_reco = retro_energy[a_mask],
+                        vs_predict = True,use_fraction = True,
+                        specific_bins=[1,3,10,15,20,25,30,35,40,50,60,70,80,100,120,140,160,200],
+                        min_val=minval, max_val=200,
+                        save=save, savefolder=save_folder,\
+                        variable=variable_name, units=units,
+                        flavor=flavor_name,sample="CC")
+plot_bin_slices(true_energy[a_mask], cnn_energy[a_mask],
+                        weights=weights[a_mask],old_reco = retro_energy[a_mask],
+                        vs_predict = False,use_fraction = True,
+                        specific_bins=[1,3,10,15,20,25,30,35,40,50,60,70,80,100,120,140,160,200],
+                        min_val=minval, max_val=200,
+                        save=save, savefolder=save_folder,\
+                        variable=variable_name, units=units,
+                        flavor=flavor_name,sample="CC")
+"""
+
+a_mask_here = true_isNuMu & true_isCC
+a_flavor_here = "NuMu"
+bins_here = 20
+maxval_here = 20
+plot_2D_prediction(true_energy[a_mask_here],
+                            cnn_energy[a_mask_here],
+                            weights=weights[a_mask_here],
+                            save=save, savefolder=save_folder,
+                            bins=100,
+                            variable="Energy", units="(GeV)",
+                            reco_name="CNN",flavor=a_flavor_here,sample="CC")
+plot_2D_prediction(true_energy[a_mask_here],
+                            cnn_energy[a_mask_here],
+                            weights=weights[a_mask_here],
+                            save=save, savefolder=save_folder,
+                            bins=bins_here,minval=0,maxval=maxval_here,axis_square=True,
+                            variable="Energy", units="(GeV)",
+                            reco_name="CNN",flavor=a_flavor_here,sample="CC")
+plot_2D_prediction(true_energy[a_mask_here],
+                            retro_energy[a_mask_here],
+                            weights=weights[a_mask_here],
+                            save=save, savefolder=save_folder,
+                            bins=bins_here,minval=0,maxval=maxval_here,axis_square=True,
+                            variable="Energy", units="(GeV)",
+                            reco_name="Retro",flavor=a_flavor_here,sample="CC")
+"""
+plot_bin_slices(true_energy[a_mask_here],
+                        cnn_energy[a_mask_here],
+                        old_reco = retro_energy[a_mask_here],
+                        weights=weights[a_mask_here],
+                        vs_predict = True,\
+                        use_fraction = True, bins=20,
+                        min_val=1, max_val=300,\
+                        save=save, savefolder=save_folder,\
+                        variable="Energy", units="(GeV)",
+                        flavor=a_flavor_here,sample="CC")
+
+a_mask_here = true_isNuE&true_isCC
+a_flavor_here = "NuE"
+plot_2D_prediction(true_energy[a_mask_here],
+                            cnn_energy[a_mask_here],
+                            weights=weights[a_mask_here],
+                            save=save, savefolder=save_folder,
+                            bins=bins_here,minval=0,maxval=maxval_here,axis_square=True,
+                            variable="Energy", units="(GeV)",
+                            reco_name="CNN",flavor=a_flavor_here,sample="CC")
+plot_2D_prediction(true_energy[a_mask_here],
+                            retro_energy[a_mask_here],
+                            weights=weights[a_mask_here],
+                            save=save, savefolder=save_folder,
+                            bins=bins_here,minval=0,maxval=maxval_here,axis_square=True,
+                            variable="Energy", units="(GeV)",
+                            reco_name="Retro",flavor=a_flavor_here,sample="CC")
+a_mask_here = true_isNuTau&true_isCC
+a_flavor_here = "NuTau"
+plot_2D_prediction(true_energy[a_mask_here],
+                            cnn_energy[a_mask_here],
+                            weights=weights[a_mask_here],
+                            save=save, savefolder=save_folder,
+                            bins=bins_here,minval=0,maxval=maxval_here,axis_square=True,
+                            variable="Energy", units="(GeV)",
+                            reco_name="CNN",flavor=a_flavor_here,sample="CC")
+plot_2D_prediction(true_energy[a_mask_here],
+                            retro_energy[a_mask_here],
+                            weights=weights[a_mask_here],
+                            save=save, savefolder=save_folder,
+                            bins=bins_here,minval=0,maxval=maxval_here,axis_square=True,
+                            variable="Energy", units="(GeV)",
+                            reco_name="Retro",flavor=a_flavor_here,sample="CC")
+a_mask_here = true_isNu&true_isCC
+a_flavor_here = "Nu"
+plot_2D_prediction(true_energy[a_mask_here],
+                            cnn_energy[a_mask_here],
+                            weights=weights[a_mask_here],
+                            save=save, savefolder=save_folder,
+                            bins=bins_here,minval=0,maxval=maxval_here,axis_square=True,
+                            variable="Energy", units="(GeV)",
+                            reco_name="CNN",flavor=a_flavor_here,sample="CC")
+plot_2D_prediction(true_energy[a_mask_here],
+                            retro_energy[a_mask_here],
+                            weights=weights[a_mask_here],
+                            save=save, savefolder=save_folder,
+                            bins=bins_here,minval=0,maxval=maxval_here,axis_square=True,
+                            variable="Energy", units="(GeV)",
+                            reco_name="Retro",flavor=a_flavor_here,sample="CC")
+"""
 if plot_energy:
     plt.figure(figsize=(10,7))
     emin = 0
@@ -303,10 +482,11 @@ if plot_energy:
     plt.close()
 
     plt.figure(figsize=(10,7))
-    plt.hist(true_energy[true_isMuon],range=[emin,emax],bins=100,weights=weights[true_isMuon],label=r'$\mu$',alpha=0.5)
-    plt.hist(true_energy[true_isNuMu],range=[emin,emax],bins=100,weights=weights[true_isNuMu],label=r'$\nu_\mu$',alpha=0.5)
-    plt.hist(true_energy[true_isNuE],range=[emin,emax],bins=100,weights=weights[true_isNuE],label=r'$\nu_e$',alpha=0.5)
-    plt.hist(true_energy[true_isNuTau],range=[emin,emax],bins=100,weights=weights[true_isNuTau],label=r'$\nu_\tau$',alpha=0.5)
+    bins = 10**np.linspace(0,2.7,100)
+    plt.hist(true_energy[true_isMuon],range=[emin,emax],bins=bins,weights=weights[true_isMuon],label=r'$\mu$',alpha=0.5)
+    plt.hist(true_energy[true_isNuMu],range=[emin,emax],bins=bins,weights=weights[true_isNuMu],label=r'$\nu_\mu$',alpha=0.5)
+    plt.hist(true_energy[true_isNuE],range=[emin,emax],bins=bins,weights=weights[true_isNuE],label=r'$\nu_e$',alpha=0.5)
+    plt.hist(true_energy[true_isNuTau],range=[emin,emax],bins=bins,weights=weights[true_isNuTau],label=r'$\nu_\tau$',alpha=0.5)
     #plt.yscale('log')
     plt.ylabel("Rate (Hz)",fontsize=20)
     plt.xlabel("True Energy (GeV)",fontsize=20)
@@ -316,26 +496,28 @@ if plot_energy:
     plt.close()
 
 if plot_main:
+    bins=50
     assert sum(true_isMuon)>0, "No true muon saved"
     plt.figure(figsize=(10,7))
-    plt.hist(cnn_prob_mu[cnn_mask&true_isMuon],bins=50,weights=weights[cnn_mask&true_isMuon],label=r'$\mu$',alpha=0.5)
-    plt.hist(cnn_prob_mu[cnn_mask&true_isNuMu],bins=50,weights=weights[cnn_mask&true_isNuMu],label=r'$\nu_\mu$',alpha=0.5)
-    plt.hist(cnn_prob_mu[cnn_mask&true_isNuE],bins=50,weights=weights[cnn_mask&true_isNuE],label=r'$\nu_e$',alpha=0.5)
-    plt.hist(cnn_prob_mu[cnn_mask&true_isNuTau],bins=50,weights=weights[cnn_mask&true_isNuTau],label=r'$\nu_\tau$',alpha=0.5)
+    plt.hist(cnn_prob_mu[cnn_mask&true_isMuon],bins=bins,weights=weights[cnn_mask&true_isMuon],label=r'$\mu$',alpha=0.5)
+    plt.hist(cnn_prob_mu[cnn_mask&true_isNuMu],bins=bins,weights=weights[cnn_mask&true_isNuMu],label=r'$\nu_\mu$',alpha=0.5)
+    plt.hist(cnn_prob_mu[cnn_mask&true_isNuE],bins=bins,weights=weights[cnn_mask&true_isNuE],label=r'$\nu_e$',alpha=0.5)
+    plt.hist(cnn_prob_mu[cnn_mask&true_isNuTau],bins=bins,weights=weights[cnn_mask&true_isNuTau],label=r'$\nu_\tau$',alpha=0.5)
 #plt.yscale('log')
     plt.ylabel("Rate (Hz)",fontsize=20)
     plt.xlabel("Muon Probability",fontsize=20)
     plt.title("FLERCNN Muon Probability Distribution",fontsize=25)
+    plt.yscale('log')
     plt.legend()
-    plt.savefig("%sProbMuonParticleHistCNN.png"%(save_folder),bbox_inches='tight')
+    plt.savefig("%sProbMuonParticleHistCNN_log.png"%(save_folder),bbox_inches='tight')
     plt.close()
     print("MASK + true muon:",sum(cnn_mask&true_isMuon),sum(weights[cnn_mask&true_isMuon]))
     
     plt.figure(figsize=(10,7))
-    plt.hist(retro_prob_nu[retro_mask&true_isMuon],bins=50,weights=weights[retro_mask&true_isMuon],label=r'$\mu$',alpha=0.5)
-    plt.hist(retro_prob_nu[retro_mask&true_isNuMu],bins=50,weights=weights[retro_mask&true_isNuMu],label=r'$\nu_\mu$',alpha=0.5)
-    plt.hist(retro_prob_nu[retro_mask&true_isNuE],bins=50,weights=weights[retro_mask&true_isNuE],label=r'$\nu_e$',alpha=0.5)
-    plt.hist(retro_prob_nu[retro_mask&true_isNuTau],bins=50,weights=weights[retro_mask&true_isNuTau],label=r'$\nu_\tau$',alpha=0.5)
+    plt.hist(retro_prob_nu[retro_mask&true_isMuon],bins=bins,weights=weights[retro_mask&true_isMuon],label=r'$\mu$',alpha=0.5)
+    plt.hist(retro_prob_nu[retro_mask&true_isNuMu],bins=bins,weights=weights[retro_mask&true_isNuMu],label=r'$\nu_\mu$',alpha=0.5)
+    plt.hist(retro_prob_nu[retro_mask&true_isNuE],bins=bins,weights=weights[retro_mask&true_isNuE],label=r'$\nu_e$',alpha=0.5)
+    plt.hist(retro_prob_nu[retro_mask&true_isNuTau],bins=bins,weights=weights[retro_mask&true_isNuTau],label=r'$\nu_\tau$',alpha=0.5)
 #plt.yscale('log')
     plt.ylabel("Rate (Hz)",fontsize=20)
     plt.xlabel("Neutrino Probability",fontsize=20)
@@ -359,6 +541,7 @@ if plot_main:
     plt.hist(cnn_prob_nu[cnn_mask&true_isNuTau],bins=50,weights=weights[cnn_mask&true_isNuTau],label=r'$\nu_\tau$',alpha=0.5)
 #plt.yscale('log')
     plt.ylabel("Rate (Hz)",fontsize=20)
+    plt.yscale('log')
     plt.xlabel("Neutrino Probability",fontsize=20)
     plt.title("FLERCNN Neutrino Probability Distribution",fontsize=25)
     plt.legend()
@@ -368,7 +551,7 @@ if plot_main:
     assert sum(true_isNu)!=len(true_isNu), "All neutrino sample, lost muons"
     assert sum(true_isMuon)>0, "No true muon saved"
 
-    plot_classification_hist(true_isNu,cnn_prob_nu,reco=retro_prob_nu,mask=cnn_mask,reco_mask=retro_mask,mask_name=mask_name_here, units="",weights=weights,bins=50,log=False,save=save,save_folder_name=save_folder,name_prob1 = "Neutrino", name_prob0 = "Muon")
+    plot_classification_hist(true_isNu,cnn_prob_nu,reco=retro_prob_nu,mask=cnn_mask,reco_mask=retro_mask,mask_name=mask_name_here, units="",weights=weights,bins=50,log=True,save=save,save_folder_name=save_folder,name_prob1 = "Neutrino", name_prob0 = "Muon")
     
     ROC(true_isNu,cnn_prob_nu,reco=retro_prob_nu,mask=cnn_mask,reco_mask=retro_mask,mask_name=mask_name_here,save=save,save_folder_name=save_folder,variable="Probability Neutrino")
 
@@ -456,21 +639,21 @@ if hists1d:
                           weights=weights[a_mask],\
                           old_reco=retro_energy[a_mask],
                           save=save, savefolder=save_folder, 
-                          reco_name = "Retro", variable="Reconstructed Energy",
+                          reco_name = "Retro", variable="Energy",
                           units= "(GeV)",title=a_title,
-                          minval=0,maxval=500,bins=100) 
+                          minval=5,maxval=500,bins=100,xlog=True) 
     plot_distributions(true_coszenith[a_mask], cnn_coszen[a_mask],
                           weights=weights[a_mask],\
                           old_reco=retro_coszen[a_mask],
                           save=save, savefolder=save_folder, 
-                          reco_name = "Retro", variable="Reconstructed Cosine Zenith",
+                          reco_name = "Retro", variable="Cosine Zenith",
                           units= "",title=a_title,
                           minval=-1,maxval=1,bins=100) 
     plot_distributions(true_r[a_mask]*true_r[a_mask], cnn_r[a_mask]*cnn_r[a_mask],
                           weights=weights[a_mask],\
                           old_reco=retro_r[a_mask]*retro_r[a_mask],
                           save=save, savefolder=save_folder, 
-                          reco_name = "Retro", variable="Reconstructed R^2",
+                          reco_name = "Retro", variable="R^2 Position",
                           units= "(m^2)",xline=125*125,xline_label="DeepCore",
                           minval=0,maxval=300*300,
                           bins=100,title=a_title,) 
@@ -478,7 +661,7 @@ if hists1d:
                           weights=weights[a_mask],\
                           old_reco=retro_r[a_mask],
                           save=save, savefolder=save_folder, 
-                          reco_name = "Retro", variable="Reconstructed R",
+                          reco_name = "Retro", variable="R Position" ,
                           units= "(m)",xline=125,xline_label="DeepCore",
                           minval=0,maxval=300,
                           bins=100,title=a_title,) 
@@ -486,9 +669,91 @@ if hists1d:
                           weights=weights[a_mask],\
                           old_reco=retro_z[a_mask],
                           save=save, savefolder=save_folder, 
-                          reco_name = "Retro", variable="Reconstructed Z",
+                          reco_name = "Retro", variable="Z Position",
                           units= "(m)",title=a_title,
                           minval=-1000,maxval=300,bins=100) 
+    
+    a_title = "True Neutrino: All"
+    a_mask = retro_mask & true_isNu
+    plot_distributions(true_energy[a_mask], cnn_energy[a_mask],
+                          weights=weights[a_mask],\
+                          old_reco=retro_energy[a_mask],
+                          save=save, savefolder=save_folder, 
+                          reco_name = "Retro", variable="Energy",
+                          units= "(GeV)",title=a_title,
+                          minval=3,maxval=500,bins=100,xlog=True) 
+    plot_distributions(true_coszenith[a_mask], cnn_coszen[a_mask],
+                          weights=weights[a_mask],\
+                          old_reco=retro_coszen[a_mask],
+                          save=save, savefolder=save_folder, 
+                          reco_name = "Retro", variable="Cosine Zenith",
+                          units= "",title=a_title,
+                          minval=-1,maxval=1,bins=100) 
+    plot_distributions(true_r[a_mask]*true_r[a_mask], cnn_r[a_mask]*cnn_r[a_mask],
+                          weights=weights[a_mask],\
+                          old_reco=retro_r[a_mask]*retro_r[a_mask],
+                          save=save, savefolder=save_folder, 
+                          reco_name = "Retro", variable="R^2 Position",
+                          units= "(m^2)",xline=125*125,xline_label="DeepCore",
+                          minval=0,maxval=300*300,
+                          bins=100,title=a_title,) 
+    plot_distributions(true_r[a_mask], cnn_r[a_mask],
+                          weights=weights[a_mask],\
+                          old_reco=retro_r[a_mask],
+                          save=save, savefolder=save_folder, 
+                          reco_name = "Retro", variable="Position R",
+                          units= "(m)",xline=125,xline_label="DeepCore",
+                          minval=0,maxval=300,
+                          bins=100,title=a_title,) 
+    plot_distributions(true_z[a_mask], cnn_z[a_mask],
+                          weights=weights[a_mask],\
+                          old_reco=retro_z[a_mask],
+                          save=save, savefolder=save_folder, 
+                          reco_name = "Retro", variable="Position Z",
+                          units= "(m)",title=a_title,
+                          minval=-1000,maxval=300,bins=100) 
+    """
+    a_title = "True Neutrino: NuMu CC"
+    a_mask = retro_mask & true_isNuMu & true_isCC
+    plot_distributions(true_energy[a_mask], cnn_energy[a_mask],
+                          weights=weights[a_mask],\
+                          old_reco=retro_energy[a_mask],
+                          save=save, savefolder=save_folder, 
+                          reco_name = "Retro", variable="Energy",
+                          units= "(GeV)",title=a_title,
+                          minval=0,maxval=20,bins=100,xlog=False) 
+    """
+    plot_distributions(true_coszenith[a_mask], cnn_coszen[a_mask],
+                          weights=weights[a_mask],\
+                          old_reco=retro_coszen[a_mask],
+                          save=save, savefolder=save_folder, 
+                          reco_name = "Retro", variable="Cosine Zenith",
+                          units= "",title=a_title,
+                          minval=-1,maxval=1,bins=100) 
+    plot_distributions(true_r[a_mask]*true_r[a_mask], cnn_r[a_mask]*cnn_r[a_mask],
+                          weights=weights[a_mask],\
+                          old_reco=retro_r[a_mask]*retro_r[a_mask],
+                          save=save, savefolder=save_folder, 
+                          reco_name = "Retro", variable="R^2 Position",
+                          units= "(m^2)",xline=125*125,xline_label="DeepCore",
+                          minval=0,maxval=300*300,
+                          bins=100,title=a_title,) 
+    plot_distributions(true_r[a_mask], cnn_r[a_mask],
+                          weights=weights[a_mask],\
+                          old_reco=retro_r[a_mask],
+                          save=save, savefolder=save_folder, 
+                          reco_name = "Retro", variable="Position R",
+                          units= "(m)",xline=125,xline_label="DeepCore",
+                          minval=0,maxval=300,
+                          bins=100,title=a_title,) 
+    plot_distributions(true_z[a_mask], cnn_z[a_mask],
+                          weights=weights[a_mask],\
+                          old_reco=retro_z[a_mask],
+                          save=save, savefolder=save_folder, 
+                          reco_name = "Retro", variable="Position Z",
+                          units= "(m)",title=a_title,
+                          minval=-1000,maxval=300,bins=100) 
+    """
 
 def return_rates(true_PID,prediction,weights,threshold):
 

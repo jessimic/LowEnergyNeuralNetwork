@@ -5,9 +5,10 @@
 #INPUTFILES="/mnt/research/IceCube/jmicallef/official_oscnext/level7/140000/oscNext_genie_level7_v02.00_pass2.140000.*.i3.zst"
 #INPUTFILES="/mnt/research/IceCube/jmicallef/official_oscnext/newGCD/1[2,4]8885/oscNext_genie_level7_v02.00_pass2.1[2,4]8885.00000?.i3.zst"
 #INPUTFILES="/mnt/research/IceCube/jmicallef/FLERCNN_i3_output/oscNext_genie_level7_v02.00_pass2.1?0000.00????_FLERCNN_class.i3.zst"
-#INPUTFILES="/mnt/research/IceCube/jmicallef/official_oscnext/level7/1[2,4]0000/oscNext_genie_level7_v02.00_pass2.1[2,4]0000.*.i3.zst"
-INPUTFILES="/mnt/scratch/micall12/oscnext_official/1?0000/oscNext_*_level6_flercnn_pass2.1?0000.*.i3.zst"
+INPUTFILES="/mnt/research/IceCube/jmicallef/official_oscnext/level7/1[2,4]0000/oscNext_genie_level7_v02.00_pass2.1[2,4]0000.*.i3.zst"
+#INPUTFILES="/mnt/scratch/micall12/oscnext_official/1?0000/oscNext_*_level6_flercnn_pass2.1?0000.*.i3.zst"
 #INPUTFILES="/mnt/scratch/micall12/oscnext_official/1?0000/oscNext_*_level7_v02.00_pass2.*.zst"
+#INPUTFILES="/mnt/scratch/micall12/training_files/i3_files/oscNext_genie_level6_flercnn_pass2.1?0000.*i3.zst"
 FILEPATH=/mnt/home/micall12/LowEnergyNeuralNetwork/make_jobs/i3_test
 LOG_FOLDER=$FILEPATH/logs
 JOB_FOLDER=$FILEPATH/slurm

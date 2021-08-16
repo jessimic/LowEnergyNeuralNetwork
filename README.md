@@ -52,7 +52,7 @@
                        ``..-----------------:::::::::::::::::::::::::::-                               .                
 
 ## Brief Description
-FLERCNN is optimized to reconstruct the energy and cosine zenith of events with energies mainly in the 10s of GeV. It uses DeepCore and the inner most IceCube strings to summarize the data per event with summary variables per DOM (charge and times of pulses). 
+FLERCNN is optimized to reconstruct the energy, zenith, and vertex (and classify muon-ness and PID) of events with energies mainly in the 10s of GeV. It uses DeepCore and the inner most IceCube strings to summarize the data per event with summary variables per DOM (charge and times of pulses). 
 
 
 ## Running on the HPCC
@@ -62,18 +62,17 @@ To create the processing scripts, you will need IceTry access in the IceCube sof
 
 - Create Training scripts (i3 --> hdf5)
 	- Need IceCube software!
-	- Option 1: cvmfs
-		- `source /mnt/home/micall12/setup_combo_stable.sh`. Does the following steps:
-			- `eval /cvmfs/icecube.opensciencegrid.org/py3-v4.1.0/setup.sh`
-			- `module purge`
-			- `/cvmfs/icecube.opensciencegrid.org/py3-v4.1.0/RHEL_7_x86_64/metaprojects/combo/stable/env-shell.sh`
-	- Option 2: singularity container
-		- `singularity exec -B /mnt/home/micall12:/mnt/home/micall12 -B /mnt/research/IceCube:/mnt/research/IceCube --nv /mnt/research/IceCube/Software/icetray_stable-tensorflow.sif python ...`
-		- Must replace your home netID for `micall12`
+	- Option 1: singularity container (PREFERRED METHOD)
+		- `singularity exec -B /cvmfs/icecube.opensciencegrid.org:/cvmfs/icecube.opensciencegrid.org -B /mnt/home/micall12:/mnt/home/micall12 -B /mnt/research/IceCube:/mnt/research/IceCube --nv /mnt/research/IceCube/Software/icetray_stable-tensorflow.sif python ...`
+		- Must replace your home netID for `micall12` and/or mount all necessary directories for input/output files using -B
 		- Can also start a singularity shell, then run scripts interactively inside
+        - Singularity container also available at /cvmfs/icecube.opensciencegrid.org/users/jmicallef/FLERCNN_evaluate/icetray_stable-tensorflow.sif
+	- Option 2: cvmfs pre-compiled environment
+        - `eval /cvmfs/icecube.opensciencegrid.org/py3-v4.1.0/setup.sh`
+        - `/cvmfs/icecube.opensciencegrid.org/py3-v4.1.0/RHEL_7_x86_64/metaprojects/combo/stable/env-shell.sh`
 - CNN Training and Testing:
 	- Need tensorflow, keras, and python!
-	- Option 1: singularity container
+	- Option 1: singularity container (PREFERRED METHOD)
 		- `singularity exec -B /mnt/home/micall12:/mnt/home/micall12 -B /mnt/research/IceCube:/mnt/research/IceCube --nv /mnt/research/IceCube/Software/icetray_stable-tensorflow.sif python ...`
 		- Must replace your home netID for `micall12`
 		- Can also start a singularity shell, then run scripts interactively inside
@@ -89,9 +88,10 @@ To create the processing scripts, you will need IceTry access in the IceCube sof
 			- `pip install matplotlib`
 		- Advantage of this option: easier to update, not a "static container"
 		- Disadvantage of option: Tensorflow's GPU interaction has been known to stop working suddenly on HPCC, and the only solution found so far is to reinstall anaconda and then recreate virtual env
+    - Note: fastest testing option is to go straight from i3 file, which requires BOTH the IceTray software and tesnorflow. For this method, you MUST use the singularity container. This is the suggested method.
 
 ### Submitting Jobs
-- Example job submission scripts in `make_jobs`
+- Example job submission scripts for slurm in `make_jobs`
 - Create HDF5: Making the training files (i3-->hdf5)
 	- Most efficient to run in parallel
 		- Can glob, but concat step takes a while
@@ -103,53 +103,60 @@ To create the processing scripts, you will need IceTry access in the IceCube sof
 	- Use `singularity` container to run CNN
 	- Kill and recall tensorflow script every handful of epochs (memory leak that adds ~2min per epoch otherwise)
 		- STEPS should correspond to the number of files in your data set
+        - If training Muon classifier (set for single file training), STEPS is how often you want to save the model (suggested every 5 epochs)
 	- Assumes there is a folder called `output_plots` in your main directory
-	- Should request GPU and about 27G
+	- Should request GPU and about 27G on average required
+        - May need more memory if your files are larger than ~24G
+        - May need more memory if you modify cnn_model.py to have more layers/nodes
+- Some example submission scripts for HT condor in `make_jobs_condor`
+    - Usually only used to train or test CNN
 
 ### Testing Jobs before Submission
 - Option 1: interactive job
-	- Request interactive job `salloc --time=03:00:00 --mem=27G --gres=gpu:1`
+	- Request interactive job on HPCC `salloc --time=03:00:00 --mem=27G --gres=gpu:1`
 	- To access the GPU, need `srun` before calling the code: `srun singularity ...`
 - Option 2: run on development node
-	- GPU dev nodes (k80 or k20) need `srun` before calling the code `srun singularity ...`
+	- GPU dev nodes (k80 or k20 or v100 on HPCC) need `srun` before calling the code `srun singularity ...`
 	- Can run without the GPU (training will take hours per epoch), just to check that all the paths and setup for the network are working!
 
 ## Description of major code components
 
 ### Order to run code from creating new training data --> testing CNN on same sample
 1. Create hdf5 files from i3 files (`i3_to_hdf5.py`)
-2. Flatten energy distribution (optional, for training) (`flatten_energy_distribution.py`)
-4. Train the CNN (`CNN_LoadMultipleFiles.py`)
-5. Make testonly file (`make_test_file.py`)
-5. Test the CNN (`CNN_TestOnly.py`)
+2. Flatten energy distribution (optional, for training) (`flatten_energy_distribution.py`) or cut & concatenate files together for training (`cut_concat_split_files.py`)
+3. Train the CNN (`CNN_Training.py` or `CNN_Muon_Training.py`)
+4. Test the CNN (`CNN_Test_i3.py`)
+5. Pull desired labels from i3 files for plotting/resolution (`pull_test_labels_i3_to_hdf5.py`)
 
 ### Order to run code for creating a testing sample/testing ONLY
 1. Start from i3 file and test from there, writing back to i3 file (`CNN_Test_i3.py`)
 2. Pull output from i3 files into single concatenated hdf5 file (`pull_labels_i3_to_hdf5.py`)
-3. Plot CNN prediction, truth, and old Retro comparisons (`plot_hdf5_energy_from_predictionfile.py`)
+3. Plot CNN prediction, truth, and old Retro comparisons (`plot_hdf5_energy_from_predictionfile.py` or `plot_muon_class.py` or `plot_classifcation_from_prediction_file.py`)
 
 ### Training and Testing Scripts
 
 #### Typical CNN Training/Testing Procedure
-- Submit `CNN_LoadMultipleFiles.py` to train for many epochs (100s)
-- Check progress using `plot_loss_from_column.py` during training
-- Use `CNN_TestOnly.py` to check results at any time (using oscnext test)
+- Submit `CNN_Training.py` to train for many epochs (100s)
+    - NOTE: code expected multiple input files to train over, to limit memory that needs to be requested by the job
+- Check progress using `plot_loss.py` during or after training
+- Use `CNN_Test_i3.py` to check results at any time (using oscnext test)
 	- When to check results: if validation curve leveling off or want to check results at specific epoch
 	- Save PegLeg or Retro test once you have settled on final model
 
 #### Description of Scripts	
-- `CNN_LoadMultipleFiles.py` - used for training the CNN
+- `CNN_Training.py` - used for training the CNN
 	- Takes in multiple training files (of certain file pattern), loads one and trains for an epoch before loading the next file for the next epoch
 		- Makes sure not too much data is stored at once (~30G)
 		- Shuffles within the file between full file pass sets
-		- Expects a train, test, validate set to load data in
-	- Learning rate adjustable with parserr args
+		- Expects a training and validation set to load data in (file does not need a testing set in it)
+	- Learning rate adjustable with parser args (where to start, how many epochs in to drop, how much to drop by)
 	- Batch size and dropout currently constant
 	- Loss functions:
 		- Energy = mean_absolute_percentage_error
 		- Zenith = mean_squared_error
 		- Track Length = mean_squared_error (NOT optimized)
-	- Loads model architecture from `cnn_model.py`
+        - PID Classification = Binary Crossentropy
+	- Loads model architecture from `cnn_model.py` (or `cnn_model_classification.py` if classifier argument used)
 	- Functionality:
 		- Can train for energy or zenith alone
 			- parser arg option --variables 1 and --first_variable "zenith" or "energy"
@@ -159,20 +166,19 @@ To create the processing scripts, you will need IceTry access in the IceCube sof
 		- Starts at the given epoch, runs for the number of epochs specified
 			- Helps to continue training model if killed (loads weights from given model)
 			- Helps to kill and reload tensorflow to avoid memory leak
-		- Can plot "test", comparing to oscnext flat test sample
 	- Appends loss to `saveloss_currentepoch.txt` file in output directory
 	- Look at `make_jobs/run_CNN/` for slurm submission examples and `make_jobs_condor/run_CNN/` for HTCondor examples
 
-- `plot_loss_from_column.py` - plot loss from column sorted saveloss txt file
-	- `CNN_LoadMultipleFiles.py` output column sorted saveloss txt file
+- `plot_loss.py` - plot loss from column sorted saveloss txt file
+	- `CNN_Training.py` output column sorted saveloss txt file
 	- File also stores time to train per epoch and per loading data file + training per epoch
 	- Order of loss, validation loss, etc. varies on number of variables training for (uses dict keys to pull correct values)
 	- Functionality:
 		- Can give ylim as ymin and ymax, parser args
 		- Can specify which epoch to plot until, to shorten x axis (parser arg)
-		- Manually can change number of files to average over and start at
+		- Can change number of files to average over and start at
 			- Set to 7 files to average over
-			- Set to start plotting avg plots at epoch 49
+			- Set to start plotting avg plots at epoch 49 (can change)
 	- Outputs plots to outdir folder
 		- `TrainingTimePerEpoch.png`
 		- `loss_vs_epochs.png`
@@ -269,17 +275,17 @@ Can also put out a [evt # x 7] labels for old reco
         - Can take in already transformed data or not transformed
 	- Outputs `features_DC`, `features_IC`, `labels`, `num_pulses_per_dom`, `trigger_time`, and optional `reco_labels` to use for statitics/comparisons later
 
-- ` create_training_file_perDOM_nocuts.py`
-    - Very similar to `i3_to_hdf5.py` but doesn't have the same cuts applied
-    - Old version of pulling i3 to hdf5
-    - Does not apply MaxAbs transform!
+- `cut_concat_split_files.py`
+	- Cuts can be applied to get accurate number of events in sample:
+		- Vertex cut start, parser arg
+		- Ending position cut, parser arg
+		- Energy maximum, parser arg
+		- Energy minimum, parser arg
+    - Functionality:
+	    - Can output more than 1 file, to split events between (so files are not so large)
+        - Can split into train/test/validate
 
-- `cut_concat_transform_separate.py`
-    - Part of old pipeline. May be useful without transform
-
-- `cut_concat_separate_files.py`
-
-- `make_test_file.py` - Concatenates arrays in file(s) and outputs one "testonly" file
+- `collect_test_files.py` - Concatenates test arrays in file(s) and outputs one "testonly" file
 	- Use to create large, many file, flat datasets into one testing file
 		- Only pulls from the testing sets in this case (unused during training)
 		- Give multiple files to pull from, puts together the training sets from these files

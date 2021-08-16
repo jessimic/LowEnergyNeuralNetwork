@@ -43,6 +43,12 @@ parser.add_argument("--save_every", type=int,default=5,
                     dest="save_every",help="step size for number how many epochs to save at")
 parser.add_argument("--cut_downgoing",default=False,action='store_true',
                     dest="cut_downgoing",help="Add flag if you want to only train on upgoing events (cosine zenith < 0.3)")
+parser.add_argument("--small_network",default=False,action='store_true',
+                    dest="small_network",help="Use smaller network model (cnn_model_simple.py)")
+parser.add_argument("--dense_nodes", type=int,default=300,
+                    dest="dense_nodes",help="Number of nodes in dense layer, only works for small network")
+parser.add_argument("--conv_nodes", type=int,default=100,
+                    dest="conv_nodes",help="Number of nodes in conv layers, only works for small network")
 args = parser.parse_args()
 
 # Settings from args
@@ -70,8 +76,11 @@ dropout = 0.2
 DC_drop_value = dropout
 IC_drop_value =dropout
 connected_drop_value = dropout
+dense_nodes = args.dense_nodes
+conv_nodes = args.conv_nodes
 start_epoch = args.start_epoch
 cut_downgoing = args.cut_downgoing
+small_network = args.small_network
 
 old_model_given = args.model
 
@@ -87,7 +96,7 @@ if os.path.isfile("%ssaveloss_currentepoch.txt"%(save_folder_name)) != True:
 file_name = path + input_file
 
 print("\nFiles Used \nTraining on file %s \nStarting with model: %s \nSaving output to: %s"%(file_name,old_model_given,save_folder_name))
-print("\nNetwork Parameters \nbatch_size: %i \ndropout: %f \nstarting learning rate: %f"%(batch_size,dropout,initial_lr))
+print("\nNetwork Parameters \nbatch_size: %i \ndropout: %f \nstarting learning rate: %f \ndense nodes: %i \nconvolutional nodes: %i"%(batch_size,dropout,initial_lr,dense_nodes, conv_nodes))
 print("Starting at epoch: %s \nTraining until: %s epochs"%(start_epoch,start_epoch+num_epochs))
 
 t0 = time.time()
@@ -129,8 +138,12 @@ print(Y_validate_file[:10,9])
 print(Y_validate[:10])
 
 # LOAD MODEL
-from cnn_model_classification import make_network
-model_DC = make_network(X_train_DC,X_train_IC,1,DC_drop_value,IC_drop_value,connected_drop_value)
+if small_network:
+    from cnn_model_simple import make_network
+    model_DC = make_network(X_train_DC,X_train_IC,1,DC_drop_value,IC_drop_value,connected_drop_value,conv_nodes=conv_nodes,dense_nodes=dense_nodes)
+else:
+    from cnn_model_classification import make_network
+    model_DC = make_network(X_train_DC,X_train_IC,1,DC_drop_value,IC_drop_value,connected_drop_value)
 
 # WRITE OWN LOSS FOR MORE THAN ONE REGRESSION OUTPUT
 from keras.optimizers import SGD

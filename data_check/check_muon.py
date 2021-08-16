@@ -211,7 +211,7 @@ def plot_output(Y_values,outdir,filenumber=None,names=output_names,transform=out
     plt.xticks(fontsize=15)
     plt.yticks(fontsize=15)
     plt.legend()
-    #plt.yscale('log')
+    plt.yscale('log')
     if filenum:
         filenum_name = "_%s"%filenum
     else:

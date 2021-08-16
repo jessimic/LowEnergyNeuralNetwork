@@ -1,6 +1,6 @@
 #!/bin/bash
 
-FILES="concat_120000_*.sb"
+FILES="concat_130000_*.sb"
 
 for f in $FILES
 do

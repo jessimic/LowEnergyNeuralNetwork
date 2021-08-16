@@ -258,7 +258,7 @@ def plot_distributions_CCNC(truth_all_labels,truth,reco,save=False,savefolder=No
         plt.savefig("%sNNEnergyDistribution_CCNC.png"%savefolder)
     plt.close()
 
-def plot_distributions(truth,reco=None,save=False,savefolder=None,old_reco=None,weights=None,variable="Energy",units="(GeV)",reco_name="Retro", minval=None, maxval=None,bins=100,cnn_name="CNN",log=False,old_reco_weights=None,title=None,xline=None,xline_label=None):
+def plot_distributions(truth,reco=None,save=False,savefolder=None,old_reco=None,weights=None,variable="Energy",units="(GeV)",reco_name="Retro", minval=None, maxval=None,bins=100,cnn_name="CNN",ylog=False,xlog=False,old_reco_weights=None,title=None,xline=None,xline_label=None,flavor=None,sample=None):
     """
     Plot testing set distribution
     Recieves:
@@ -271,6 +271,7 @@ def plot_distributions(truth,reco=None,save=False,savefolder=None,old_reco=None,
     Returns:
         1D histogram of variable's absolute distribution for truth and for reco overlaid
     """
+
     if maxval is None:
         if reco is not None:
             if old_reco is None:
@@ -288,8 +289,9 @@ def plot_distributions(truth,reco=None,save=False,savefolder=None,old_reco=None,
         else:
             minval = numpy.min(truth)
     print("Using", minval, maxval)
+    
     plt.figure(figsize=(10,7))
-    name = ""
+    outname = ""
     if weights is not None:
         if old_reco_weights is None:
             old_reco_weights = weights
@@ -298,8 +300,32 @@ def plot_distributions(truth,reco=None,save=False,savefolder=None,old_reco=None,
     if title is not None:
         plt.title("%s"%(title),fontsize=25)
     else:
-        plt.title("%s %s Distribution"%(name,variable),fontsize=25)
+        name = "%s Distribution"%(variable)
+        if flavor is not None:
+            if flavor == "NuMu" or flavor == "numu":
+                name += r' for $\nu_\mu$ '
+            elif flavor == "NuE" or flavor == "nue":
+                name += r' for $\nu_e$ '
+            elif flavor == "NuTau" or flavor == "nutau":
+                name += r' for $\nu_\tau$ '
+            elif flavor == "Mu" or flavor == "mu":
+                name += r' for $\mu$ '
+            elif flavor == "Nu" or flavor == "nu":
+                name += r' for $\nu$ '
+            else:
+                name += flavor
+            name += sample
+        plt.title(name,fontsize=25)
 
+    if xlog:
+        if minval <=0:
+            print("MINVAL AT OR BELOW ZERO, USING ZERO FOR LOG SCALE")
+            logmin = 0
+        else:
+            logmin = numpy.log(minval)
+        number_bins = bins
+        bins = 10**numpy.linspace(logmin, numpy.log10(maxval),number_bins)
+        plt.xscale('log')
     plt.hist(truth, bins=bins,color='g',alpha=0.5,range=[minval,maxval],weights=weights,label="Truth");
     maskT = numpy.logical_and(truth > minval, truth < maxval)
     print("Truth Total: %i, Events in Plot: %i, Overflow: %i"%(len(truth),sum(maskT),len(truth)-sum(maskT)))
@@ -308,24 +334,24 @@ def plot_distributions(truth,reco=None,save=False,savefolder=None,old_reco=None,
         plt.ylabel("weighted event count")
     else:
         plt.ylabel("event count")
-    name += "T"
+    outname += "T"
     
     if reco is not None:
         plt.hist(reco, bins=bins,color='b', alpha=0.5,range=[minval,maxval],weights=weights,label=cnn_name);
-        name += "R"
+        outname += "R"
         maskR = numpy.logical_and(reco > minval, reco < maxval)
         print("Reco Total: %i, Events in Plot: %i, Overflow: %i"%(len(reco),sum(maskR),len(reco)-sum(maskR)))
         if weights is not None:
             print("WEIGHTED Reco Total: %.2f, Events in Plot: %.2f, Overflow: %.2f"%(sum(weights)*weights_factor,sum(weights[maskR])*weights_factor,(sum(weights)-sum(weights[maskR]))*weights_factor))
     if old_reco is not None:
         plt.hist(old_reco, bins=bins,color='orange', alpha=0.5,range=[minval,maxval],weights=old_reco_weights,label=reco_name);
-        name += "OR"
+        outname += "OR"
         maskOR = numpy.logical_and(old_reco > minval, old_reco < maxval)
         print("Old Reco Total: %i, Events in Plot: %i, Overflow: %i"%(len(old_reco),sum(maskOR),len(old_reco)-sum(maskOR)))
         if weights is not None:
             print("WEIGHTED Old Reco Total: %.2f, Events in Plot: %.2f, Overflow: %.2f"%(sum(old_reco_weights)*weights_factor,sum(old_reco_weights[maskOR])*weights_factor,(sum(old_reco_weights)-sum(old_reco_weights[maskOR]))*weights_factor))
     plt.xlabel("%s %s"%(variable,units),fontsize=20)
-    if log:
+    if ylog:
         plt.yscale("log")
     if xline is not None:
         plt.axvline(xline,linewidth=3,color='k',linestyle="-",label="%s"%xline_label)
@@ -333,10 +359,14 @@ def plot_distributions(truth,reco=None,save=False,savefolder=None,old_reco=None,
         plt.legend(fontsize=20)
 
     if title is not None:
-        name += "%s"%title.replace(" ", "")
-    name += "%s"%variable.replace(" ","")
+        outname += "%s"%title.replace(" ", "")
+    outname += "%s"%variable.replace(" ","")
+    if flavor is not None:
+        outname += "%s"%flavor.replace(" ","")
+    if sample is not None:
+        outname += "%s"%sample.replace(" ","")
     if save:
-        plt.savefig("%s%sDistribution_%ito%i.png"%(savefolder,name,int(minval),int(maxval)),bbox_inches='tight')
+        plt.savefig("%s%sDistribution_%ito%i.png"%(savefolder,outname,int(minval),int(maxval)),bbox_inches='tight')
     plt.close()
 
 
@@ -464,10 +494,18 @@ def plot_2D_prediction(truth, nn_reco, \
         plt.plot(x,y_u,color='r',linestyle='dashed')
         plt.legend(fontsize=20)
     if yline is not None:
-        plt.axhline(yline,linewidth=3,color='red',label="CNN Cut")
+        if type(yline) is list:
+            for y_val in yline:
+                plt.axhline(y_val,linewidth=3,color='red',label="Cut")
+        else:
+            plt.axhline(yline,linewidth=3,color='red',label="Cut")
         plt.legend(fontsize=20)
     if xline is not None:
-        plt.axvline(xline,linewidth=3,color='magenta',linestyle="dashed",label="Retro Cut")
+        if type(xline) is list:
+            for x_val in xline:
+                plt.axvline(x_val,linewidth=3,color='magenta',linestyle="dashed",label="Cut")
+        else:
+            plt.axvline(xline,linewidth=3,color='magenta',linestyle="dashed",label="Cut")
         plt.legend(fontsize=20)
 
     reco_name = reco_name.replace(" ","")
@@ -481,7 +519,7 @@ def plot_2D_prediction(truth, nn_reco, \
     if sample is not None:
         nocut_name += "%s"%sample
     if not axis_square:
-        nocut_name ="_nolim"
+        nocut_name +="_nolim"
     if zmax:
         nocut_name += "_zmax%.1e"%zmax    
     if zmin:
@@ -680,6 +718,8 @@ def plot_single_resolution(truth,nn_reco,weights=None, \
         title += r' for $\nu_e$ '
     elif flavor == "NuTau" or flavor == "nutau":
         title += r' for $\nu_\tau$ '
+    elif flavor == "Nu" or flavor == "nu":
+        title += r' for $\nu$ '
     elif flavor == "Mu" or flavor == "mu":
         title += r' for $\mu$ '
     else:
@@ -1033,7 +1073,9 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
                        bins=10,min_val=0.,max_val=60., ylim = None,\
                        save=False,savefolder=None,vs_predict=False,\
                        flavor="NuMu", sample="CC",style="contours",\
-                       variable="Energy",units="(GeV)",xvariable="Energy",xunits="(GeV)",\
+                       variable="Energy",units="(GeV)",
+                       xvariable="Energy",xunits="(GeV)",\
+                       specific_bins = None,xline=None,xline_name="DeepCore",
                        epochs=None,reco_name="Retro",cnn_name="CNN"):
     """Plots different variable slices vs each other (systematic set arrays)
     Receives:
@@ -1098,8 +1140,14 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
     left_tail_percentile  = (100.-percentile_in_peak)/2
     right_tail_percentile = 100.-left_tail_percentile
 
-    variable_ranges  = numpy.linspace(min_val,max_val, num=bins+1)
-    variable_centers = (variable_ranges[1:] + variable_ranges[:-1])/2.
+    if specific_bins is None:
+        variable_ranges  = numpy.linspace(min_val,max_val, num=bins+1)
+        variable_centers = (variable_ranges[1:] + variable_ranges[:-1])/2.
+    else:
+        variable_ranges = specific_bins
+        variable_centers = []
+        for i in range(len(specific_bins)-1):
+            variable_centers.append(specific_bins[i] + ((specific_bins[i+1] - specific_bins[i])/2.))
 
     medians  = numpy.zeros(len(variable_centers))
     err_from = numpy.zeros(len(variable_centers))
@@ -1135,8 +1183,10 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
                 x_axis_array2 = energy_truth2
                 
         cut = (x_axis_array >= var_from) & (x_axis_array < var_to)
+        #print("Events in ", var_from, " to ", var_to, sum(cut))
         if old_reco is not None:
             cut2 = (x_axis_array2 >= var_from) & (x_axis_array2 < var_to)
+            #print("Events in ", var_from, " to ", var_to, sum(cut2))
 
         if weights is not None:
             lower_lim = wq.quantile(resolution[cut],weights[cut],left_tail_percentile/100.)
@@ -1178,6 +1228,16 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
             plt.legend(loc="upper center")
             if vs_predict:
                 plt.legend(loc="lower center")
+        if xline is not None:
+            if type(xline) is list:
+                for x_val in xline:
+                    plt.axvline(x_val,linewidth=3,color='k',linestyle="dashed",label="%s"%xline_name)
+            else:
+                plt.axvline(xline,linewidth=3,color='k',linestyle="dashed",label="%s"%xline_name)
+            
+            plt.legend(loc="upper center")
+            if vs_predict:
+                plt.legend(loc="lower center")
     else: #countours
         alpha=0.5
         lwid=3
@@ -1195,6 +1255,12 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
             ax.plot(variable_centers,medians_reco, color=rcolor, linestyle='-', label="%s median"%reco_name, linewidth=lwid)
             ax.fill_between(variable_centers,medians_reco,err_from_reco, color=rcolor, alpha=alpha)
             ax.fill_between(variable_centers,medians_reco,err_to_reco, color=rcolor,alpha=alpha,label=reco_name + ' 68%')
+        if xline is not None:
+            if type(xline) is list:
+                for x_val in xline:
+                    plt.axvline(x_val,linewidth=3,color='k',linestyle="dashed",label="%xline_name"%s)
+            else:
+                plt.axvline(xline,linewidth=3,color='k',linestyle="dashed",label="%xline_name"%s)
         if vs_predict:
             plt.legend(loc="lower center")
         else:
@@ -1218,11 +1284,16 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
         title += r' for $\nu_\mu$ ' 
     elif flavor == "NuE" or flavor == "nue":
         title += r' for $\nu_e$ '
+    elif flavor == "NuTau" or flavor == "nutau":
+        title += r' for $\nu_\tau$ '
+    elif flavor == "Mu" or flavor == "mu":
+        title += r' for $\mu$ '
+    elif flavor == "Nu" or flavor == "nu":
+        title += r' for $\nu$ '
     else:
         title += flavor
     title += sample
     plt.title(title,fontsize=25)
-    print("ylim: ", ylim)
 
     reco_name = reco_name.replace(" ","")
     variable = variable.replace(" ","")
@@ -1233,6 +1304,8 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
         savename += "Frac"
     if weights is not None:
         savename += "Weighted"
+    if flavor is not None:
+        savename += "%s"%flavor.replace(" ","")
     if energy_truth is not None:
         xvar_no_space = xvariable.replace(" ","")
         savename += "_%sBinned"%xvar_no_space

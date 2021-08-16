@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy as np
 
 def plot_1d_binned_slices(truth, reco1, reco2=None,
@@ -5,6 +6,7 @@ def plot_1d_binned_slices(truth, reco1, reco2=None,
                        plot_resolution=False, use_fraction = False,\
                        bins=10,xmin=None,xmax=None,style="contours",\
                        x_name = "Zenith", x_units = "",\
+                       xline=None,xline_name="DeepCore",\
                        reco1_name = "Reco 1", reco2_name = "Reco 2",\
                        reco1_weight = None, reco2_weight = None,
                        save=True,savefolder=None):
@@ -179,7 +181,13 @@ def plot_1d_binned_slices(truth, reco1, reco2=None,
     # Extra features to have a horizontal 0 line and trim the x axis
     plt.plot([xmin,xmax], [0,0], color='k')
     plt.xlim(xmin,xmax)
-    
+    if xline is not None:
+        if type(xline) is list:
+            for x_val in xline:
+                plt.axvline(x_val,linewidth=3,color='k',linestyle="dashed",label="%s"%xline_name)
+        else:
+            plt.axvline(xline,linewidth=3,color='k',linestyle="dashed",label="%s"%xline_name)   
+ 
     #Make pretty labels
     plt.xlabel("%s %s"%(x_name,x_units))
     if plot_resolution:
