@@ -50,20 +50,20 @@ no_weights = args.no_weights
 save_folder = args.output_dir
 save = True
 
-plot_containment = False
 plot_resolution = False
-plot_energy =False
+plot_energy = False
 plot_main = False
 print_rates = False
 plot_rates = False
-plot_after_threshold = False
+plot_after_threshold = True
 plot_2d_vertex = False
-plot_1dhists = True
+plot_1dhists = False
 plot_2d_hists = False
 plot_rcut_muonrate = False
 do_energy_cut_plots = False
 check_nhits = False
 plot_cut_effect = False
+plot_containment = False
 
 f = h5py.File(input_file, "r")
 truth = f["Y_test_use"][:]
@@ -191,8 +191,8 @@ from PlottingFunctions import plot_2D_prediction
 from PlottingFunctions import plot_bin_slices
 from PlottingFunctions import plot_distributions
 
-mask_here = upgoing & noise_cut
-mask_name_here="QuickTest"
+mask_here = upgoing & noise_cut & nhits_cut & ntop_cut & nouter_cut
+mask_name_here="AllCuts"
 if no_weights:
     mask_name_here += "_NoWeights"
 
@@ -201,140 +201,10 @@ print("Working on %s"%save_folder)
 if os.path.isdir(save_folder) != True:
     os.mkdir(save_folder)
 
-if plot_containment:
-    from plot_1d_slices import plot_1d_binned_slices
-    a_mask = true_isNuMu & true_isCC
-    plot_1d_binned_slices(true_energy[a_mask], cnn_energy[a_mask],
-                    reco1_weight=weights[a_mask],xarray1=true_rend[a_mask],
-                    plot_resolution = True,use_fraction = True,
-                    xmin=0, xmax=800,bins=50,xline=260,xline_name="IC19",
-                    save=save, savefolder=save_folder,
-                    x_name="R End", x_units="(m)",reco1_name="CNN")
-    plot_1d_binned_slices(true_energy[a_mask], cnn_energy[a_mask],
-                    reco1_weight=weights[a_mask],xarray1=true_zend[a_mask],
-                    plot_resolution = True,use_fraction = True,
-                    xmin=-800, xmax=600,bins=50,
-                    xline=[-500,500],xline_name="IceCube Volume",
-                    save=save, savefolder=save_folder,
-                    x_name="Z End", x_units="(m)",reco1_name="CNN")
-    resolution = (cnn_energy - true_energy)/ true_energy
-    minval = 1
-    maxval = 300
-    bins = 100
-
-    xvar="True Energy (GeV)"
-    yvar="Energy Resolution (R-T)/T"
-    save_title="Resolution Vs True Energy"
-    plt.figure(figsize=(10,10))
-    plt.title("%s"%save_title,fontsize=25)
-    plt.hist2d(true_energy[a_mask],resolution[a_mask],weights=weights[a_mask],bins=bins,cmap='viridis_r',range=[[1,500],[-1,1]],cmin=1e-12)
-    cbar = plt.colorbar()
-    plt.ylabel("%s"%yvar,fontsize=20)
-    plt.xlabel("%s"%xvar,fontsize=20)
-    plt.savefig("%s%s2DHist.png"%(save_folder,save_title.replace(" ","")),bbox_inches='tight')
-    plt.close()
-
-    xvar="CNN Energy (GeV)"
-    yvar="Energy Resolution (R-T)/T"
-    save_title="Resolution Vs CNN Energy"
-    plt.figure(figsize=(10,10))
-    plt.title("%s"%save_title,fontsize=25)
-    plt.hist2d(cnn_energy[a_mask],resolution[a_mask],weights=weights[a_mask],bins=bins,cmap='viridis_r',range=[[1,300],[-1,1]],cmin=1e-12) #norm=colors.LogNorm())
-    cbar = plt.colorbar()
-    plt.ylabel("%s"%yvar,fontsize=20)
-    plt.xlabel("%s"%xvar,fontsize=20)
-    plt.savefig("%s%s2DHist.png"%(save_folder,save_title.replace(" ","")),bbox_inches='tight')
-    plt.close()
-
-    plot_2D_prediction(true_energy[a_mask], cnn_energy[a_mask],
-                        weights=weights[a_mask],
-                        save=save, savefolder=save_folder,
-                        bins=bins,minval=1,maxval=300,
-                        variable="Energy", units="(GeV)",
-                        reco_name="CNN",variable_type="True",
-                        flavor="NuMu",axis_square=True,
-                        sample="CC",
-                        no_contours=False)
-
-    rinside_cut = true_rend < 260
-    zinside_cut = np.logical_and(true_zend > -500, true_zend < 500)
-    r_start = true_r < 260
-    a_mask = true_isNuMu & true_isCC & rinside_cut & zinside_cut & z_cut & r_start
-
-    xvar="True Energy (GeV)"
-    yvar="Energy Resolution (R-T)/T"
-    save_title="Fully Contained Resolution Vs True Energy"
-    plt.figure(figsize=(10,10))
-    plt.title("%s"%save_title,fontsize=25)
-    plt.hist2d(true_energy[a_mask],resolution[a_mask],weights=weights[a_mask],bins=bins,cmap='viridis_r',range=[[1,500],[-1,1]],cmin=1e-12) #,cmin=1, norm=colors.LogNorm())
-    cbar = plt.colorbar()
-    plt.ylabel("%s"%yvar,fontsize=20)
-    plt.xlabel("%s"%xvar,fontsize=20)
-    plt.savefig("%s%s2DHist.png"%(save_folder,save_title.replace(" ","")),bbox_inches='tight')
-    plt.close()
-
-    plot_1d_binned_slices(true_energy[a_mask], cnn_energy[a_mask],
-                    reco1_weight=weights[a_mask],xarray1=true_rend[a_mask],
-                    plot_resolution = True,use_fraction = True,
-                    xmin=0, xmax=260,bins=20,
-                    save=save, savefolder=save_folder,
-                    x_name="Fully Contained R", x_units="(m)",reco1_name="CNN")
-    plot_2D_prediction(true_energy[a_mask], cnn_energy[a_mask],
-                        weights=weights[a_mask],
-                        save=save, savefolder=save_folder,
-                        bins=bins,minval=1,maxval=300,
-                        variable="Energy", units="(GeV)",
-                        reco_name="CNN",variable_type="True",
-                        flavor="NuMu",save_name="Fully Contained",
-                        sample="CC",axis_square=True,
-                        no_contours=False)
-    plot_1d_binned_slices(true_energy[a_mask], cnn_energy[a_mask],
-                    reco1_weight=weights[a_mask],xarray1=true_zend[a_mask],
-                    plot_resolution = True,use_fraction = True,
-                    xmin=-500, xmax=300,bins=30,
-                    save=save, savefolder=save_folder,
-                    x_name="Fully Contained Z", x_units="(m)",reco1_name="CNN")
-
-    routside_cut = true_rend > 260
-    zoutside_cut = np.logical_or(true_zend < -500, true_zend > 500)
-    outside_cut = np.logical_or(routside_cut, zoutside_cut)
-    a_mask = true_isNuMu & true_isCC & outside_cut & z_cut & r_start
-    xvar="True Energy (GeV)"
-    yvar="Energy Resolution (R-T)/T"
-    save_title="End Outside Resolution Vs True Energy"
-    plt.figure(figsize=(10,10))
-    plt.title("%s"%save_title,fontsize=25)
-    plt.hist2d(true_energy[a_mask],resolution[a_mask],weights=weights[a_mask],bins=bins,cmap='viridis_r',range=[[1,500],[-1,1]],cmin=1e-12) #, norm=colors.LogNorm())
-    cbar = plt.colorbar()
-    plt.ylabel("%s"%yvar,fontsize=20)
-    plt.xlabel("%s"%xvar,fontsize=20)
-    plt.savefig("%s%s2DHist.png"%(save_folder,save_title.replace(" ","")),bbox_inches='tight')
-    plt.close()
-    plot_1d_binned_slices(true_energy[a_mask], cnn_energy[a_mask],
-                    reco1_weight=weights[a_mask],xarray1=true_rend[a_mask],
-                    plot_resolution = True,use_fraction = True,
-                    xmin=0, xmax=800,bins=50,xline=260,xline_name="IC19",
-                    save=save, savefolder=save_folder,
-                    x_name="End Outside R", x_units="(m)",reco1_name="CNN")
-    plot_2D_prediction(true_energy[a_mask], cnn_energy[a_mask],
-                        weights=weights[a_mask],
-                        save=save, savefolder=save_folder,
-                        bins=bins,minval=1,maxval=300,
-                        variable="Energy", units="(GeV)",
-                        reco_name="CNN",variable_type="True",
-                        flavor="NuMu",save_name="End Outside",
-                        sample="CC",axis_square=True,
-                        no_contours=False)
-    plot_1d_binned_slices(true_energy[a_mask], cnn_energy[a_mask],
-                    reco1_weight=weights[a_mask],xarray1=true_zend[a_mask],
-                    plot_resolution = True,use_fraction = True,
-                    xmin=-800, xmax=600,bins=50,xline=[-500,500],xline_name="IceCube Volume",
-                    save=save, savefolder=save_folder,
-                    x_name="End Outside Z", x_units="(m)",reco1_name="CNN")
 
 if plot_resolution:
 
-    const_cut = cnn_nu & nhits_cut & noise_cut & CC_cut
+    const_cut = cnn_nu & nhits_cut & noise_cut & CC_cut & ntop_cut & nouter_cut
     flavor_mask = [true_isNu, true_isNuMu, true_isNuE, true_isNuTau]
     flavor_names = ["Nu", "NuMu", "NuE", "NuTau"]
     
@@ -763,23 +633,6 @@ if plot_energy:
                                 bins=100,minval=0,maxval=200,axis_square=True,
                                 variable="Energy", units="(GeV)",
                                 reco_name="CNN",flavor=a_flavor_here,sample="CC")
-    plot_2D_prediction(true_energy[a_mask_here],
-                                retro_energy[a_mask_here],
-                                weights=weights[a_mask_here],
-                                save=save, savefolder=save_folder,
-                                bins=100,minval=0,maxval=200,axis_square=True,
-                                variable="Energy", units="(GeV)",
-                                reco_name="Retro",flavor=a_flavor_here,sample="CC")
-    plot_bin_slices(true_energy[a_mask_here],
-                            cnn_energy[a_mask_here], 
-                            old_reco = retro_energy[a_mask_here],
-                            weights=weights[a_mask_here],
-                            vs_predict = True,\
-                            use_fraction = True, bins=20,
-                            min_val=1, max_val=300,\
-                            save=save, savefolder=save_folder,\
-                            variable="Energy", units="(GeV)",
-                            flavor=a_flavor_here,sample="CC")
     a_mask_here = true_isNuE&true_isCC
     a_flavor_here = "NuE"
     plot_2D_prediction(true_energy[a_mask_here],
@@ -789,13 +642,6 @@ if plot_energy:
                                 bins=100,minval=0,maxval=200,axis_square=True,
                                 variable="Energy", units="(GeV)",
                                 reco_name="CNN",flavor=a_flavor_here,sample="CC")
-    plot_2D_prediction(true_energy[a_mask_here],
-                                retro_energy[a_mask_here],
-                                weights=weights[a_mask_here],
-                                save=save, savefolder=save_folder,
-                                bins=100,minval=0,maxval=200,axis_square=True,
-                                variable="Energy", units="(GeV)",
-                                reco_name="Retro",flavor=a_flavor_here,sample="CC")
     a_mask_here = true_isNuTau&true_isCC
     a_flavor_here = "NuTau"
     plot_2D_prediction(true_energy[a_mask_here],
@@ -805,13 +651,6 @@ if plot_energy:
                                 bins=100,minval=0,maxval=200,axis_square=True,
                                 variable="Energy", units="(GeV)",
                                 reco_name="CNN",flavor=a_flavor_here,sample="CC")
-    plot_2D_prediction(true_energy[a_mask_here],
-                                retro_energy[a_mask_here],
-                                weights=weights[a_mask_here],
-                                save=save, savefolder=save_folder,
-                                bins=100,minval=0,maxval=200,axis_square=True,
-                                variable="Energy", units="(GeV)",
-                                reco_name="Retro",flavor=a_flavor_here,sample="CC")
     a_mask_here = true_isNu&true_isCC
     a_flavor_here = "Nu"
     plot_2D_prediction(true_energy[a_mask_here],
@@ -821,13 +660,6 @@ if plot_energy:
                                 bins=100,minval=0,maxval=200,axis_square=True,
                                 variable="Energy", units="(GeV)",
                                 reco_name="CNN",flavor=a_flavor_here,sample="CC")
-    plot_2D_prediction(true_energy[a_mask_here],
-                                retro_energy[a_mask_here],
-                                weights=weights[a_mask_here],
-                                save=save, savefolder=save_folder,
-                                bins=100,minval=0,maxval=200,axis_square=True,
-                                variable="Energy", units="(GeV)",
-                                reco_name="Retro",flavor=a_flavor_here,sample="CC")
 
 if plot_main:
     plt.figure(figsize=(10,7))
@@ -949,38 +781,38 @@ if check_nhits:
         nhit_muon_rates.append(sum(save_weights[true_isMuon]))
         nhit_nue_rates.append(sum(save_weights[true_isNuE]))
         nhit_numu_rates.append(sum(save_weights[true_isNuMu]))
-        nhit_nutau_rates.append(save_weights[true_isNuTau])
+        nhit_nutau_rates.append(sum(save_weights[true_isNuTau]))
         nhit_nu_rates.append(nhit_nue_rates[-1] + nhit_numu_rates[-1] + nhit_nutau_rates[-1])
+    """
+    fig,ax = plt.subplots(2,1,figsize=(10,10))
+    plt.suptitle("SANTA nhit DOMs",fontsize=25)
+    plt.plot(nhit_cuts,nhit_muon,color='orange',label=r'$\mu$')
+    plt.plot(nhit_cuts,nhit_nue,color='g',label=r'$\nu_e$')
+    plt.plot(nhit_cuts,nhit_numu,color='b',label=r'$\nu_\mu$')
+    plt.plot(nhit_cuts,nhit_nutau,color='purple',label=r'$\nu_\tau$')
+    plt.set_xlabel("n hit DOMs cut",fontsize=20)
+    plt.set_ylabel("Number Events",fontsize=20)
+    plt.legend(fontsize=20)
+    plt.savefig("%snhitNumbers.png"%(save_folder),bbox_inches='tight')
+    plt.close()
+    """
     
     fig,ax = plt.subplots(2,1,figsize=(10,10))
     plt.suptitle("Rate SANTA nhit DOMs",fontsize=25)
-    plt.plot(nhit_cuts,nhit_muon_rates,color='orange',label=r'$\mu$')
-    plt.plot(nhit_cuts,nhit_nue_rates,color='g',label=r'$\nu_e$')
-    plt.plot(nhit_cuts,nhit_numu_rates,color='b',label=r'$\nu_\mu$')
-    plt.plot(nhit_cuts,nhit_nutau_rates,color='purple',label=r'$\nu_\tau$')
-    plt.set_xlabel("n hit DOMs cut",fontsize=20)
-    plt.set_ylabel("Rate (Hz)",fontsize=20)
-    plt.legend(fontsize=20)
-    plt.savefig("%snhitRates.png"%(save_folder),bbox_inches='tight')
-    plt.close()
-    
-    
-    fig,ax = plt.subplots(2,1,figsize=(10,10))
-    plt.suptitle("SANTA nhit DOMs",fontsize=25)
-    ax[0].plot(nhit_cuts,nhit_muon,color='orange',label=r'$\mu$')
-    ax[0].plot(nhit_cuts,nhit_nue,color='g',label=r'$\nu_e$')
-    ax[0].plot(nhit_cuts,nhit_numu,color='b',label=r'$\nu_\mu$')
-    ax[0].plot(nhit_cuts,nhit_nutau,color='purple',label=r'$\nu_\tau$')
+    ax[0].plot(nhit_cuts,nhit_muon_rates,color='orange',label=r'$\mu$')
+    ax[0].plot(nhit_cuts,nhit_nue_rates,color='g',label=r'$\nu_e$')
+    ax[0].plot(nhit_cuts,nhit_numu_rates,color='b',label=r'$\nu_\mu$')
+    ax[0].plot(nhit_cuts,nhit_nutau_rates,color='purple',label=r'$\nu_\tau$')
     ax[0].set_xlabel("n hit DOMs cut",fontsize=20)
-    ax[0].set_ylabel("Number Events",fontsize=20)
+    ax[0].set_ylabel("Rate (Hz)",fontsize=20)
     ax[0].legend(fontsize=20)
     
-    ax[1].plot(nhit_cuts,np.true_divide(nhit_muon/nhit_muon[0]),color='orange',label=r'$\mu$')
-    ax[1].plot(nhit_cuts,np.true_divide(nhit_nue/nhit_nue[0]),color='g',label=r'$\nu_e$')
-    ax[1].plot(nhit_cuts,np.true_divide(nhit_numu/nhit_nue[0]),color='b',label=r'$\nu_\mu$')
-    ax[1].plot(nhit_cuts,np.true_divide(nhit_nutau/nhit_nutau[0]),color='purple',label=r'$\nu_\tau$')
-    ax[1].xlabel("n hit DOMs cut",fontsize=20)
-    ax[1].ylabel("Fraction Events Remaining",fontsize=20)
+    ax[1].plot(nhit_cuts,(nhit_muon/nhit_muon[0]),color='orange',label=r'$\mu$')
+    ax[1].plot(nhit_cuts,(nhit_nue/nhit_nue[0]),color='g',label=r'$\nu_e$')
+    ax[1].plot(nhit_cuts,(nhit_numu/nhit_nue[0]),color='b',label=r'$\nu_\mu$')
+    ax[1].plot(nhit_cuts,(nhit_nutau/nhit_nutau[0]),color='purple',label=r'$\nu_\tau$')
+    ax[1].set_xlabel("n hit DOMs cut",fontsize=20)
+    ax[1].set_ylabel("Fraction Events Remaining",fontsize=20)
     ax[1].legend(fontsize=20)
     
     plt.savefig("%snhitRates.png"%(save_folder),bbox_inches='tight')
@@ -1130,13 +962,6 @@ if plot_rates:
 
 
 if plot_after_threshold:
-    # Plot after threshold
-    cnn_nu = cnn_prob_mu <= cnn_mu_cut
-    cnn_mu = cnn_prob_mu > cnn_mu_cut
-    correct_mu = np.logical_and(cnn_mu, true_isMuon)
-    wrong_mu = np.logical_and(cnn_mu, true_isNu)
-    correct_nu = np.logical_and(cnn_nu, true_isNu)
-    wrong_nu = np.logical_and(cnn_nu, true_isMuon)
 
     print("Rates After Cut at %f:\t Mu\t NuE\t NuMu\t NuTau\t Nu\n"%cnn_mu_cut)
     r_cut = cnn_r < r_cut_value
@@ -1156,6 +981,14 @@ if plot_after_threshold:
     print("%s Cut:\t %.2e\t %.2e\t %.2e\t %.2e\t %.2e\t"%("Muon & R & Z",sum(weights[true_isMuon&cnn_nu&vertex_cut]),sum(weights[true_isNuE&cnn_nu&vertex_cut]),sum(weights[true_isNuMu&cnn_nu&vertex_cut]),sum(weights[true_isNuTau&cnn_nu&vertex_cut]),sum(weights[true_isNu&cnn_nu&vertex_cut])))
     print("%s Cut:\t %.2e\t %.2e\t %.2e\t %.2e\t %.2e\t"%("Muon & R & Z & E100",sum(weights[true_isMuon&cnn_nu&vertex_cut&e_small_cut]),sum(weights[true_isNuE&cnn_nu&vertex_cut&e_small_cut]),sum(weights[true_isNuMu&cnn_nu&vertex_cut&e_small_cut]),sum(weights[true_isNuTau&cnn_nu&vertex_cut&e_small_cut]),sum(weights[true_isNu&cnn_nu&vertex_cut&e_small_cut])))
     print("%s Cut:\t %.2e\t %.2e\t %.2e\t %.2e\t %.2e\t"%("Muon & R & Z & E200",sum(weights[true_isMuon&cnn_nu&vertex_cut&e_large_cut]),sum(weights[true_isNuE&cnn_nu&vertex_cut&e_large_cut]),sum(weights[true_isNuMu&cnn_nu&vertex_cut&e_large_cut]),sum(weights[true_isNuTau&cnn_nu&vertex_cut&e_large_cut]),sum(weights[true_isNu&cnn_nu&vertex_cut&e_large_cut])))
+    
+    # Plot after threshold
+    cnn_nu = cnn_prob_mu <= cnn_mu_cut
+    cnn_mu = cnn_prob_mu > cnn_mu_cut
+    correct_mu = np.logical_and(cnn_mu, true_isMuon)
+    wrong_mu = np.logical_and(cnn_mu, true_isNu)
+    correct_nu = np.logical_and(cnn_nu, true_isNu)
+    wrong_nu = np.logical_and(cnn_nu, true_isMuon)
 
     if plot_cut_effect:
         # R PLOT
@@ -1631,3 +1464,133 @@ if plot_after_threshold:
 
     confusion_matrix(true_isMuon, cnn_prob_mu, 0.45, mask=no_cuts, mask_name=mask_name_here, weights=weights, save=True, save_folder_name=save_folder, name_prob1 = "Muon", name_prob0 = "Neutrino")
 
+if plot_containment:
+    from plot_1d_slices import plot_1d_binned_slices
+    a_mask = true_isNuMu & true_isCC
+    plot_1d_binned_slices(true_energy[a_mask], cnn_energy[a_mask],
+                    reco1_weight=weights[a_mask],xarray1=true_rend[a_mask],
+                    plot_resolution = True,use_fraction = True,
+                    xmin=0, xmax=800,bins=50,xline=260,xline_name="IC19",
+                    save=save, savefolder=save_folder,
+                    x_name="R End", x_units="(m)",reco1_name="CNN")
+    plot_1d_binned_slices(true_energy[a_mask], cnn_energy[a_mask],
+                    reco1_weight=weights[a_mask],xarray1=true_zend[a_mask],
+                    plot_resolution = True,use_fraction = True,
+                    xmin=-800, xmax=600,bins=50,
+                    xline=[-500,500],xline_name="IceCube Volume",
+                    save=save, savefolder=save_folder,
+                    x_name="Z End", x_units="(m)",reco1_name="CNN")
+    resolution = (cnn_energy - true_energy)/ true_energy
+    minval = 1
+    maxval = 300
+    bins = 100
+
+    xvar="True Energy (GeV)"
+    yvar="Energy Resolution (R-T)/T"
+    save_title="Resolution Vs True Energy"
+    plt.figure(figsize=(10,10))
+    plt.title("%s"%save_title,fontsize=25)
+    plt.hist2d(true_energy[a_mask],resolution[a_mask],weights=weights[a_mask],bins=bins,cmap='viridis_r',range=[[1,500],[-1,1]],cmin=1e-12)
+    cbar = plt.colorbar()
+    plt.ylabel("%s"%yvar,fontsize=20)
+    plt.xlabel("%s"%xvar,fontsize=20)
+    plt.savefig("%s%s2DHist.png"%(save_folder,save_title.replace(" ","")),bbox_inches='tight')
+    plt.close()
+
+    xvar="CNN Energy (GeV)"
+    yvar="Energy Resolution (R-T)/T"
+    save_title="Resolution Vs CNN Energy"
+    plt.figure(figsize=(10,10))
+    plt.title("%s"%save_title,fontsize=25)
+    plt.hist2d(cnn_energy[a_mask],resolution[a_mask],weights=weights[a_mask],bins=bins,cmap='viridis_r',range=[[1,300],[-1,1]],cmin=1e-12) #norm=colors.LogNorm())
+    cbar = plt.colorbar()
+    plt.ylabel("%s"%yvar,fontsize=20)
+    plt.xlabel("%s"%xvar,fontsize=20)
+    plt.savefig("%s%s2DHist.png"%(save_folder,save_title.replace(" ","")),bbox_inches='tight')
+    plt.close()
+
+    plot_2D_prediction(true_energy[a_mask], cnn_energy[a_mask],
+                        weights=weights[a_mask],
+                        save=save, savefolder=save_folder,
+                        bins=bins,minval=1,maxval=300,
+                        variable="Energy", units="(GeV)",
+                        reco_name="CNN",variable_type="True",
+                        flavor="NuMu",axis_square=True,
+                        sample="CC",
+                        no_contours=False)
+
+    rinside_cut = true_rend < 260
+    zinside_cut = np.logical_and(true_zend > -500, true_zend < 500)
+    r_start = true_r < 260
+    a_mask = true_isNuMu & true_isCC & rinside_cut & zinside_cut & z_cut & r_start
+
+    xvar="True Energy (GeV)"
+    yvar="Energy Resolution (R-T)/T"
+    save_title="Fully Contained Resolution Vs True Energy"
+    plt.figure(figsize=(10,10))
+    plt.title("%s"%save_title,fontsize=25)
+    plt.hist2d(true_energy[a_mask],resolution[a_mask],weights=weights[a_mask],bins=bins,cmap='viridis_r',range=[[1,500],[-1,1]],cmin=1e-12) #,cmin=1, norm=colors.LogNorm())
+    cbar = plt.colorbar()
+    plt.ylabel("%s"%yvar,fontsize=20)
+    plt.xlabel("%s"%xvar,fontsize=20)
+    plt.savefig("%s%s2DHist.png"%(save_folder,save_title.replace(" ","")),bbox_inches='tight')
+    plt.close()
+
+    plot_1d_binned_slices(true_energy[a_mask], cnn_energy[a_mask],
+                    reco1_weight=weights[a_mask],xarray1=true_rend[a_mask],
+                    plot_resolution = True,use_fraction = True,
+                    xmin=0, xmax=260,bins=20,
+                    save=save, savefolder=save_folder,
+                    x_name="Fully Contained R", x_units="(m)",reco1_name="CNN")
+    plot_2D_prediction(true_energy[a_mask], cnn_energy[a_mask],
+                        weights=weights[a_mask],
+                        save=save, savefolder=save_folder,
+                        bins=bins,minval=1,maxval=300,
+                        variable="Energy", units="(GeV)",
+                        reco_name="CNN",variable_type="True",
+                        flavor="NuMu",save_name="Fully Contained",
+                        sample="CC",axis_square=True,
+                        no_contours=False)
+    plot_1d_binned_slices(true_energy[a_mask], cnn_energy[a_mask],
+                    reco1_weight=weights[a_mask],xarray1=true_zend[a_mask],
+                    plot_resolution = True,use_fraction = True,
+                    xmin=-500, xmax=300,bins=30,
+                    save=save, savefolder=save_folder,
+                    x_name="Fully Contained Z", x_units="(m)",reco1_name="CNN")
+
+    routside_cut = true_rend > 260
+    zoutside_cut = np.logical_or(true_zend < -500, true_zend > 500)
+    outside_cut = np.logical_or(routside_cut, zoutside_cut)
+    a_mask = true_isNuMu & true_isCC & outside_cut & z_cut & r_start
+    xvar="True Energy (GeV)"
+    yvar="Energy Resolution (R-T)/T"
+    save_title="End Outside Resolution Vs True Energy"
+    plt.figure(figsize=(10,10))
+    plt.title("%s"%save_title,fontsize=25)
+    plt.hist2d(true_energy[a_mask],resolution[a_mask],weights=weights[a_mask],bins=bins,cmap='viridis_r',range=[[1,500],[-1,1]],cmin=1e-12) #, norm=colors.LogNorm())
+    cbar = plt.colorbar()
+    plt.ylabel("%s"%yvar,fontsize=20)
+    plt.xlabel("%s"%xvar,fontsize=20)
+    plt.savefig("%s%s2DHist.png"%(save_folder,save_title.replace(" ","")),bbox_inches='tight')
+    plt.close()
+    plot_1d_binned_slices(true_energy[a_mask], cnn_energy[a_mask],
+                    reco1_weight=weights[a_mask],xarray1=true_rend[a_mask],
+                    plot_resolution = True,use_fraction = True,
+                    xmin=0, xmax=800,bins=50,xline=260,xline_name="IC19",
+                    save=save, savefolder=save_folder,
+                    x_name="End Outside R", x_units="(m)",reco1_name="CNN")
+    plot_2D_prediction(true_energy[a_mask], cnn_energy[a_mask],
+                        weights=weights[a_mask],
+                        save=save, savefolder=save_folder,
+                        bins=bins,minval=1,maxval=300,
+                        variable="Energy", units="(GeV)",
+                        reco_name="CNN",variable_type="True",
+                        flavor="NuMu",save_name="End Outside",
+                        sample="CC",axis_square=True,
+                        no_contours=False)
+    plot_1d_binned_slices(true_energy[a_mask], cnn_energy[a_mask],
+                    reco1_weight=weights[a_mask],xarray1=true_zend[a_mask],
+                    plot_resolution = True,use_fraction = True,
+                    xmin=-800, xmax=600,bins=50,xline=[-500,500],xline_name="IceCube Volume",
+                    save=save, savefolder=save_folder,
+                    x_name="End Outside Z", x_units="(m)",reco1_name="CNN")

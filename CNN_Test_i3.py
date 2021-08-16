@@ -105,7 +105,6 @@ if args.epochs is None:
 else:
     model_name ="%s/%s_%sepochs_model.hdf5"%(model_path,model_name,args.epochs)
 print("Predicting: %s,\nOutput transformation scale factor: %.2f.,\nUsing model: %s"%(variable, scale_factor, model_name))
-assert variable is not "vertex", "Vertex only handled by variable4"
 
 variable2 = args.variable2
 scale_factor2=args.factor2
@@ -117,7 +116,6 @@ if model_name2 is not None:
     else:
         model_name2 ="%s/%s_%sepochs_model.hdf5"%(model_path2,model_name2,args.epochs2)
     print("ALSO Predicting: %s,\nOutput transformation scale factor: %.2f.,\nUsing model: %s"%(variable2, scale_factor2, model_name2))
-assert variable2 is not "vertex", "Vertex only handled by variable4"
 
 variable3 = args.variable3
 scale_factor3=args.factor3
@@ -129,7 +127,6 @@ if model_name3 is not None:
     else:
         model_name3 ="%s/%s_%sepochs_model.hdf5"%(model_path3,model_name3,args.epochs3)
     print("ALSO Predicting: %s,\nOutput transformation scale factor: %.2f.,\nUsing model: %s"%(variable3, scale_factor3, model_name3))
-assert variable3 is not "vertex", "Vertex only handled by variable4"
 
 variable4 = args.variable4
 scale_factor4=args.factor4

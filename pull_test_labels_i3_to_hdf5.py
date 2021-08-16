@@ -259,12 +259,15 @@ def read_i3_files(filenames_list,variable, variable2,variable3):
                 output_info.append( np.array([ float(coin_muon), float(prob_nu), float(true_ndoms), fit_success, float( noise_class), float(nhit_doms), float(n_top15), float(n_outer), float(prob_nu2), clean_pulses_8_or_more, float(HLC_vertex.x), float(HLC_vertex.y), float(HLC_vertex.z) ]))
 
                 #Weights
-                weights = frame['I3MCWeightDict']
-                header = frame["I3EventHeader"]
-                if sim_type == "muongun":
-                    output_weights.append( np.array([ float(header.run_id), float(header.sub_run_id), float(header.event_id), float(weights["num_events"]), float(weights["raw_weight"]), float(weights["power_law_offset"]),float(weights["power_law_index"]), float(weights["prob_passing_KDE"]), float(weights["weight"]) ]) )
+                if sim_type == "data":
+                    output_weights.append( np.nan )
                 else:
-                    output_weights.append( np.array([ float(header.run_id), float(header.sub_run_id), float(header.event_id), float(weights["NEvents"]), float(weights["OneWeight"]), float(weights["GENIEWeight"]),float(weights["PowerLawIndex"]), float(weights["gen_ratio"]), float(weights["weight"]) ]) )                
+                    weights = frame['I3MCWeightDict']
+                    header = frame["I3EventHeader"]
+                    if sim_type == "muongun":
+                        output_weights.append( np.array([ float(header.run_id), float(header.sub_run_id), float(header.event_id), float(weights["num_events"]), float(weights["raw_weight"]), float(weights["power_law_offset"]),float(weights["power_law_index"]), float(weights["prob_passing_KDE"]), float(weights["weight"]) ]) )
+                    else:
+                        output_weights.append( np.array([ float(header.run_id), float(header.sub_run_id), float(header.event_id), float(weights["NEvents"]), float(weights["OneWeight"]), float(weights["GENIEWeight"]),float(weights["PowerLawIndex"]), float(weights["gen_ratio"]), float(weights["weight"]) ]) )                
 
         count +=1
         if (max_files > 10) and (count%ten_percent == 0):
