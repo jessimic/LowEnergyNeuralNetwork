@@ -34,12 +34,14 @@ parser.add_argument("-i", "--input_file",type=str,default=None,
                     dest="input_file", help="names for test only input file")
 parser.add_argument("-d", "--path",type=str,default='/data/icecube/jmicallef/processed_CNN_files/',
                     dest="path", help="path to input files")
-parser.add_argument("-o", "--output_dir",type=str,default='/home/users/jmicallef/LowEnergyNeuralNetwork/',
+parser.add_argument("-o", "--output_dir",type=str,default='/mnt/home/micall12/LowEnergyNeuralNetwork/',
                     dest="output_dir", help="path to output_plots directory, do not end in /")
 parser.add_argument("-n", "--name",type=str,default=None,
                     dest="name", help="name for output directory and where model file located")
 parser.add_argument("-t","--test", type=str,default="oscnext",
                         dest='test',help="name of reco")
+parser.add_argument("--model_dir", type=str,default="/home/users/jmicallef/LowEnergyNeuralNetwork/output_plots/",
+                        dest='model_dir',help="name of reco")
 parser.add_argument("--variable_list",nargs='+',default=[],
                     dest="variable_list", help="names of variables that were predicted: energy, zenith, class, muon, vertex")
 parser.add_argument("--epoch_list",nargs='+',default=[None,None,None,None,None],
@@ -51,7 +53,6 @@ parser.add_argument("--factor_list",nargs='+',default=[100,1,1,1,1],
 args = parser.parse_args()
 
 test_file = args.path + args.input_file
-output_variables = args.output_variables
 filename = args.name
 
 dropout = 0.2
@@ -60,21 +61,29 @@ DC_drop_value = dropout
 IC_drop_value =dropout
 connected_drop_value = dropout
 
+variable_list = args.variable_list
+epoch_list = args.epoch_list
+modelname_list = args.modelname_list
+factor_list = args.factor_list
+
 accepted_names = ["energy", "zenith", "class", "vertex", "muon"]
 for var in variable_list:
     assert var in accepted_names, "Variable must be one of the accepted names, check parse arg help for variable for more info"
 
-
+model_name_list = []
+num_variables = len(variable_list)
+for variable_index in range(num_variables):
+    if epoch_list[variable_index] is None:
+        model_name = args.model_dir + "/" + modelname_list[variable_index]
+    else:
+        model_name = "%s/%s_%sepochs_model.hdf5"%(args.model_dir,modelname_list[variable_index],epoch_list[variable_index])
+    model_name_list.append(model_name)
 
 save = True
 save_folder_name = "%soutput_plots/%s/"%(args.output_dir,filename)
 if save==True:
     if os.path.isdir(save_folder_name) != True:
         os.mkdir(save_folder_name)
-
-
-load_model_name = "%s%s_%iepochs_model.hdf5"%(save_folder_name,filename,args.epoch) 
-use_old_weights = True
 
 def cnn_test(features_DC, features_IC, load_model_name, output_variables=1,DC_drop_value=0.2,IC_drop_value=0.2,connected_drop_value=0.2,model_type="energy"):
     if model_type == "class" or model_type == "muon":
@@ -95,8 +104,10 @@ f = h5py.File(test_file, 'r')
 Y_test_use = f['Y_test'][:]
 X_test_DC_use = f['X_test_DC'][:]
 X_test_IC_use = f['X_test_IC'][:]
-if compare_reco:
+try:
     reco_test_use = f['reco_test'][:]
+except:
+    reco_test_use = None
 try:
     weights = f["weights_test"][:]
 except:
@@ -108,21 +119,32 @@ del f
 print(X_test_DC_use.shape,X_test_IC_use.shape,Y_test_use.shape)
 
 cnn_predictions=[]
-for network in range(len(model_name_list)):
-    if model_type_list[network] == "vertex":
+for network in range(num_variables):
+    factor = factor_list[network]
+    if variable_list[network] == "vertex":
         output_var = 3
     else:
         output_var = 1
     t0 = time.time()
-    cnn_predictions.append(cnn_test(DC_array, IC_near_DC_array, model_name_list[network],model_type=model_type_list[network], output_variables=output_var))
+    cnn_predictions.append(cnn_test(X_test_DC_use, X_test_IC_use, model_name_list[network],model_type=variable_list[network], output_variables=output_var))
+    if factor is not None:
+        factor = int(factor)
+        if output_var == 1:
+            cnn_predictions[network] = cnn_predictions[network]*factor
+        if output_var == 3:
+            cnn_predictions[network] = cnn_predictions[network][0]*factor
+            cnn_predictions[network] = cnn_predictions[network][1]*factor
+            cnn_predictions[network] = cnn_predictions[network][2]*factor
     t1 = time.time()
-    print("Time to run CNN Predict %s on %i events: %f seconds"%(model_type_list[network],DC_array.shape[0],t1-t0))
+    print("Time to run CNN Predict %s on %i events: %f seconds"%(variable_list[network],X_test_DC_use.shape[0],t1-t0))
 
 
-print("Saving output file: %s/prediction_values_%s.hdf5"%(save_folder_name,first_var))
-f = h5py.File("%s/prediction_values_%s.hdf5"%(save_folder_name,first_var), "w")
+print("Saving output file: %s/prediction_values.hdf5"%(save_folder_name))
+f = h5py.File("%s/prediction_values.hdf5"%(save_folder_name), "w")
 f.create_dataset("Y_test_use", data=Y_test_use)
-f.create_dataset("Y_predicted", data=Y_test_predicted)
+f.create_dataset("X_test_DC", data=Y_test_use)
+f.create_dataset("X_test_IC", data=Y_test_use)
+f.create_dataset("Y_predicted", data=cnn_predictions)
 if reco_test_use is not None:
     f.create_dataset("reco_test", data=reco_test_use)
 if weights is not None:
