@@ -25,6 +25,7 @@ import itertools
 import random
 
 import time
+import glob
 
 from keras.optimizers import Adam
 from keras.losses import mean_squared_error
@@ -85,11 +86,15 @@ parser.add_argument("--factor5", type=float, default=1.,
                     dest="factor5", help="transformation factor to adjust output by")
 parser.add_argument("--charge_min", type=float, default=0.25,
                     dest="charge_min", help="minimum charge pulse to keep, remove < this")
+parser.add_argument("--gcd", default=None,
+                    dest="gcd", help="path and filename of gcd")
 args = parser.parse_args()
 
 input_file = args.input_file
 output_dir = args.output_dir
 output_name = args.output_name
+gcdfile = args.gcd
+
 if args.cleaned == "True" or args.cleaned == "true":
     use_cleaned_pulses = True
 else:
@@ -164,7 +169,7 @@ model_name_list = model_name_list[:number_cnns]
 variable_list = variable_list[:number_cnns]
 scale_factor_list = scale_factor_list[:number_cnns]
 
-def get_observable_features(frame,low_window=-500,high_window=4000):
+def get_observable_features(frame,low_window=-500,high_window=4000,use_cleaned_pulses=True,charge_min=charge_min):
     """
     Load observable features from IceCube files
     Receives:
@@ -189,7 +194,7 @@ def get_observable_features(frame,low_window=-500,high_window=4000):
             a_charge = pulse.charge
 
             #Cut any pulses < 0.25 PE
-            if a_charge < 0.25:
+            if a_charge < charge_min:
                 continue
 
             #Count number pulses > 0.25 PE in event
@@ -373,7 +378,7 @@ def cnn_test(features_DC, features_IC, load_model_name, output_variables=1,DC_dr
     return Y_test_predicted
 
 
-def read_files(filename):
+def read_files(filename,gcd_filename=None,use_cleaned_pulses=True,charge_min=0.25):
     """
     Read list of files, make sure they pass L5 cuts, create truth labels
     Receives:
@@ -390,6 +395,12 @@ def read_files(filename):
         output_num_pulses_per_dom = array that only holds the number of pulses seen per DOM (finding statistics)
         output_trigger_times = list of trigger times for each event (used to shift raw pulse times)
     """
+
+    if gcd_filename is not None:
+        gcd_file = dataio.I3File(gcd_filename)
+        print("Using GCD file: %s"%gcd_filename)
+        pass2_cal = gcd_file.pop_frame(icetray.I3Frame.Calibration)["I3Calibration"] 
+
     print("reading file: {}".format(filename))
     event_file = dataio.I3File(filename)
 
@@ -407,8 +418,10 @@ def read_files(filename):
             if header.sub_event_stream != "InIceSplit":
                 continue
 
+            if gcd_filename is not None:
+                frame["I3Calibration"] = pass2_cal
 
-            DC_array, IC_near_DC_array, trig_time, extra_triggers, clean_pulses_8_or_more = get_observable_features(frame)
+            DC_array, IC_near_DC_array, trig_time, extra_triggers, clean_pulses_8_or_more = get_observable_features(frame,use_cleaned_pulses=use_cleaned_pulses,charge_min=charge_min)
             
             # Cut events with...
             # Multiple SMT3 tiggers or no SMT3 trigger
@@ -439,7 +452,7 @@ def read_files(filename):
     return  output_features_DC, output_features_IC, output_headers, skip_event
 
 
-def test_write(filename_list, model_name_list,output_dir, output_name, model_factor_list=[100.,1.,1.,1.], model_type_list=["energy","class","zenith","vertex","muon"]):
+def test_write(filename_list, model_name_list,output_dir, output_name, model_factor_list=[100.,1.,1.,1.], model_type_list=["energy","class","zenith","vertex","muon"],gcd_file=None,use_cleaned_pulses=True,charge_min=0.25):
 
 
     for a_file in filename_list:
@@ -450,7 +463,7 @@ def test_write(filename_list, model_name_list,output_dir, output_name, model_fac
         outfile = dataio.I3File(output_dir+output_name+".i3.zst",'w')
         print("Writing to %s"%(output_dir+output_name+".i3.zst"))
         
-        DC_array, IC_near_DC_array, header_array, skip_event = read_files(a_file)
+        DC_array, IC_near_DC_array, header_array, skip_event = read_files(a_file,gcd_filename=gcd_file,use_cleaned_pulses=use_cleaned_pulses,charge_min=charge_min)
         print(DC_array.shape, IC_near_DC_array.shape)
 
         if DC_array.shape[0] == 0:
@@ -539,12 +552,11 @@ def test_write(filename_list, model_name_list,output_dir, output_name, model_fac
     return 0
 
 #Construct list of filenames
-import glob
 
 event_file_names = sorted(glob.glob(input_file))
 assert event_file_names,"No files loaded, please check path."
 time_start=time.time()
-test_write(event_file_names, model_name_list, output_dir, output_name, model_factor_list=scale_factor_list, model_type_list=variable_list)
+test_write(event_file_names, model_name_list, output_dir, output_name, model_factor_list=scale_factor_list, model_type_list=variable_list,gcd_file=gcdfile,use_cleaned_pulses=use_cleaned_pulses,charge_min=charge_min)
 time_end=time.time()
 print("Total time: %f"%(time_end-time_start))
 

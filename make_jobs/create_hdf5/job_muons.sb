@@ -14,6 +14,6 @@ source ~/setup_combo_stable.sh
 
 echo python /mnt/home/micall12/LowEnergyNeuralNetwork/i3_to_hdf5.py  -i @@file@@ -o /mnt/scratch/micall12/training_files/@@folder@@/ --cleaned True --simtype muongun --reco True --reco_type flercnn
 
-python /mnt/home/micall12/LowEnergyNeuralNetwork/i3_to_hdf5.py  -i @@file@@ -o /mnt/scratch/micall12/training_files/@@folder@@/ --cleaned True --sim_type muongun --reco True --reco_type flercnn
+python /mnt/home/micall12/LowEnergyNeuralNetwork/i3_to_hdf5.py  -i @@file@@ -o /mnt/scratch/micall12/training_files/@@folder@@/ --cleaned True --sim_type muongun --reco True
 
 exit $?

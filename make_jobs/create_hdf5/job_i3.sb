@@ -12,6 +12,6 @@
 
 source ~/setup_combo_stable.sh
 
-python /mnt/home/micall12/LowEnergyNeuralNetwork/i3_to_hdf5.py  -i @@file@@ -o /mnt/scratch/micall12/training_files/@@folder@@/ --cleaned True --reco True --reco_type flercnn 
+python /mnt/home/micall12/LowEnergyNeuralNetwork/i3_to_hdf5.py  -i @@file@@ -o /mnt/scratch/micall12/training_files/@@folder@@/ --cleaned True --reco True 
 
 exit $?

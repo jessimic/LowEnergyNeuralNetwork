@@ -76,7 +76,7 @@ if args.check_filters == "True" or args.check_filters == "true":
 else:
     check_filters = False
 
-def get_observable_features(frame,low_window=-500,high_window=4000):
+def get_observable_features(frame,low_window=-500,high_window=4000,use_cleaned_pulses=True):
     """
     Load observable features from IceCube files
     Receives:
@@ -299,7 +299,7 @@ def apply_transform(features_DC, features_IC, output_labels=None, energy_factor=
 
         return features_DC, features_IC, output_labels, output_label_names, input_transform_factors, output_transform_factors
 
-def read_files(filename_list, use_old_reco, check_filters, true_name, reco_type):
+def read_files(filename_list, use_old_reco, check_filters, true_name, reco_type,use_cleaned_pulses=True):
     """
     Read list of files, make sure they pass L5 cuts, create truth labels
     Receives:
@@ -542,7 +542,7 @@ def read_files(filename_list, use_old_reco, check_filters, true_name, reco_type)
                         print("Do not know first particle type in MCTree, should be neutrino, skipping this event")
                         continue
                 
-                DC_array, IC_near_DC_array,initial_stats,num_pulses_per_dom, trig_time, extra_triggers, ICstrings, has_8_hits  = get_observable_features(frame)
+                DC_array, IC_near_DC_array,initial_stats,num_pulses_per_dom, trig_time, extra_triggers, ICstrings, has_8_hits  = get_observable_features(frame,use_cleaned_pulses=use_cleaned_pulses)
 
                 # Check if there were multiple SMT3 triggers or no SMT3 triggers
                 # Skip event if so
@@ -623,7 +623,7 @@ event_file_names = sorted(glob.glob(input_file))
 assert event_file_names,"No files loaded, please check path."
 time_start=time.time()
 
-features_DC, features_IC, labels, reco_labels, initial_stats, num_pulses_per_dom, trigger_times, weights, ICstrings = read_files(event_file_names, use_old_reco, check_filters, true_name, reco_type)
+features_DC, features_IC, labels, reco_labels, initial_stats, num_pulses_per_dom, trigger_times, weights, ICstrings = read_files(event_file_names, use_old_reco, check_filters, true_name, reco_type,use_cleaned_pulses=use_cleaned_pulses)
 
 features_DC, features_IC, labels, output_label_names, input_transform_factors, output_transform_factors = apply_transform(features_DC, features_IC, output_labels=labels, energy_factor=efactor, track_factor=tfactor)
 
