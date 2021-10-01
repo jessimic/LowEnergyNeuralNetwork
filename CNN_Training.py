@@ -47,6 +47,8 @@ parser.add_argument("--error",default=False,action='store_true',
                     dest="do_error",help="Add flag if want to train for error (only single variable supported, not for classification)")
 parser.add_argument("--cut_downgoing",default=False,action='store_true',
                     dest="cut_downgoing",help="Add flag if you want to only train on upgoing events (cosine zenith < 0.3)")
+parser.add_argument("--logE",default=False,action='store_true',
+                    dest="logE",help="Add flag if want to train for energy in log scale")
 args = parser.parse_args()
 
 # Settings from args
@@ -77,6 +79,7 @@ connected_drop_value = dropout
 start_epoch = args.start_epoch
 do_error = args.do_error
 cut_downgoing = args.cut_downgoing
+logE = args.logE
 
 old_model_given = args.model
 
@@ -238,6 +241,11 @@ for epoch in range(start_epoch,end_epoch):
         X_validate_DC = X_validate_DC[mask_validate]
         X_validate_IC = X_validate_IC[mask_validate]
 
+    if logE:
+        print("Training and validating on LOG E")
+        Y_train[:,0] = numpy.log10(Y_train[:,0])
+        Y_validate[:,0] = numpy.log10(Y_validate[:,0])
+
     # Compile model
     if train_variables == 1:
         if first_var == "energy":
@@ -248,7 +256,7 @@ for epoch in range(start_epoch,end_epoch):
             else:
                 model_DC.compile(loss=CustomLoss,
                     optimizer=Adam(lr=learning_rate),
-                    metrics=[EnergyLoss,ErrorLoss])
+                    metrics=[EnergyLoss])
         if first_var == "zenith":
             if do_error:
                 model_DC.compile(loss=CustomLoss,
@@ -318,7 +326,7 @@ for epoch in range(start_epoch,end_epoch):
     afile.close()
 
     print(epoch,len(file_names),epoch%len(file_names),len(file_names)-1)
-    if epoch%len(file_names) == (len(file_names)-1):
+    if epoch%len(file_names) == (len(file_names)-1) or (epoch%5==0):
         model_save_name = "%s%s_%iepochs_model.hdf5"%(save_folder_name,filename,epoch+1)
         model_DC.save(model_save_name)
         print("Saved model to %s"%model_save_name)

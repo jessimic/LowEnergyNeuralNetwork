@@ -68,6 +68,10 @@ parser.add_argument("--total_events",default=None,
                     dest="total_events",help="Total number of events to use, cut after shuffle")
 parser.add_argument("--test_fraction",default=0.1,type=float,
                     dest="test_fraction",help="Fraction of events for testing sample")
+parser.add_argument("--no_cut8hits",default=False,action='store_true',
+                    dest="no_cut_8hits", help="set flag if you DO NOT want to cut events with 8 hits")
+parser.add_argument("--no_cutProbNu",default=False,action='store_true',
+                    dest="no_cut_ProbNu", help="set flag if you DO NOT want to cut events with ProbNu < 0.95")
 parser.add_argument
 args = parser.parse_args()
 input_files = args.input_files
@@ -78,6 +82,8 @@ num_outputs = args.num_out
 assert num_outputs<100, "NEED TO CHANGE FILENAME TO ACCOMODATE THIS MANY NUMBERS"
 max_count = args.max_count
 
+cut_8_hits = not(args.no_cut_8hits)
+cut_ProbNu = not(args.no_cut_ProbNu)
 do_cuts = not(args.no_cuts)
 do_upgoing_cut = args.do_upgoing_cut
 transformed = not(args.not_transformed)
@@ -186,6 +192,17 @@ for a_file in event_file_names:
     else:
         keep_index = np.ones(file_labels.shape[0],dtype=bool) #true energy > 0, should be all true
         assert sum(keep_index)==len(keep_index), "True energy is not > 0 for all events"
+    if cut_8_hits:
+        assert file_labels.shape[1] > 15, "file does not have 8 hit saved, likely this cut was already applied using an older version of i3_to_hdf5.py"
+        has_8_hit = file_labels[:,15] == 1
+        print("Skipping %i events with < 8 hits"%(len(has_8_hit)-sum(has_8_hit)))
+        keep_index = np.logical_and(keep_index,has_8_hit)
+    if cut_ProbNu:
+        assert file_labels.shape[1] > 15, "file does not have ProbNu saved, likely this cut was already applied using an older version of i3_to_hdf5.py"
+        passes_ProbNu = file_labels[:,16] > 0.95
+        print("Skipping %i events with ProbNu > 0.95"%(len(passes_ProbNu)-sum(passes_ProbNu)))
+        keep_index = np.logical_and(keep_index,passes_ProbNu)
+
     number_events = sum(keep_index)
 
     if full_features_DC is None:

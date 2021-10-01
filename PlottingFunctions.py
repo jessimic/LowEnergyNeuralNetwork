@@ -1073,10 +1073,10 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
                        bins=10,min_val=0.,max_val=60., ylim = None,\
                        save=False,savefolder=None,vs_predict=False,\
                        flavor="NuMu", sample="CC",style="contours",\
-                       variable="Energy",units="(GeV)",
+                       variable="Energy",units="(GeV)",xlog=False,
                        xvariable="Energy",xunits="(GeV)",\
                        specific_bins = None,xline=None,xline_name="DeepCore",
-                       epochs=None,reco_name="Retro",cnn_name="CNN"):
+                       epochs=None,reco_name="Retro",cnn_name="CNN",legend="upper center"):
     """Plots different variable slices vs each other (systematic set arrays)
     Receives:
         truth= array with truth labels for this one variable
@@ -1144,6 +1144,8 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
         variable_ranges  = numpy.linspace(min_val,max_val, num=bins+1)
         variable_centers = (variable_ranges[1:] + variable_ranges[:-1])/2.
     else:
+        max_val = specific_bins[-1]
+        min_val = specific_bins[0]
         variable_ranges = specific_bins
         variable_centers = []
         for i in range(len(specific_bins)-1):
@@ -1203,13 +1205,13 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
 
         if old_reco is not None:
             if reco_weights is not None:
-                lower_lim_reco = wq.quantile(resolution_reco[cut2],reco_weights[cut2],left_tail_percentile)
-                upper_lim_reco = wq.quantile(resolution_reco[cut2],reco_weights[cut2],right_tail_percentile)
+                lower_lim_reco = wq.quantile(resolution_reco[cut2],reco_weights[cut2],left_tail_percentile/100.)
+                upper_lim_reco = wq.quantile(resolution_reco[cut2],reco_weights[cut2],right_tail_percentile/100.)
                 median_reco = wq.median(resolution_reco[cut2],reco_weights[cut2])
             else:
-                lower_lim_reco = numpy.percentile(resolution_reco[cut2], left_tail_percentile)
-                upper_lim_reco = numpy.percentile(resolution_reco[cut2], right_tail_percentile)
-                median_reco = numpy.percentile(resolution_reco[cut2], 50.)
+                lower_lim_reco = numpy.percentile(resolution_reco[cut2], left_tail_percentile/100.)
+                upper_lim_reco = numpy.percentile(resolution_reco[cut2], right_tail_percentile/100.)
+                median_reco = numpy.percentile(resolution_reco[cut2], 0.50)
 
             medians_reco[i] = median_reco
             err_from_reco[i] = lower_lim_reco
@@ -1218,16 +1220,14 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
     plt.figure(figsize=(10,7))
     plt.plot([min_val,max_val], [0,0], color='k')
     if style == "errorbars":
-        (_, caps, _) = plt.errorbar(variable_centers, medians, yerr=[medians-err_from, err_to-medians], xerr=[ variable_centers-variable_ranges[:-1], variable_ranges[1:]-variable_centers ], capsize=3.0, fmt='o',label=cnn_name)
-        for cap in caps:
-            cap.set_markeredgewidth(5)
         if old_reco is not None:
             (_, caps_reco, _) = plt.errorbar(variable_centers, medians_reco, yerr=[medians_reco-err_from_reco, err_to_reco-medians_reco], xerr=[ variable_centers-variable_ranges[:-1], variable_ranges[1:]-variable_centers ], capsize=3.0, fmt='o',label="%s"%reco_name)
             for cap in caps_reco:
                 cap.set_markeredgewidth(5)
-            plt.legend(loc="upper center")
-            if vs_predict:
-                plt.legend(loc="lower center")
+        (_, caps, _) = plt.errorbar(variable_centers, medians, yerr=[medians-err_from, err_to-medians], xerr=[ variable_centers-variable_ranges[:-1], variable_ranges[1:]-variable_centers ], capsize=3.0, fmt='o',label=cnn_name)
+        for cap in caps:
+            cap.set_markeredgewidth(5)
+        plt.legend(loc=legend)
         if xline is not None:
             if type(xline) is list:
                 for x_val in xline:
@@ -1235,9 +1235,7 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
             else:
                 plt.axvline(xline,linewidth=3,color='k',linestyle="dashed",label="%s"%xline_name)
             
-            plt.legend(loc="upper center")
-            if vs_predict:
-                plt.legend(loc="lower center")
+            plt.legend(loc=legend)
     else: #countours
         alpha=0.5
         lwid=3
@@ -1248,23 +1246,20 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
         rcolors = cmap(numpy.linspace(0, 1, 2 + 2))[2:]
         rcolor=rcolors[0] 
         ax = plt.gca()
-        ax.plot(variable_centers, medians,linestyle='-',label="%s median"%(cnn_name), color=color, linewidth=lwid)
-        ax.fill_between(variable_centers,medians, err_from,color=color, alpha=alpha)
-        ax.fill_between(variable_centers,medians, err_to, color=color, alpha=alpha,label=cnn_name + ' 68%')
         if old_reco is not None:
             ax.plot(variable_centers,medians_reco, color=rcolor, linestyle='-', label="%s median"%reco_name, linewidth=lwid)
             ax.fill_between(variable_centers,medians_reco,err_from_reco, color=rcolor, alpha=alpha)
             ax.fill_between(variable_centers,medians_reco,err_to_reco, color=rcolor,alpha=alpha,label=reco_name + ' 68%')
+        ax.plot(variable_centers, medians,linestyle='-',label="%s median"%(cnn_name), color=color, linewidth=lwid)
+        ax.fill_between(variable_centers,medians, err_from,color=color, alpha=alpha)
+        ax.fill_between(variable_centers,medians, err_to, color=color, alpha=alpha,label=cnn_name + ' 68%')
         if xline is not None:
             if type(xline) is list:
                 for x_val in xline:
-                    plt.axvline(x_val,linewidth=3,color='k',linestyle="dashed",label="%xline_name"%s)
+                    plt.axvline(x_val,linewidth=3,color='k',linestyle="dashed",label="%s"%xline_name)
             else:
-                plt.axvline(xline,linewidth=3,color='k',linestyle="dashed",label="%xline_name"%s)
-        if vs_predict:
-            plt.legend(loc="lower center")
-        else:
-            plt.legend(loc="upper center")
+                plt.axvline(xline,linewidth=3,color='k',linestyle="dashed",label="%s"%xline_name)
+        plt.legend(loc=legend)
     plt.xlim(min_val,max_val)
     if ylim is not None:
         plt.ylim(ylim)
@@ -1278,6 +1273,9 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
         plt.ylabel(r'Fractional Resolution: $\frac{reconstruction - truth}{truth}$',fontsize=20)
     else:
          plt.ylabel("Resolution: \n reconstruction - truth %s"%units,fontsize=20)
+    if xlog:
+        plt.xscale('log')
+
     #if epochs:
     #    title += " at %i Epochs"%epochs
     if flavor == "NuMu" or flavor == "numu":
@@ -1311,6 +1309,8 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
         savename += "_%sBinned"%xvar_no_space
     if style == "errorbars":
         savename += "ErrorBars"
+    if xlog:
+        savename +="_xlog"
     if old_reco is not None:
         savename += "_Compare%sReco"%reco_name
     if ylim is not None:

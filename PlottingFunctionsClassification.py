@@ -215,11 +215,11 @@ def ROC(truth, prediction,reco=None,reco_truth=None,mask=None,mask_name="",reco_
     #ax.plot(rates_t[0],rates_t[1],"g*",markersize=10,label="10% Track Contamination")
     #ax.plot(rates_c[0],rates_c[1],"b*",markersize=10,label="10% Cascade Contamination")
     props = dict(boxstyle='round', facecolor='blue', alpha=0.3)
-    ax.text(0.1, 0.95, r'CNN AUC:%.3f'%auc, transform=ax.transAxes, fontsize=20,
+    ax.text(0.65, 0.45, r'CNN AUC:%.3f'%auc, transform=ax.transAxes, fontsize=20,
             verticalalignment='top', bbox=props)
     if reco is not None:
         props = dict(boxstyle='round', facecolor='blue', alpha=0.3)
-        ax.text(0.1, 0.85, r'%s AUC:%.3f'%(reco_name,auc_reco), 
+        ax.text(0.65, 0.35, r'%s AUC:%.3f'%(reco_name,auc_reco), 
             transform=ax.transAxes, fontsize=20, verticalalignment='top', bbox=props)
     ax.legend(loc="lower right",fontsize=20)
 

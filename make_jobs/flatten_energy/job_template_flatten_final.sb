@@ -4,7 +4,7 @@
 
 #SBATCH --time=03:59:00             # limit of wall clock time - how long the job will run (same as -t)
 #SBATCH --nodes=1                 # number of different nodes - could be an exact number or a range of nodes (same as -N)
-#SBATCH --mem-per-cpu=1200G            # memory required per allocated CPU (or core) - amount of memory (in bytes)
+#SBATCH --mem-per-cpu=1500G            # memory required per allocated CPU (or core) - amount of memory (in bytes)
 #SBATCH --job-name make_uncontained_even_events    # you can give your job a name for easier identification (same as -J)
 
 ########### Command Lines to Run ##########
@@ -17,9 +17,9 @@ NUMOUT=$4
 
 source /mnt/home/micall12/setup_anaconda.sh
 
-echo python $INDIR/flatten_energy_distribution.py -i $INFILE -d /mnt/scratch/micall12/training_files/batch_file/149999/redo_28May/ -o $NAME --emax 500 --emin 1 --max_per_bin $MAX --cuts CC --shuffle --num_out $NUMOUT --transformed --split
+echo python $INDIR/flatten_energy_distribution.py -i $INFILE -d /mnt/scratch/micall12/training_files/batch_file/149999/ -o /mnt/scratch/micall12/training_files/batch_file/149999/ -n $NAME --emax 500 --emin 1 --max_per_bin $MAX --cuts CC --shuffle --num_out $NUMOUT --transformed --split
 
-python $INDIR/flatten_energy_distribution.py -i $INFILE -o $NAME -d /mnt/scratch/micall12/training_files/batch_file/149999/redo_28May/ --emax 500 --emin 1 --max_per_bin $MAX --cuts CC --shuffle --num_out $NUMOUT --transformed --split --fraction_test 0.0
+python $INDIR/flatten_energy_distribution.py -i $INFILE -n $NAME -d /mnt/scratch/micall12/training_files/batch_file/149999/ -o /mnt/scratch/micall12/training_files/batch_file/149999/ --emax 500 --emin 1 --max_per_bin $MAX --cuts CC --shuffle --num_out $NUMOUT --transformed --split --fraction_test 0.0
 
 exit $?
 

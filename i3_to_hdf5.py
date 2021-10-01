@@ -554,15 +554,15 @@ def read_files(filename_list, use_old_reco, check_filters, true_name, reco_type,
                 if has_8_hits == False:
                     less_8_hits += 1
                     #print("event has less than 8 hits")
-                    continue
+                    #continue
 
                 if L4_NoiseClassifier_ProbNu < 0.95:
                     probnu +=1
-                    continue
+                    #continue
 
                 # regression variables
                 # OUTPUT: [ nu energy, nu zenith, nu azimuth, nu time, nu x, nu y, nu z, track length (0 for cascade), isTrack, flavor, type (anti = 1), isCC, nu zenith (will not be transformed to cos zenith), total daughter particle energy, total EM equivalent energy from daughter particles ]
-                output_labels.append( np.array([ float(nu_energy), float(nu_zenith), float(nu_azimuth), float(nu_time), float(nu_x), float(nu_y), float(nu_z), float(track_length), float(isTrack), float(neutrino_type), float(particle_type), float(isCC), float(nu_zenith), float(total_daughter_energy), float(em_equiv_daughter_energy) ]) )
+                output_labels.append( np.array([ float(nu_energy), float(nu_zenith), float(nu_azimuth), float(nu_time), float(nu_x), float(nu_y), float(nu_z), float(track_length), float(isTrack), float(neutrino_type), float(particle_type), float(isCC), float(nu_zenith), float(total_daughter_energy), float(em_equiv_daughter_energy), float(has_8_hits),  float(L4_NoiseClassifier_ProbNu) ]) )
 
                 if use_old_reco:
                     output_reco_labels.append( np.array([ float(reco_energy), float(reco_zenith), float(reco_azimuth), float(reco_time), float(reco_x), float(reco_y), float(reco_z), float(reco_length), float(reco_track_energy), float(reco_casc_energy), float(reco_em_casc_energy), float(reco_zenith) ]) )
@@ -603,9 +603,11 @@ def read_files(filename_list, use_old_reco, check_filters, true_name, reco_type,
     if skipped_triggers > 0:
         print("Skipped %i events due to no or double triggers"%skipped_triggers)
     if less_8_hits > 0:
-        print("Skipped %i events due to less than 8 hits"%less_8_hits)
+        #print("Skipped %i events due to less than 8 hits"%less_8_hits)
+        print("INCLUDED %i events WITH to less than 8 hits"%less_8_hits)
     if probnu > 0:
-        print("Skipped %i events due to ProbNu < 0.95"%probnu)
+        #print("Skipped %i events due to ProbNu < 0.95"%probnu)
+        print("INCLUDED %i events WITH to ProbNu < 0.95"%probnu)
     if failed_fit > 0:
         print("Skipped %i events due to failed retro fit"%failed_fit)
     if failed_iter > 0:
@@ -618,6 +620,8 @@ def read_files(filename_list, use_old_reco, check_filters, true_name, reco_type,
 
 #Construct list of filenames
 import glob
+
+print("NOT REMOVING 8 HITS OR PROB NU at this step. Saving them in labels output for later cuts")
 
 event_file_names = sorted(glob.glob(input_file))
 assert event_file_names,"No files loaded, please check path."

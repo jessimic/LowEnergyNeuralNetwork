@@ -1,0 +1,344 @@
+python /mnt/home/micall12/LowEnergyNeuralNetwork/flatten_energy_distribution.py -i NuMu_genie_149999_*k_level6.zst_cleanedpulses_*_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5 -d /mnt/scratch/micall12/training_files/batch_file/129999/ /mnt/scratch/micall12/training_files/batch_file/149999/ -o /mnt/scratch/micall12/training_files/batch_file/129999/ /mnt/scratch/micall12/training_files/batch_file/149999/ -n PID_149999_genie_level6_cleanedpulses_transformed_IC19_ --emax 200 --emin 5 --cuts NC --num_out 4 --transformed --shuffle
+Keeping NC event types
+Saving PEGLEG info: False 
+Bin size: 1.000000 GeV 
+Max Count Per Bin: 10000 events 
+Energy Range: 5.000000 - 200.000000 
+Starting cut: all_start 
+Ending cut: all_end 
+Shuffling: True 
+Keeping event types: NC
+Assuming file is already transformed by 100.000000 for energy and 200.000000 for track, and cosine zenith
+USING HARD CODED MAX PER BIN ARRAY!!!!!!!!
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 49521
+Total tracks saved: 0, Total cascades saved: 49521, Saved this file: 49521, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_00k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 24253
+Total tracks saved: 0, Total cascades saved: 73774, Saved this file: 24253, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_03k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 7454
+Total tracks saved: 0, Total cascades saved: 81228, Saved this file: 7454, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_04k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 10988
+Total tracks saved: 0, Total cascades saved: 92216, Saved this file: 10988, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_05k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 149751
+Total tracks saved: 0, Total cascades saved: 241967, Saved this file: 149751, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_06k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 175950
+Total tracks saved: 0, Total cascades saved: 417917, Saved this file: 175950, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_07k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 146587
+Total tracks saved: 0, Total cascades saved: 564504, Saved this file: 146587, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_08k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 172147
+Total tracks saved: 0, Total cascades saved: 736651, Saved this file: 172147, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_09k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 22023
+Total tracks saved: 0, Total cascades saved: 758674, Saved this file: 22023, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_10k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 33788
+Total tracks saved: 0, Total cascades saved: 792462, Saved this file: 33788, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_11k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 122337
+Total tracks saved: 0, Total cascades saved: 914799, Saved this file: 122337, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_12k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 83812
+Total tracks saved: 0, Total cascades saved: 998611, Saved this file: 83812, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_13k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 169751
+Total tracks saved: 0, Total cascades saved: 1168362, Saved this file: 169751, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_14k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 147436
+Total tracks saved: 0, Total cascades saved: 1315798, Saved this file: 147436, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_15k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 74
+Total tracks saved: 0, Total cascades saved: 1315872, Saved this file: 74, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_16k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 50900
+Total tracks saved: 0, Total cascades saved: 1315872, Saved this file: 0, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_20k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 57081
+Total tracks saved: 0, Total cascades saved: 1315872, Saved this file: 0, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_21k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 34054
+Total tracks saved: 0, Total cascades saved: 1315872, Saved this file: 0, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_22k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 15940
+Total tracks saved: 0, Total cascades saved: 1315872, Saved this file: 0, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_23k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 15938
+Total tracks saved: 0, Total cascades saved: 1315872, Saved this file: 0, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_24k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 94624
+Total tracks saved: 0, Total cascades saved: 1333229, Saved this file: 17357, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_25k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 112599
+Total tracks saved: 0, Total cascades saved: 1351381, Saved this file: 18152, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_26k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 102000
+Total tracks saved: 0, Total cascades saved: 1369456, Saved this file: 18075, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_27k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 124311
+Total tracks saved: 0, Total cascades saved: 1390527, Saved this file: 21071, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_28k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 133262
+Total tracks saved: 0, Total cascades saved: 1414973, Saved this file: 24446, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_29k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 10264
+Total tracks saved: 0, Total cascades saved: 1423086, Saved this file: 8113, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_30k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 15561
+Total tracks saved: 0, Total cascades saved: 1435567, Saved this file: 12481, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_31k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 16261
+Total tracks saved: 0, Total cascades saved: 1448479, Saved this file: 12912, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_32k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 16132
+Total tracks saved: 0, Total cascades saved: 1461277, Saved this file: 12798, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_33k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 14903
+Total tracks saved: 0, Total cascades saved: 1463907, Saved this file: 2630, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_34k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 19540
+Total tracks saved: 0, Total cascades saved: 1467778, Saved this file: 3871, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_35k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 27871
+Total tracks saved: 0, Total cascades saved: 1472509, Saved this file: 4731, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_36k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 31265
+Total tracks saved: 0, Total cascades saved: 1478020, Saved this file: 5511, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_37k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 32346
+Total tracks saved: 0, Total cascades saved: 1484070, Saved this file: 6050, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_38k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 37191
+Total tracks saved: 0, Total cascades saved: 1491714, Saved this file: 7644, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_39k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 49383
+Total tracks saved: 0, Total cascades saved: 1498804, Saved this file: 7090, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_40k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 40831
+Total tracks saved: 0, Total cascades saved: 1505514, Saved this file: 6710, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_41k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 17313
+Total tracks saved: 0, Total cascades saved: 1508579, Saved this file: 3065, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_42k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 5905
+Total tracks saved: 0, Total cascades saved: 1509796, Saved this file: 1217, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_43k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 43250
+Total tracks saved: 0, Total cascades saved: 1516983, Saved this file: 7187, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_44k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 86278
+Total tracks saved: 0, Total cascades saved: 1516984, Saved this file: 1, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_45k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 71278
+Total tracks saved: 0, Total cascades saved: 1516984, Saved this file: 0, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_46k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 4594
+Total tracks saved: 0, Total cascades saved: 1516984, Saved this file: 0, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_47k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 15873
+Total tracks saved: 0, Total cascades saved: 1516984, Saved this file: 0, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_48k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 53171
+Total tracks saved: 0, Total cascades saved: 1516984, Saved this file: 0, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_49k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 105593
+Total tracks saved: 0, Total cascades saved: 1516984, Saved this file: 0, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_50k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 75637
+Total tracks saved: 0, Total cascades saved: 1516984, Saved this file: 0, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_51k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 150279
+Total tracks saved: 0, Total cascades saved: 1516984, Saved this file: 0, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_52k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 103433
+Total tracks saved: 0, Total cascades saved: 1516984, Saved this file: 0, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_53k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 49080
+Total tracks saved: 0, Total cascades saved: 1516984, Saved this file: 0, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_54k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 40629
+Total tracks saved: 0, Total cascades saved: 1516984, Saved this file: 0, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_55k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 32583
+Total tracks saved: 0, Total cascades saved: 1516984, Saved this file: 0, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_56k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 14990
+Total tracks saved: 0, Total cascades saved: 1516984, Saved this file: 0, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_57k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 265343
+Total tracks saved: 0, Total cascades saved: 1516984, Saved this file: 0, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_58k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 209648
+Total tracks saved: 0, Total cascades saved: 1516984, Saved this file: 0, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_59k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 18144
+Total tracks saved: 0, Total cascades saved: 1516984, Saved this file: 0, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_60k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 67046
+Total tracks saved: 0, Total cascades saved: 1516984, Saved this file: 0, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_61k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 130963
+Total tracks saved: 0, Total cascades saved: 1516984, Saved this file: 0, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_62k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 92341
+Total tracks saved: 0, Total cascades saved: 1516984, Saved this file: 0, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_63k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 59189
+Total tracks saved: 0, Total cascades saved: 1516984, Saved this file: 0, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_64k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 39204
+Total tracks saved: 0, Total cascades saved: 1516984, Saved this file: 0, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_65k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 26672
+Total tracks saved: 0, Total cascades saved: 1516984, Saved this file: 0, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_66k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 22182
+Total tracks saved: 0, Total cascades saved: 1516984, Saved this file: 0, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_67k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 24148
+Total tracks saved: 0, Total cascades saved: 1516984, Saved this file: 0, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_68k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 23535
+Total tracks saved: 0, Total cascades saved: 1516984, Saved this file: 0, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_69k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 7541
+Total tracks saved: 0, Total cascades saved: 1516984, Saved this file: 0, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_70k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 21997
+Total tracks saved: 0, Total cascades saved: 1516984, Saved this file: 0, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_71k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 14269
+Total tracks saved: 0, Total cascades saved: 1516984, Saved this file: 0, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_72k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 21797
+Total tracks saved: 0, Total cascades saved: 1516984, Saved this file: 0, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_73k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 9665
+Total tracks saved: 0, Total cascades saved: 1516984, Saved this file: 0, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_74k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 23667
+Total tracks saved: 0, Total cascades saved: 1516984, Saved this file: 0, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_75k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 11587
+Total tracks saved: 0, Total cascades saved: 1516984, Saved this file: 0, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_76k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 22649
+Total tracks saved: 0, Total cascades saved: 1516984, Saved this file: 0, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/149999/NuMu_genie_149999_77k_level6.zst_cleanedpulses_transformed_IC19lt500_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5
+Got rid of 2832618 events out of the energy bounds [5.000000, 200.000000]
+Finished concatonating all the files. Now I will shuffle..
+[0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0.
+ 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0.
+ 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0.
+ 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0.
+ 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0.
+ 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0.
+ 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0.
+ 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0.
+ 0. 0. 0.]
+[17056. 29960.   711.  1039.  1435.  1884.  2305.  2848.  3524.  4008.
+  4662.  5295.  6015.  6660.  7396.  2249.  2508.  2674.  2910.  3096.
+  3386.  3429.  3779.  3846.  4018.  4187.  4293.  4612.  4724.  4794.
+  5082.  5229.  5352.  5428.  5726.  5137.  5137.  5300.  5595.  5494.
+  5693.  5774.  6014.  6169.  6244.  6169.  6376.  6517.  6570.  6759.
+  6733.  6867.  7064.  6972.  6980.  7223.  7111.  7327.  7454.  7440.
+  7653.  7706.  7607.  7682.  7650.  7875.  7906.  8018.  8202.  8079.
+  8259.  8350.  8244.  8254.  8441.  6717.  6870.  7087.  6895.  6944.
+  6964.  6969.  7072.  7151.  7327.  7283.  7162.  7209.  7268.  7473.
+  7378.  7329.  7240.  7458.  7462.  7349.  7448.  7384.  7499.  7637.
+  7661.  7549.  7554.  7541.  7641.  7713.  7847.  7863.  7761.  7765.
+  7803.  7568.  7766.  7810.  7729.  7886.  8000.  7892.  8028.  7879.
+  7743.  8085.  8003.  7782.  7959.  7982.  7965.  7967.  7969.  8018.
+  7996.  7850.  7990.  7952.  8106.  7957.  8198.  8118.  7990.  7930.
+  8079.  8016.  8000.  8003.  8044. 10495. 10472. 10612. 10398. 10389.
+ 10482. 10507. 10545. 10307. 10433. 10403. 10395. 10575. 10574. 10408.
+ 10333. 10462. 10490. 10575. 10526. 10715. 10550. 10564. 10783. 10722.
+ 10641. 10507. 10600. 10572. 10547. 10481. 10517. 10354. 10445. 10449.
+ 10653. 10558. 10488. 10632. 10429. 10357. 10459. 10475. 10582. 10466.
+ 10582. 10562. 10633. 10497. 10085.]
+Total events saved: 1516984
+I put evnts 0 - 379247 into /mnt/scratch/micall12/training_files/batch_file/PID_149999_genie_level6_cleanedpulses_transformed_IC19_lt200_NC_all_start_all_end_flat_195bins_variableevtperbin_file00.hdf5
+Saved:  ['features DC', 'features IC', 'labels', 'weights', 'initial stats', 'number of pulses per DOM', 'trigger times', 'output label names', 'output transform factors', 'input transform factors']
+I put evnts 379247 - 758494 into /mnt/scratch/micall12/training_files/batch_file/PID_149999_genie_level6_cleanedpulses_transformed_IC19_lt200_NC_all_start_all_end_flat_195bins_variableevtperbin_file01.hdf5
+Saved:  ['features DC', 'features IC', 'labels', 'weights', 'initial stats', 'number of pulses per DOM', 'trigger times', 'output label names', 'output transform factors', 'input transform factors']
+I put evnts 758494 - 1137741 into /mnt/scratch/micall12/training_files/batch_file/PID_149999_genie_level6_cleanedpulses_transformed_IC19_lt200_NC_all_start_all_end_flat_195bins_variableevtperbin_file02.hdf5
+Saved:  ['features DC', 'features IC', 'labels', 'weights', 'initial stats', 'number of pulses per DOM', 'trigger times', 'output label names', 'output transform factors', 'input transform factors']
+I put evnts 1137741 - 1516984 into /mnt/scratch/micall12/training_files/batch_file/PID_149999_genie_level6_cleanedpulses_transformed_IC19_lt200_NC_all_start_all_end_flat_195bins_variableevtperbin_file03.hdf5
+Saved:  ['features DC', 'features IC', 'labels', 'weights', 'initial stats', 'number of pulses per DOM', 'trigger times', 'output label names', 'output transform factors', 'input transform factors']

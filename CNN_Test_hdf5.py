@@ -40,7 +40,7 @@ parser.add_argument("-n", "--name",type=str,default=None,
                     dest="name", help="name for output directory and where model file located")
 parser.add_argument("-t","--test", type=str,default="oscnext",
                         dest='test',help="name of reco")
-parser.add_argument("--model_dir", type=str,default="/home/users/jmicallef/LowEnergyNeuralNetwork/output_plots/",
+parser.add_argument("--model_dir", type=str,default="/mnt/home/micall12/LowEnergyNeuralNetwork/output_plots/",
                         dest='model_dir',help="name of reco")
 parser.add_argument("--variable_list",nargs='+',default=[],
                     dest="variable_list", help="names of variables that were predicted: energy, zenith, class, muon, vertex")
@@ -66,7 +66,7 @@ epoch_list = args.epoch_list
 modelname_list = args.modelname_list
 factor_list = args.factor_list
 
-accepted_names = ["energy", "zenith", "class", "vertex", "muon"]
+accepted_names = ["energy", "zenith", "class", "vertex", "muon", "error"]
 for var in variable_list:
     assert var in accepted_names, "Variable must be one of the accepted names, check parse arg help for variable for more info"
 
@@ -76,7 +76,7 @@ for variable_index in range(num_variables):
     if epoch_list[variable_index] is None:
         model_name = args.model_dir + "/" + modelname_list[variable_index]
     else:
-        model_name = "%s/%s_%sepochs_model.hdf5"%(args.model_dir,modelname_list[variable_index],epoch_list[variable_index])
+        model_name = "%s/%s/%s_%sepochs_model.hdf5"%(args.model_dir,modelname_list[variable_index], modelname_list[variable_index],epoch_list[variable_index])
     model_name_list.append(model_name)
 
 save = True
@@ -88,6 +88,8 @@ if save==True:
 def cnn_test(features_DC, features_IC, load_model_name, output_variables=1,DC_drop_value=0.2,IC_drop_value=0.2,connected_drop_value=0.2,model_type="energy"):
     if model_type == "class" or model_type == "muon":
         from cnn_model_classification import make_network
+    elif model_type == "error":
+        from cnn_model_losserror import make_network
     else:
         from cnn_model import make_network
 
@@ -125,6 +127,9 @@ for network in range(num_variables):
         output_var = 3
     else:
         output_var = 1
+    #if "error" in variable_list[network]:
+    #    output_var = output_var*2
+
     t0 = time.time()
     cnn_predictions.append(cnn_test(X_test_DC_use, X_test_IC_use, model_name_list[network],model_type=variable_list[network], output_variables=output_var))
     if factor is not None:

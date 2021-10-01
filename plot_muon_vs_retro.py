@@ -16,6 +16,7 @@ matplotlib.rcParams['agg.path.chunksize'] = 10000
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_curve, auc, roc_auc_score, recall_score
 from sklearn.metrics import confusion_matrix
+from PlottingFunctions import plot_bin_slices
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input",type=str,default=None,
@@ -49,10 +50,11 @@ no_weights = args.no_weights
 save_folder = args.output_dir
 save = True
 
+plot_nu_resolution = True
 plot_energy = False
-plot_main = False
+plot_main = True
 compare_resolution = False
-hists1d = True
+hists1d = False
 print_rates = False
 print_retro_rates = False
 plot_rates = False
@@ -206,7 +208,7 @@ from PlottingFunctions import plot_2D_prediction
 
 mask_here = mask_upgoing_retro
 mask_here_retro = mask_upgoing_retro
-mask_name_here="Upgoing_L7Retro"
+mask_name_here=""
 if no_weights:
     mask_name_here += "_NoWeights"
 
@@ -337,144 +339,357 @@ retro_prob_track = retro_prob_track[mask_here]
 """
 
 
-save_folder += "/%s/"%mask_name_here
+#save_folder += "/%s/"%mask_name_here
+save_folder += "/Upgoing_L7RetroCompare/"
 print("Working on %s"%save_folder)
 if os.path.isdir(save_folder) != True:
     os.mkdir(save_folder)
 
-"""
-from PlottingFunctions import plot_bin_slices
-a_mask = retro_mask & true_isNu & true_isCC
-variable_name = "Energy"
-units = "(GeV)"
-flavor_name = "Nu"
-plot_bin_slices(true_energy[a_mask], cnn_energy[a_mask],
-                        weights=weights[a_mask],old_reco = retro_energy[a_mask],
-                        vs_predict = True,use_fraction = True,
-                        specific_bins=[1,3,10,15,20,25,30,35,40,50,60,70,80,100,120,140,160,200],
-                        min_val=minval, max_val=200,
-                        save=save, savefolder=save_folder,\
-                        variable=variable_name, units=units,
-                        flavor=flavor_name,sample="CC")
-plot_bin_slices(true_energy[a_mask], cnn_energy[a_mask],
-                        weights=weights[a_mask],old_reco = retro_energy[a_mask],
-                        vs_predict = False,use_fraction = True,
-                        specific_bins=[1,3,10,15,20,25,30,35,40,50,60,70,80,100,120,140,160,200],
-                        min_val=minval, max_val=200,
-                        save=save, savefolder=save_folder,\
-                        variable=variable_name, units=units,
-                        flavor=flavor_name,sample="CC")
-a_mask = retro_mask & true_isNuMu & true_isCC
-flavor_name = "NuMu"
-plot_bin_slices(true_energy[a_mask], cnn_energy[a_mask],
-                        weights=weights[a_mask],old_reco = retro_energy[a_mask],
-                        vs_predict = True,use_fraction = True,
-                        specific_bins=[1,3,10,15,20,25,30,35,40,50,60,70,80,100,120,140,160,200],
-                        min_val=minval, max_val=200,
-                        save=save, savefolder=save_folder,\
-                        variable=variable_name, units=units,
-                        flavor=flavor_name,sample="CC")
-plot_bin_slices(true_energy[a_mask], cnn_energy[a_mask],
-                        weights=weights[a_mask],old_reco = retro_energy[a_mask],
-                        vs_predict = False,use_fraction = True,
-                        specific_bins=[1,3,10,15,20,25,30,35,40,50,60,70,80,100,120,140,160,200],
-                        min_val=minval, max_val=200,
-                        save=save, savefolder=save_folder,\
-                        variable=variable_name, units=units,
-                        flavor=flavor_name,sample="CC")
-"""
+if plot_nu_resolution:
+    variable_name = "Energy"
+    units = "(GeV)"
+    """
+    a_mask = retro_mask & true_isNu & true_isCC
+    flavor_name = "Nu"
+    plot_bin_slices(true_energy[a_mask], cnn_energy[a_mask],
+                            weights=weights[a_mask],old_reco = retro_energy[a_mask],
+                            vs_predict = True,use_fraction = True,
+                            specific_bins=[1,3,10,15,20,25,30,35,40,50,60,70,80,100,120,140,160,200],
+                            min_val=minval, max_val=200,
+                            save=save, savefolder=save_folder,\
+                            variable=variable_name, units=units,
+                            flavor=flavor_name,sample="CC")
+    plot_bin_slices(true_energy[a_mask], cnn_energy[a_mask],
+                            weights=weights[a_mask],old_reco = retro_energy[a_mask],
+                            vs_predict = False,use_fraction = True,
+                            specific_bins=[1,3,10,15,20,25,30,35,40,50,60,70,80,100,120,140,160,200],
+                            min_val=minval, max_val=200,
+                            save=save, savefolder=save_folder,\
+                            variable=variable_name, units=units,
+                            flavor=flavor_name,sample="CC")
+    a_mask = retro_mask & true_isNuMu & true_isCC
+    flavor_name = "NuMu"
+    plot_bin_slices(true_energy[a_mask], cnn_energy[a_mask],
+                            weights=weights[a_mask],old_reco = retro_energy[a_mask],
+                            vs_predict = True,use_fraction = True,
+                            specific_bins=[1,3,10,15,20,25,30,35,40,50,60,70,80,100,120,140,160,200],
+                            min_val=minval, max_val=200,
+                            save=save, savefolder=save_folder,\
+                            variable=variable_name, units=units,
+                            flavor=flavor_name,sample="CC")
+    plot_bin_slices(true_energy[a_mask], cnn_energy[a_mask],
+                            weights=weights[a_mask],old_reco = retro_energy[a_mask],
+                            vs_predict = False,use_fraction = True,
+                            specific_bins=[1,3,10,15,20,25,30,35,40,50,60,70,80,100,120,140,160,200],
+                            min_val=minval, max_val=200,
+                            save=save, savefolder=save_folder,\
+                            variable=variable_name, units=units,
+                            flavor=flavor_name,sample="CC")
+    """
 
-a_mask_here = true_isNuMu & true_isCC
-a_flavor_here = "NuMu"
-bins_here = 20
-maxval_here = 20
-plot_2D_prediction(true_energy[a_mask_here],
+    a_mask_here = true_isNuMu & true_isCC
+    a_flavor_here = "NuMu"
+    bins_here = 200
+    maxval_here = 200
+    plot_2D_prediction(true_energy[a_mask_here],
+                                cnn_energy[a_mask_here],
+                                weights=weights[a_mask_here],
+                                save=save, savefolder=save_folder,
+                                bins=100,
+                                variable="Energy", units="(GeV)",
+                                reco_name="CNN",flavor=a_flavor_here,sample="CC")
+    plot_2D_prediction(true_energy[a_mask_here],
+                                cnn_energy[a_mask_here],
+                                weights=weights[a_mask_here],
+                                save=save, savefolder=save_folder,
+                                bins=bins_here,minval=0,maxval=maxval_here,axis_square=True,
+                                variable="Energy", units="(GeV)",
+                                reco_name="CNN",flavor=a_flavor_here,sample="CC")
+    plot_2D_prediction(true_energy[a_mask_here],
+                                retro_energy[a_mask_here],
+                                weights=weights[a_mask_here],
+                                save=save, savefolder=save_folder,
+                                bins=bins_here,minval=0,maxval=maxval_here,axis_square=True,
+                                variable="Energy", units="(GeV)",
+                                reco_name="Retro",flavor=a_flavor_here,sample="CC")
+    plot_bin_slices(true_energy[a_mask_here],
                             cnn_energy[a_mask_here],
+                            old_reco = retro_energy[a_mask_here],
                             weights=weights[a_mask_here],
-                            save=save, savefolder=save_folder,
-                            bins=100,
+                            vs_predict = True,
+                            use_fraction = True, bins=20,
+                            min_val=1, max_val=maxval_here,\
+                            save=save, savefolder=save_folder,\
                             variable="Energy", units="(GeV)",
-                            reco_name="CNN",flavor=a_flavor_here,sample="CC")
-plot_2D_prediction(true_energy[a_mask_here],
+                            flavor=a_flavor_here,sample="CC")
+    plot_bin_slices(true_energy[a_mask_here],
                             cnn_energy[a_mask_here],
+                            old_reco = retro_energy[a_mask_here],
                             weights=weights[a_mask_here],
-                            save=save, savefolder=save_folder,
-                            bins=bins_here,minval=0,maxval=maxval_here,axis_square=True,
+                            vs_predict = False,reco_name="Likelihood",
+                            use_fraction = True, bins=20,
+                            min_val=1, max_val=maxval_here,\
+                            save=save, savefolder=save_folder,\
                             variable="Energy", units="(GeV)",
-                            reco_name="CNN",flavor=a_flavor_here,sample="CC")
-plot_2D_prediction(true_energy[a_mask_here],
-                            retro_energy[a_mask_here],
+                            flavor=a_flavor_here,sample="CC")
+    plot_bin_slices(true_coszenith[a_mask_here],
+                            cnn_coszen[a_mask_here],
+                            old_reco = retro_coszen[a_mask_here],
                             weights=weights[a_mask_here],
-                            save=save, savefolder=save_folder,
-                            bins=bins_here,minval=0,maxval=maxval_here,axis_square=True,
-                            variable="Energy", units="(GeV)",
-                            reco_name="Retro",flavor=a_flavor_here,sample="CC")
-"""
-plot_bin_slices(true_energy[a_mask_here],
-                        cnn_energy[a_mask_here],
-                        old_reco = retro_energy[a_mask_here],
-                        weights=weights[a_mask_here],
-                        vs_predict = True,\
-                        use_fraction = True, bins=20,
-                        min_val=1, max_val=300,\
-                        save=save, savefolder=save_folder,\
-                        variable="Energy", units="(GeV)",
-                        flavor=a_flavor_here,sample="CC")
+                            energy_truth = true_energy[a_mask_here],
+                            vs_predict = False,reco_name="Likelihood",
+                            use_fraction = False, bins=20,
+                            min_val=1, max_val=200,\
+                            save=save, savefolder=save_folder,\
+                            variable="Cosine Zenith", units="(GeV)",
+                            xvariable="True Energy",
+                            flavor=a_flavor_here,sample="CC")
+    plot_bin_slices(true_coszenith[a_mask_here],
+                            cnn_coszen[a_mask_here],
+                            old_reco = retro_coszen[a_mask_here],
+                            weights=weights[a_mask_here],
+                            #energy_truth = true_energy[a_mask_here],
+                            vs_predict = False,reco_name="Likelihood",
+                            use_fraction = False, bins=20,
+                            min_val=-1, max_val=1,\
+                            save=save, savefolder=save_folder,\
+                            variable="Cosine Zenith", units="",
+                            flavor=a_flavor_here,sample="CC")
+    plot_bin_slices(true_r[a_mask_here],
+                            cnn_r[a_mask_here],
+                            old_reco = retro_r[a_mask_here],
+                            weights=weights[a_mask_here],
+                            #energy_truth = true_energy[a_mask_here]
+                            vs_predict = False,reco_name="Likelihood",
+                            use_fraction = False, bins=20,
+                            min_val=0, max_val=200,\
+                            save=save, savefolder=save_folder,\
+                            variable="Radius From Center String", units="(m)",
+                            flavor=a_flavor_here,sample="CC",legend="lower left",
+                            xline=90)
+    plot_bin_slices(true_z[a_mask_here],
+                            cnn_z[a_mask_here],
+                            old_reco = retro_z[a_mask_here],
+                            weights=weights[a_mask_here],
+                            #energy_truth = true_energy[a_mask_here]
+                            vs_predict = False,reco_name="Likelihood",
+                            use_fraction = False, #bins=60,
+                            #min_val=-650, max_val=200,\
+                            specific_bins=[-550,-530,-510,-490,-470,-450,-430,-410,-390,-370,-350,-330,-310,-290,-270,-250,-230,-200,-150],
+                            save=save, savefolder=save_folder,\
+                            variable="Z Depth Position", units="(m)",
+                            legend="lower center",xline=[-500,-200],
+                            flavor=a_flavor_here,sample="CC")
 
-a_mask_here = true_isNuE&true_isCC
-a_flavor_here = "NuE"
-plot_2D_prediction(true_energy[a_mask_here],
+    a_mask_here = true_isNuE&true_isCC
+    a_flavor_here = "NuE"
+    plot_2D_prediction(true_energy[a_mask_here],
+                                cnn_energy[a_mask_here],
+                                weights=weights[a_mask_here],
+                                save=save, savefolder=save_folder,
+                                bins=bins_here,minval=0,maxval=maxval_here,axis_square=True,
+                                variable="Energy", units="(GeV)",
+                                reco_name="CNN",flavor=a_flavor_here,sample="CC")
+    plot_2D_prediction(true_energy[a_mask_here],
+                                retro_energy[a_mask_here],
+                                weights=weights[a_mask_here],
+                                save=save, savefolder=save_folder,
+                                bins=bins_here,minval=0,maxval=maxval_here,axis_square=True,
+                                variable="Energy", units="(GeV)",
+                                reco_name="Retro",flavor=a_flavor_here,sample="CC")
+    plot_bin_slices(true_energy[a_mask_here],
                             cnn_energy[a_mask_here],
+                            old_reco = retro_energy[a_mask_here],
                             weights=weights[a_mask_here],
-                            save=save, savefolder=save_folder,
-                            bins=bins_here,minval=0,maxval=maxval_here,axis_square=True,
+                            vs_predict = True,\
+                            use_fraction = True, bins=20,
+                            min_val=1, max_val=maxval_here,\
+                            save=save, savefolder=save_folder,\
                             variable="Energy", units="(GeV)",
-                            reco_name="CNN",flavor=a_flavor_here,sample="CC")
-plot_2D_prediction(true_energy[a_mask_here],
-                            retro_energy[a_mask_here],
-                            weights=weights[a_mask_here],
-                            save=save, savefolder=save_folder,
-                            bins=bins_here,minval=0,maxval=maxval_here,axis_square=True,
-                            variable="Energy", units="(GeV)",
-                            reco_name="Retro",flavor=a_flavor_here,sample="CC")
-a_mask_here = true_isNuTau&true_isCC
-a_flavor_here = "NuTau"
-plot_2D_prediction(true_energy[a_mask_here],
+                            flavor=a_flavor_here,sample="CC")
+    plot_bin_slices(true_energy[a_mask_here],
                             cnn_energy[a_mask_here],
+                            old_reco = retro_energy[a_mask_here],
                             weights=weights[a_mask_here],
-                            save=save, savefolder=save_folder,
-                            bins=bins_here,minval=0,maxval=maxval_here,axis_square=True,
+                            vs_predict = False,reco_name="Likelihood",
+                            use_fraction = True, bins=20,
+                            min_val=1, max_val=maxval_here,\
+                            save=save, savefolder=save_folder,\
                             variable="Energy", units="(GeV)",
-                            reco_name="CNN",flavor=a_flavor_here,sample="CC")
-plot_2D_prediction(true_energy[a_mask_here],
-                            retro_energy[a_mask_here],
+                            flavor=a_flavor_here,sample="CC")
+    plot_bin_slices(true_coszenith[a_mask_here],
+                            cnn_coszen[a_mask_here],
+                            old_reco = retro_coszen[a_mask_here],
                             weights=weights[a_mask_here],
-                            save=save, savefolder=save_folder,
-                            bins=bins_here,minval=0,maxval=maxval_here,axis_square=True,
-                            variable="Energy", units="(GeV)",
-                            reco_name="Retro",flavor=a_flavor_here,sample="CC")
-a_mask_here = true_isNu&true_isCC
-a_flavor_here = "Nu"
-plot_2D_prediction(true_energy[a_mask_here],
+                            energy_truth = true_energy[a_mask_here],
+                            vs_predict = False,reco_name="Likelihood",
+                            use_fraction = False, bins=20,
+                            min_val=1, max_val=200,\
+                            save=save, savefolder=save_folder,\
+                            variable="Cosine Zenith", units="(GeV)",
+                            xvariable="True Energy",
+                            flavor=a_flavor_here,sample="CC")
+    plot_bin_slices(true_coszenith[a_mask_here],
+                            cnn_coszen[a_mask_here],
+                            old_reco = retro_coszen[a_mask_here],
+                            weights=weights[a_mask_here],
+                            #energy_truth = true_energy[a_mask_here],
+                            vs_predict = False,reco_name="Likelihood",
+                            use_fraction = False, bins=20,
+                            min_val=-1, max_val=1,\
+                            save=save, savefolder=save_folder,\
+                            variable="Cosine Zenith", units="",
+                            flavor=a_flavor_here,sample="CC")
+    plot_bin_slices(true_r[a_mask_here],
+                            cnn_r[a_mask_here],
+                            old_reco = retro_r[a_mask_here],
+                            weights=weights[a_mask_here],
+                            #energy_truth = true_energy[a_mask_here]
+                            vs_predict = False,reco_name="Likelihood",
+                            use_fraction = False, bins=20,
+                            min_val=0, max_val=200,\
+                            save=save, savefolder=save_folder,\
+                            variable="Radius From Center String", units="(m)",
+                            flavor=a_flavor_here,sample="CC",legend="lower left",
+                            xline=90)
+    plot_bin_slices(true_z[a_mask_here],
+                            cnn_z[a_mask_here],
+                            old_reco = retro_z[a_mask_here],
+                            weights=weights[a_mask_here],
+                            #energy_truth = true_energy[a_mask_here]
+                            vs_predict = False,reco_name="Likelihood",
+                            use_fraction = False,
+                            #min_val=-650, max_val=200,\
+                            specific_bins=[-550,-530,-510,-490,-470,-450,-430,-410,-390,-370,-350,-330,-310,-290,-270,-250,-230,-200,-150],
+                            save=save, savefolder=save_folder,\
+                            variable="Z Depth Position", units="(m)",
+                            flavor=a_flavor_here,sample="CC",
+                            xline=[-500,-200],legend="lower center")
+    
+    print("NuMu Events: ", sum(true_isNuMu), "NuE Events: ", sum(true_isNuE))
+    plt.figure(figsize=(10,7))
+    bins = 10**np.linspace(0,2.7,100)
+    #plt.hist(true_energy[true_isMuon],range=[emin,emax],bins=bins,weights=weights[true_isMuon],label=r'$\mu$',alpha=0.5)
+    plt.hist([true_energy[true_isNuMu], true_energy[true_isNuE]],range=[0,max(true_energy[true_isNuMu])],bins=bins,weights=[weights[true_isNuMu],weights[true_isNuE]],label=(r'$\nu_\mu$',r'$\nu_e$'),stacked=True,alpha=0.5)
+    #plt.hist(true_energy[true_isNuE],range=[emin,emax],bins=bins,weights=weights[true_isNuE],label=r'$\nu_e$',alpha=0.5)
+    #plt.hist(true_energy[true_isNuTau],range=[emin,emax],bins=bins,weights=weights[true_isNuTau],label=r'$\nu_\tau$',alpha=0.5)
+    plt.xscale('log')
+    plt.ylabel("Rate (Hz)",fontsize=20)
+    plt.xlabel("True Energy (GeV)",fontsize=20)
+    plt.title("True Energy Distribution",fontsize=25)
+    plt.legend()
+    plt.savefig("%sEnergyParticleHist_NoMuon.png"%(save_folder),bbox_inches='tight')
+    plt.close()
+    
+    bins=100
+    plt.figure(figsize=(10,7))
+    plt.hist([true_coszenith[true_isNuMu], true_coszenith[true_isNuE]],range=[-1,1],bins=bins,weights=[weights[true_isNuMu],weights[true_isNuE]],label=(r'$\nu_\mu$',r'$\nu_e$'),stacked=True,alpha=0.5)
+    plt.ylabel("Rate (Hz)",fontsize=20)
+    plt.xlabel("True Cosine Zenith",fontsize=20)
+    plt.title("True Cosine Zenith Distribution",fontsize=25)
+    plt.legend()
+    plt.savefig("%sCosZenParticleHist_NoMuon.png"%(save_folder),bbox_inches='tight')
+    plt.close()
+    
+    bins=100
+    plt.figure(figsize=(10,7))
+    plt.hist([true_r[true_isNuMu], true_r[true_isNuE]],range=[0,300],bins=bins,weights=[weights[true_isNuMu],weights[true_isNuE]],label=(r'$\nu_\mu$',r'$\nu_e$'),stacked=True,alpha=0.5)
+    plt.ylabel("Rate (Hz)",fontsize=20)
+    plt.xlabel("True Radius From Center String (m)",fontsize=20)
+    plt.title("True Radius From Center String Distribution",fontsize=25)
+    plt.legend()
+    plt.savefig("%sRParticleHist_NoMuon.png"%(save_folder),bbox_inches='tight')
+    plt.close()
+    
+    bins=100
+    plt.figure(figsize=(10,7))
+    plt.hist([true_z[true_isNuMu], true_z[true_isNuE]],range=[-700,200],bins=bins,weights=[weights[true_isNuMu],weights[true_isNuE]],label=(r'$\nu_\mu$',r'$\nu_e$'),stacked=True,alpha=0.5)
+    plt.ylabel("Rate (Hz)",fontsize=20)
+    plt.xlabel("True Z Depth Position (m)",fontsize=20)
+    plt.title("True Z Depth Position",fontsize=25)
+    plt.legend()
+    plt.savefig("%sZParticleHist_NoMuon.png"%(save_folder),bbox_inches='tight')
+    plt.close()
+
+    a_mask_here = true_isNuTau&true_isCC
+    a_flavor_here = "NuTau"
+    plot_2D_prediction(true_energy[a_mask_here],
+                                cnn_energy[a_mask_here],
+                                weights=weights[a_mask_here],
+                                save=save, savefolder=save_folder,
+                                bins=bins_here,minval=0,maxval=maxval_here,axis_square=True,
+                                variable="Energy", units="(GeV)",
+                                reco_name="CNN",flavor=a_flavor_here,sample="CC")
+    plot_2D_prediction(true_energy[a_mask_here],
+                                retro_energy[a_mask_here],
+                                weights=weights[a_mask_here],
+                                save=save, savefolder=save_folder,
+                                bins=bins_here,minval=0,maxval=maxval_here,axis_square=True,
+                                variable="Energy", units="(GeV)",
+                                reco_name="Retro",flavor=a_flavor_here,sample="CC")
+    plot_bin_slices(true_energy[a_mask_here],
                             cnn_energy[a_mask_here],
+                            old_reco = retro_energy[a_mask_here],
                             weights=weights[a_mask_here],
-                            save=save, savefolder=save_folder,
-                            bins=bins_here,minval=0,maxval=maxval_here,axis_square=True,
+                            vs_predict = True,\
+                            use_fraction = True, bins=20,
+                            min_val=1, max_val=maxval_here,\
+                            save=save, savefolder=save_folder,\
                             variable="Energy", units="(GeV)",
-                            reco_name="CNN",flavor=a_flavor_here,sample="CC")
-plot_2D_prediction(true_energy[a_mask_here],
-                            retro_energy[a_mask_here],
+                            flavor=a_flavor_here,sample="CC")
+    plot_bin_slices(true_energy[a_mask_here],
+                            cnn_energy[a_mask_here],
+                            old_reco = retro_energy[a_mask_here],
                             weights=weights[a_mask_here],
-                            save=save, savefolder=save_folder,
-                            bins=bins_here,minval=0,maxval=maxval_here,axis_square=True,
+                            vs_predict = False,\
+                            use_fraction = True, bins=20,
+                            min_val=1, max_val=maxval_here,\
+                            save=save, savefolder=save_folder,\
                             variable="Energy", units="(GeV)",
-                            reco_name="Retro",flavor=a_flavor_here,sample="CC")
-"""
+                            flavor=a_flavor_here,sample="CC")
+    a_mask_here = true_isNu&true_isCC
+    a_flavor_here = "Nu"
+    plot_2D_prediction(true_energy[a_mask_here],
+                                cnn_energy[a_mask_here],
+                                weights=weights[a_mask_here],
+                                save=save, savefolder=save_folder,
+                                bins=bins_here,minval=0,maxval=maxval_here,axis_square=True,
+                                variable="Energy", units="(GeV)",
+                                reco_name="CNN",flavor=a_flavor_here,sample="CC")
+    plot_2D_prediction(true_energy[a_mask_here],
+                                retro_energy[a_mask_here],
+                                weights=weights[a_mask_here],
+                                save=save, savefolder=save_folder,
+                                bins=bins_here,minval=0,maxval=maxval_here,axis_square=True,
+                                variable="Energy", units="(GeV)",
+                                reco_name="Retro",flavor=a_flavor_here,sample="CC")
+    plot_bin_slices(true_energy[a_mask_here],
+                            cnn_energy[a_mask_here],
+                            old_reco = retro_energy[a_mask_here],
+                            weights=weights[a_mask_here],
+                            vs_predict = True,\
+                            use_fraction = True, bins=20,
+                            min_val=1, max_val=maxval_here,\
+                            save=save, savefolder=save_folder,\
+                            variable="Energy", units="(GeV)",
+                            flavor=a_flavor_here,sample="CC")
+    plot_bin_slices(true_energy[a_mask_here],
+                            cnn_energy[a_mask_here],
+                            old_reco = retro_energy[a_mask_here],
+                            weights=weights[a_mask_here],
+                            vs_predict = False,\
+                            use_fraction = True, bins=20,
+                            min_val=1, max_val=maxval_here,\
+                            save=save, savefolder=save_folder,\
+                            variable="Energy", units="(GeV)",
+                            flavor=a_flavor_here,sample="CC")
+
 if plot_energy:
     plt.figure(figsize=(10,7))
     emin = 0
     emax = 500
-    plt.hist(true_energy,range=[emin,emax],bins=100,weights=weights)
+    bins = 10**np.linspace(0,2.7,100)
+    plt.hist(true_energy,range=[emin,emax],bins=bins,weights=weights)
     plt.xlabel("True Energy (GeV)")
     plt.title("True Energy Distribution")
     plt.ylabel("Rate (Hz)")
@@ -494,6 +709,7 @@ if plot_energy:
     plt.legend()
     plt.savefig("%sEnergyParticleHist.png"%(save_folder),bbox_inches='tight')
     plt.close()
+    
 
 if plot_main:
     bins=50
@@ -553,11 +769,11 @@ if plot_main:
 
     plot_classification_hist(true_isNu,cnn_prob_nu,reco=retro_prob_nu,mask=cnn_mask,reco_mask=retro_mask,mask_name=mask_name_here, units="",weights=weights,bins=50,log=True,save=save,save_folder_name=save_folder,name_prob1 = "Neutrino", name_prob0 = "Muon")
     
-    ROC(true_isNu,cnn_prob_nu,reco=retro_prob_nu,mask=cnn_mask,reco_mask=retro_mask,mask_name=mask_name_here,save=save,save_folder_name=save_folder,variable="Probability Neutrino")
+    ROC(true_isNu,cnn_prob_nu,reco=retro_prob_nu,mask=cnn_mask,reco_mask=retro_mask,mask_name=mask_name_here,save=save,save_folder_name=save_folder,variable="Probability Neutrino vs Muon",reco_name="Likelihood")
 
     plot_classification_hist(true_isTrack,cnn_prob_track,reco=retro_prob_track,mask=cnn_mask,reco_mask=retro_mask,mask_name=mask_name_here, units="",weights=weights,bins=50,log=False,save=save,save_folder_name=save_folder,name_prob1 = "Track", name_prob0 = "Cascade")
     
-    ROC(true_isTrack,cnn_prob_track,reco=retro_prob_track,mask=cnn_mask,reco_mask=retro_mask,mask_name=mask_name_here,save=save,save_folder_name=save_folder,variable="Probability Track")
+    ROC(true_isTrack,cnn_prob_track,reco=retro_prob_track,mask=cnn_mask,reco_mask=retro_mask,mask_name=mask_name_here,save=save,save_folder_name=save_folder,variable="Probability Track vs Cascade",reco_name="Likelihood")
 
 if compare_resolution:
     plot_2D_prediction(retro_prob_nu[retro_mask], cnn_prob_nu[retro_mask],
@@ -753,7 +969,7 @@ if hists1d:
                           reco_name = "Retro", variable="Position Z",
                           units= "(m)",title=a_title,
                           minval=-1000,maxval=300,bins=100) 
-    """
+    
 
 def return_rates(true_PID,prediction,weights,threshold):
 

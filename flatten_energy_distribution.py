@@ -32,8 +32,10 @@ parser.add_argument("--add_file",default=None,
                     type=str,dest="add_file", help="different named file to add")
 parser.add_argument("-d", "--path",type=str,default='/mnt/scratch/micall12/training_files/',
                     dest="path", help="path to input files")
-parser.add_argument("-o", "--output",type=str,default='flat_energy_distribution',
-                    dest="output", help="names for output files")
+parser.add_argument("-o", "--outdir",default=None,
+                    dest="outdir", help="path for output directory")
+parser.add_argument("-n", "--outname",type=str,default='flat_energy_distribution',
+                    dest="outname", help="names for output files")
 parser.add_argument("-r", "--reco",default=False,action='store_true',
                     dest="reco", help="use flag if you want to read in old reco array")
 parser.add_argument("-b", "--bin_size",type=float,default=1.,
@@ -70,11 +72,18 @@ parser.add_argument("--no_validation",default=True,action='store_false',
                     dest="no_validation", help="set flag if you DO NOT want validation set when splitting")
 parser.add_argument("--no_flatten",default=False,action='store_true',
                     dest="no_flatten", help="set flag if you DO NOT want to flatten the set")
+parser.add_argument("--no_cut8hits",default=False,action='store_true',
+                    dest="no_cut_8hits", help="set flag if you DO NOT want to cut events with 8 hits")
+parser.add_argument("--no_cutProbNu",default=False,action='store_true',
+                    dest="no_cut_ProbNu", help="set flag if you DO NOT want to cut events with ProbNu < 0.95")
 args = parser.parse_args()
 
 input_files = args.input_files
 path = args.path
-output = args.output
+outdir = args.outdir
+if outdir is None:
+    outdir = path
+outname = args.outname
 add_file = args.add_file
 num_outputs = args.num_out
 
@@ -89,6 +98,8 @@ flatten = not(args.no_flatten)
 if not flatten:
     print("NOT FLATTENING THE DATA, JUST STORING ALL OUTPUT")
 
+cut_8_hits = not(args.no_cut_8hits)
+cut_ProbNu = not(args.no_cut_ProbNu)
 verbose = args.verbose
 split_data = args.split
 fraction_test = args.fraction_test
@@ -143,7 +154,34 @@ bins = int((emax-emin)/float(bin_size))
 if emax%bin_size !=0:
     bins +=1 #Put remainder into additional bin
 count_energy = np.zeros((bins))
-max_per_bin = max_events_per_bin
+"""
+max_events_per_bin = [ 130302, 198899, 230277, 295269,
+       360600, 425438, 492008,  20698,  23499,  25859,  28204,  30383,
+        33022,  35402,  37440,  33952,  35001,  36942,  38279,  39333,
+        40786,  41846,  42998,  44213,  44915,  46206,  47010,  47849,
+        48622,  49133,  50212,  50703,  51332,  52051,  52791,  52623,
+        52912,  53522,  54266,  54293,  54957,  55193,  55438,  56126,
+        56368,  56096,  56724,  57228,  57274,  57531,  57510,  58117,
+        57901,  58336,  58293,  58684,  58218,  58787,  59018,  58545,
+        59216,  59076,  59204,  59399,  58532,  59582,  59171,  59355,
+        59406,  58887,  59182,  59451,  59077,  59187,  58968,  57872,
+        58157,  57480,  57256,  57467,  57198,  56998,  57384,  57005,
+        57073,  56953,  56800,  57178,  56292,  56277,  56770,  56162,
+        56199,  55976,  56198,  27821,  27756,  27467,  27632,  27909,
+        27621,  27531,  27743,  27510,  27621,  27634,  27533,  27735,
+        27340,  27211,  27401,  26903,  27003,  27046,  26972,  26916,
+        27154,  27163,  27185,  26772,  26735,  26954,  26884,  26573,
+        26648,  26576,  26579,  26587,  26379,  26145,  26242,  26053,
+        26271,  25967,  26145,  25881,  26030,  26016,  25916,  25879,
+        25682,  25490,  25793,  25416,  25363,  28086,  28256,  28220,
+        27798,  27864,  27825,  27842,  27957,  27724,  27746,  27450,
+        27516,  27537,  27523,  27346,  27226,  27062,  27236,  27132,
+        27139,  27179,  27027,  26892,  27161,  27185,  26795,  26723,
+        26652,  26555,  26486,  26252,  26596,  26171,  26200,  26261,
+        26237,  26108,  25897,  26106,  26056,  25761,  25863,  26010,
+        25901,  25691,  25630,  25588,  25758,  25342,  25132,  11960] 
+print("USING HARD CODED MAX PER BIN ARRAY!!!!!!!!")
+"""
 count_no_save = 0
 count_out_bounds  = 0
 for a_file in event_file_names:
@@ -186,6 +224,15 @@ for a_file in event_file_names:
     if file_labels.shape[0] == 0:
         print("Empty file...skipping...")
         continue
+
+    if cut_8_hits:
+        assert file_labels.shape[1] > 15, "file does not have 8 hit saved, likely this cut was already applied using an older version of i3_to_hdf5.py"
+        has_8_hit = file_labels[:,15] == 1
+        print("Skipping %i events with < 8 hits"%(len(has_8_hit)-sum(has_8_hit)))
+    if cut_ProbNu:
+        assert file_labels.shape[1] > 15, "file does not have ProbNu saved, likely this cut was already applied using an older version of i3_to_hdf5.py"
+        passes_ProbNu = file_labels[:,16] > 0.95
+        print("Skipping %i events with ProbNu > 0.95"%(len(passes_ProbNu)-sum(passes_ProbNu)))
     
     # Applying cuts
     type_mask = CutMask(file_labels)
@@ -214,8 +261,18 @@ for a_file in event_file_names:
 
             if mask[index] == False:
                 continue
+            if cut_8_hits:
+                if has_8_hit[index] == False:
+                    continue
+            if cut_ProbNu:
+                if passes_ProbNu[index] == False:
+                    continue
 
             e_bin = int((e-emin)/float(bin_size))
+            if type(max_events_per_bin) is not int:
+                max_per_bin = max_events_per_bin[e_bin]
+            else:
+                max_per_bin = max_events_per_bin
             if count_energy[e_bin] < max_per_bin:
                 keep_index[index] = True
                 count_energy[e_bin] += 1
@@ -302,13 +359,13 @@ for a_file in event_file_names:
     if count_no_save > quit_files:
         print("Haven't seen any new events in %i files, quitting..."%quit_files)
         break
-
-    if np.all(count_energy >= max_per_bin):
-        print("All bins filled, quitting...")
-        break
-    else:
-        if verbose:
-            print(count_energy)
+    if type(max_events_per_bin) is int:
+        if np.all(count_energy >= max_events_per_bin):
+            print("All bins filled, quitting...")
+            break
+        else:
+            if verbose:
+                print(count_energy)
 
 if count_out_bounds > 0:
     print("Got rid of %i events out of the energy bounds [%f, %f]"%(count_out_bounds, emin, emax))
@@ -369,7 +426,7 @@ if split_data:
             filenum = "_file%02d"%sep_file
         else:
             filenum = ""
-        output_name = path + output + "_E%i"%emin + "to%i_"%emax + "%s_"%cut_name + "%s_%s_"%(start_cut,end_cut) + "flat_%sbins_%sevtperbin"%(bins,max_events_per_bin) + filenum + ".hdf5"
+        output_name = outdir + outname + "_E%i"%emin + "to%i_"%emax + "%s_"%cut_name + "%s_%s_"%(start_cut,end_cut) + "flat_%sbins_%sevtperbin"%(bins,max_events_per_bin) + filenum + ".hdf5"
 
         test_start = test_per_file*sep_file
         train_start = train_per_file*sep_file
@@ -449,7 +506,7 @@ else:
             filenum = "_file%02d"%sep_file
         else:
             filenum = ""
-        output_name = path + output + "lt%03d_"%emax + "%s_"%cut_name + "%s_%s_"%(start_cut,end_cut) + "flat_%sbins_%sevtperbin"%(bins,max_events_per_bin) + filenum + ".hdf5"
+        output_name = outdir + outname + "lt%03d_"%emax + "%s_"%cut_name + "%s_%s_"%(start_cut,end_cut) + "flat_%sbins_%sevtperbin"%(bins,max_events_per_bin) + filenum + ".hdf5"
         print("I put evnts %i - %i into %s"%(start,end,output_name))
 
         f = h5py.File(output_name, "w")

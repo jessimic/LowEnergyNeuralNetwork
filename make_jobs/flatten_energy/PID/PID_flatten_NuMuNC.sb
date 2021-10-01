@@ -1,0 +1,26 @@
+#!/bin/bash --login
+
+########### SBATCH Lines for Resource Request ##########
+
+#SBATCH --time=03:59:00             # limit of wall clock time - how long the job will run (same as -t)
+#SBATCH --nodes=1                 # number of different nodes - could be an exact number or a range of nodes (same as -N)
+#SBATCH --mem-per-cpu=1000G            # memory required per allocated CPU (or core) - amount of memory (in bytes)
+#SBATCH --job-name make_PID_sample    # you can give your job a name for easier identification (same as -J)
+#SBATCH --output make_PID_sample_NuMu_NC_PID_flatten
+
+########### Command Lines to Run ##########
+
+INDIR=/mnt/home/micall12/LowEnergyNeuralNetwork
+INFILE="NuMu_genie_149999_*k_level6.zst_cleanedpulses_*_NC_all_start_all_end_flat_499bins_250000evtperbin.hdf5"
+NAME=PID_149999_genie_level6_cleanedpulses_transformed_IC19_
+MAX=30000
+NUMOUT=4
+
+source /mnt/home/micall12/setup_anaconda.sh
+
+echo python $INDIR/flatten_energy_distribution.py -i $INFILE -d /mnt/scratch/micall12/training_files/batch_file/1?9999/ -o /mnt/scratch/micall12/training_files/batch_file/1?9999/ -n ${NAME} --emax 200 --emin 5 --cuts NC --num_out $NUMOUT --transformed --shuffle
+
+python $INDIR/flatten_PID_distribution.py -i ${INFILE} -n ${NAME} -d "/mnt/scratch/micall12/training_files/batch_file/1?9999/" -o /mnt/scratch/micall12/training_files/batch_file/ --emax 200 --emin 5 --cuts NC --num_out $NUMOUT --transformed --shuffle
+
+exit $?
+
