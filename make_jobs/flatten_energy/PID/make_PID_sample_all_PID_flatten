@@ -1,1 +1,160 @@
-python /mnt/home/micall12/LowEnergyNeuralNetwork/flatten_energy_distribution.py -i PID_1?9999_genie_level6_cleanedpulses_transformed_IC19_lt200_*_all_start_all_end_flat_195bins_variableevtperbin_file*.hdf5 -d /mnt/scratch/micall12/training_files/batch_file/ -o /mnt/scratch/micall12/training_files/batch_file/ -n PID_149999_129999_genie_level6_cleanedpulses_transformed_IC19_ --emax 200 --emin 5 --cuts all --num_out 20 --transformed --shuffle --split
+python /mnt/home/micall12/LowEnergyNeuralNetwork/flatten_energy_distribution.py -i PID_1?9999_genie_level6_cleanedpulses_transformed_IC19_60kmaxlt200_*_all_start_all_end_flat_195bins_variableevtperbin_file*.hdf5 -d /mnt/scratch/micall12/training_files/batch_file/ -o /mnt/scratch/micall12/training_files/batch_file/ -n PID_149999_129999_genie_level6_cleanedpulses_transformed_IC19_60kmax_smallerfiles --emax 200 --emin 5 --cuts all --num_out 18 --transformed --shuffle --split --fraction_test 0.0
+Keeping all event types
+Saving PEGLEG info: False 
+Bin size: 1.000000 GeV 
+Max Count Per Bin: 10000 events 
+Energy Range: 5.000000 - 200.000000 
+Starting cut: all_start 
+Ending cut: all_end 
+Shuffling: True 
+Keeping event types: all
+Assuming file is already transformed by 100.000000 for energy and 200.000000 for track, and cosine zenith
+USING HARD CODED MAX PER BIN ARRAY!!!!!!!!
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 964555
+Total tracks saved: 0, Total cascades saved: 964555, Saved this file: 964555, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/PID_129999_genie_level6_cleanedpulses_transformed_IC19_60kmaxlt200_all_all_start_all_end_flat_195bins_variableevtperbin_file00.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 964555
+Total tracks saved: 0, Total cascades saved: 1929110, Saved this file: 964555, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/PID_129999_genie_level6_cleanedpulses_transformed_IC19_60kmaxlt200_all_all_start_all_end_flat_195bins_variableevtperbin_file01.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 964555
+Total tracks saved: 0, Total cascades saved: 2893665, Saved this file: 964555, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/PID_129999_genie_level6_cleanedpulses_transformed_IC19_60kmaxlt200_all_all_start_all_end_flat_195bins_variableevtperbin_file02.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 964555
+Total tracks saved: 0, Total cascades saved: 3858220, Saved this file: 964555, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/PID_129999_genie_level6_cleanedpulses_transformed_IC19_60kmaxlt200_all_all_start_all_end_flat_195bins_variableevtperbin_file03.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 964554
+Total tracks saved: 0, Total cascades saved: 4822774, Saved this file: 964554, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/PID_129999_genie_level6_cleanedpulses_transformed_IC19_60kmaxlt200_all_all_start_all_end_flat_195bins_variableevtperbin_file04.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 1056854
+Total tracks saved: 1056854, Total cascades saved: 4822774, Saved this file: 1056854, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/PID_149999_genie_level6_cleanedpulses_transformed_IC19_60kmaxlt200_CC_all_start_all_end_flat_195bins_variableevtperbin_file00.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 1056854
+Total tracks saved: 2113708, Total cascades saved: 4822774, Saved this file: 1056854, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/PID_149999_genie_level6_cleanedpulses_transformed_IC19_60kmaxlt200_CC_all_start_all_end_flat_195bins_variableevtperbin_file01.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 1056854
+Total tracks saved: 3170562, Total cascades saved: 4822774, Saved this file: 1056854, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/PID_149999_genie_level6_cleanedpulses_transformed_IC19_60kmaxlt200_CC_all_start_all_end_flat_195bins_variableevtperbin_file02.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 1056854
+Total tracks saved: 4227416, Total cascades saved: 4822774, Saved this file: 1056854, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/PID_149999_genie_level6_cleanedpulses_transformed_IC19_60kmaxlt200_CC_all_start_all_end_flat_195bins_variableevtperbin_file03.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 1056849
+Total tracks saved: 5284265, Total cascades saved: 4822774, Saved this file: 1056849, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/PID_149999_genie_level6_cleanedpulses_transformed_IC19_60kmaxlt200_CC_all_start_all_end_flat_195bins_variableevtperbin_file04.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 758493
+Total tracks saved: 5284265, Total cascades saved: 5190762, Saved this file: 367988, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/PID_149999_genie_level6_cleanedpulses_transformed_IC19_60kmaxlt200_NC_all_start_all_end_flat_195bins_variableevtperbin_file00.hdf5
+Skipping 0 events with < 8 hits
+Skipping 0 events with ProbNu > 0.95
+Total events this file: 758491
+Total tracks saved: 5284265, Total cascades saved: 5284265, Saved this file: 93503, Finsihed file: /mnt/scratch/micall12/training_files/batch_file/PID_149999_genie_level6_cleanedpulses_transformed_IC19_60kmaxlt200_NC_all_start_all_end_flat_195bins_variableevtperbin_file01.hdf5
+Finished concatonating all the files. Now I will shuffle..
+Testing on 0.00 percent of data
+Vadilating on 20.00 percent of training data
+training only on 8454824 samples, validating on 2113706 samples, testing on 0 samples
+[60000. 60000. 29428. 36859. 44383. 50909. 58081. 20698. 23499. 25859.
+ 28204. 30383. 33022. 35402. 37440. 30181. 31250. 32011. 33252. 33841.
+ 34251. 35376. 35631. 36601. 36869. 36862. 37533. 37972. 38166. 38525.
+ 38368. 38876. 39309. 39621. 39464. 34664. 34423. 34635. 34687. 34829.
+ 34322. 34565. 34449. 34614. 34839. 34728. 34358. 34157. 34388. 34158.
+ 34169. 33930. 33562. 33825. 33724. 33387. 33283. 33446. 33239. 32618.
+ 33203. 32715. 32400. 32238. 32182. 32032. 31886. 31737. 31285. 31617.
+ 31452. 30980. 30930. 30718. 30921. 24663. 24500. 24670. 24526. 24117.
+ 24126. 24070. 23610. 24091. 23995. 23608. 23505. 23479. 23615. 23192.
+ 23284. 23273. 22872. 22751. 22892. 22351. 22474. 22542. 22262. 22417.
+ 22306. 21959. 21964. 22030. 21725. 21702. 21534. 21549. 21606. 21358.
+ 21275. 20893. 21185. 21116. 21032. 20919. 21018. 20630. 20453. 20372.
+ 20620. 20516. 20469. 20425. 20331. 20171. 20097. 20156. 19810. 19655.
+ 19730. 19981. 19798. 19645. 19456. 19564. 19545. 19247. 19433. 19272.
+ 19150. 19075. 19076. 18762. 19114. 24600. 24351. 24563. 24455. 24332.
+ 24048. 23989. 24323. 24148. 24070. 23984. 23700. 24005. 23771. 23772.
+ 23630. 23799. 23264. 23237. 23330. 23182. 23318. 23163. 23182. 22866.
+ 22943. 22758. 22758. 23209. 22651. 22685. 22414. 22410. 22564. 22448.
+ 22556. 22437. 22247. 22000. 22318. 21825. 21911. 21756. 21643. 21957.
+ 21577. 21441. 21683. 21774. 21188.]
+[60000. 60000. 29428. 36859. 44383. 50909. 58081. 20698. 23499. 25859.
+ 28204. 30383. 33022. 35402. 37440. 30181. 31250. 32011. 33252. 33841.
+ 34251. 35376. 35631. 36601. 36869. 36862. 37533. 37972. 38166. 38525.
+ 38368. 38876. 39309. 39621. 39464. 34664. 34423. 34635. 34687. 34829.
+ 34322. 34565. 34449. 34614. 34839. 34728. 34358. 34157. 34388. 34158.
+ 34169. 33930. 33562. 33825. 33724. 33387. 33283. 33446. 33239. 32618.
+ 33203. 32715. 32400. 32238. 32182. 32032. 31886. 31737. 31285. 31617.
+ 31452. 30980. 30930. 30718. 30921. 24663. 24500. 24670. 24526. 24117.
+ 24126. 24070. 23610. 24091. 23995. 23608. 23505. 23479. 23615. 23192.
+ 23284. 23273. 22872. 22751. 22892. 22351. 22474. 22542. 22262. 22417.
+ 22306. 21959. 21964. 22030. 21725. 21702. 21534. 21549. 21606. 21358.
+ 21275. 20893. 21185. 21116. 21032. 20919. 21018. 20630. 20453. 20372.
+ 20620. 20516. 20469. 20425. 20331. 20171. 20097. 20156. 19810. 19655.
+ 19730. 19981. 19798. 19645. 19456. 19564. 19545. 19247. 19433. 19272.
+ 19150. 19075. 19076. 18762. 19114. 24600. 24351. 24563. 24455. 24332.
+ 24048. 23989. 24323. 24148. 24070. 23984. 23700. 24005. 23771. 23772.
+ 23630. 23799. 23264. 23237. 23330. 23182. 23318. 23163. 23182. 22866.
+ 22943. 22758. 22758. 23209. 22651. 22685. 22414. 22410. 22564. 22448.
+ 22556. 22437. 22247. 22000. 22318. 21825. 21911. 21756. 21643. 21957.
+ 21577. 21441. 21683. 21774. 21188.]
+Total events saved: 8454824
+1 test events per 18 file(s)
+I put 0 - 1 test events into /mnt/scratch/micall12/training_files/batch_file/PID_149999_129999_genie_level6_cleanedpulses_transformed_IC19_60kmax_smallerfiles_E5to200_all_all_start_all_end_flat_195bins_variableevtperbin_file00.hdf5
+I put 0 - 469713 train events and 0 - 117429 validate events into /mnt/scratch/micall12/training_files/batch_file/PID_149999_129999_genie_level6_cleanedpulses_transformed_IC19_60kmax_smallerfiles_E5to200_all_all_start_all_end_flat_195bins_variableevtperbin_file00.hdf5
+Saved:  ['test', 'weights', 'train', 'validation', 'output label names', 'output transform factors', 'input transform factors']
+I put 1 - 2 test events into /mnt/scratch/micall12/training_files/batch_file/PID_149999_129999_genie_level6_cleanedpulses_transformed_IC19_60kmax_smallerfiles_E5to200_all_all_start_all_end_flat_195bins_variableevtperbin_file01.hdf5
+I put 469713 - 939426 train events and 117429 - 234858 validate events into /mnt/scratch/micall12/training_files/batch_file/PID_149999_129999_genie_level6_cleanedpulses_transformed_IC19_60kmax_smallerfiles_E5to200_all_all_start_all_end_flat_195bins_variableevtperbin_file01.hdf5
+Saved:  ['test', 'weights', 'train', 'validation', 'output label names', 'output transform factors', 'input transform factors']
+I put 2 - 3 test events into /mnt/scratch/micall12/training_files/batch_file/PID_149999_129999_genie_level6_cleanedpulses_transformed_IC19_60kmax_smallerfiles_E5to200_all_all_start_all_end_flat_195bins_variableevtperbin_file02.hdf5
+I put 939426 - 1409139 train events and 234858 - 352287 validate events into /mnt/scratch/micall12/training_files/batch_file/PID_149999_129999_genie_level6_cleanedpulses_transformed_IC19_60kmax_smallerfiles_E5to200_all_all_start_all_end_flat_195bins_variableevtperbin_file02.hdf5
+Saved:  ['test', 'weights', 'train', 'validation', 'output label names', 'output transform factors', 'input transform factors']
+I put 3 - 4 test events into /mnt/scratch/micall12/training_files/batch_file/PID_149999_129999_genie_level6_cleanedpulses_transformed_IC19_60kmax_smallerfiles_E5to200_all_all_start_all_end_flat_195bins_variableevtperbin_file03.hdf5
+I put 1409139 - 1878852 train events and 352287 - 469716 validate events into /mnt/scratch/micall12/training_files/batch_file/PID_149999_129999_genie_level6_cleanedpulses_transformed_IC19_60kmax_smallerfiles_E5to200_all_all_start_all_end_flat_195bins_variableevtperbin_file03.hdf5
+Saved:  ['test', 'weights', 'train', 'validation', 'output label names', 'output transform factors', 'input transform factors']
+I put 4 - 5 test events into /mnt/scratch/micall12/training_files/batch_file/PID_149999_129999_genie_level6_cleanedpulses_transformed_IC19_60kmax_smallerfiles_E5to200_all_all_start_all_end_flat_195bins_variableevtperbin_file04.hdf5
+I put 1878852 - 2348565 train events and 469716 - 587145 validate events into /mnt/scratch/micall12/training_files/batch_file/PID_149999_129999_genie_level6_cleanedpulses_transformed_IC19_60kmax_smallerfiles_E5to200_all_all_start_all_end_flat_195bins_variableevtperbin_file04.hdf5
+Saved:  ['test', 'weights', 'train', 'validation', 'output label names', 'output transform factors', 'input transform factors']
+I put 5 - 6 test events into /mnt/scratch/micall12/training_files/batch_file/PID_149999_129999_genie_level6_cleanedpulses_transformed_IC19_60kmax_smallerfiles_E5to200_all_all_start_all_end_flat_195bins_variableevtperbin_file05.hdf5
+I put 2348565 - 2818278 train events and 587145 - 704574 validate events into /mnt/scratch/micall12/training_files/batch_file/PID_149999_129999_genie_level6_cleanedpulses_transformed_IC19_60kmax_smallerfiles_E5to200_all_all_start_all_end_flat_195bins_variableevtperbin_file05.hdf5
+Saved:  ['test', 'weights', 'train', 'validation', 'output label names', 'output transform factors', 'input transform factors']
+I put 6 - 7 test events into /mnt/scratch/micall12/training_files/batch_file/PID_149999_129999_genie_level6_cleanedpulses_transformed_IC19_60kmax_smallerfiles_E5to200_all_all_start_all_end_flat_195bins_variableevtperbin_file06.hdf5
+I put 2818278 - 3287991 train events and 704574 - 822003 validate events into /mnt/scratch/micall12/training_files/batch_file/PID_149999_129999_genie_level6_cleanedpulses_transformed_IC19_60kmax_smallerfiles_E5to200_all_all_start_all_end_flat_195bins_variableevtperbin_file06.hdf5
+Saved:  ['test', 'weights', 'train', 'validation', 'output label names', 'output transform factors', 'input transform factors']
+I put 7 - 8 test events into /mnt/scratch/micall12/training_files/batch_file/PID_149999_129999_genie_level6_cleanedpulses_transformed_IC19_60kmax_smallerfiles_E5to200_all_all_start_all_end_flat_195bins_variableevtperbin_file07.hdf5
+I put 3287991 - 3757704 train events and 822003 - 939432 validate events into /mnt/scratch/micall12/training_files/batch_file/PID_149999_129999_genie_level6_cleanedpulses_transformed_IC19_60kmax_smallerfiles_E5to200_all_all_start_all_end_flat_195bins_variableevtperbin_file07.hdf5
+Saved:  ['test', 'weights', 'train', 'validation', 'output label names', 'output transform factors', 'input transform factors']
+I put 8 - 9 test events into /mnt/scratch/micall12/training_files/batch_file/PID_149999_129999_genie_level6_cleanedpulses_transformed_IC19_60kmax_smallerfiles_E5to200_all_all_start_all_end_flat_195bins_variableevtperbin_file08.hdf5
+I put 3757704 - 4227417 train events and 939432 - 1056861 validate events into /mnt/scratch/micall12/training_files/batch_file/PID_149999_129999_genie_level6_cleanedpulses_transformed_IC19_60kmax_smallerfiles_E5to200_all_all_start_all_end_flat_195bins_variableevtperbin_file08.hdf5
+Saved:  ['test', 'weights', 'train', 'validation', 'output label names', 'output transform factors', 'input transform factors']
+I put 9 - 10 test events into /mnt/scratch/micall12/training_files/batch_file/PID_149999_129999_genie_level6_cleanedpulses_transformed_IC19_60kmax_smallerfiles_E5to200_all_all_start_all_end_flat_195bins_variableevtperbin_file09.hdf5
+I put 4227417 - 4697130 train events and 1056861 - 1174290 validate events into /mnt/scratch/micall12/training_files/batch_file/PID_149999_129999_genie_level6_cleanedpulses_transformed_IC19_60kmax_smallerfiles_E5to200_all_all_start_all_end_flat_195bins_variableevtperbin_file09.hdf5
+Saved:  ['test', 'weights', 'train', 'validation', 'output label names', 'output transform factors', 'input transform factors']
+I put 10 - 11 test events into /mnt/scratch/micall12/training_files/batch_file/PID_149999_129999_genie_level6_cleanedpulses_transformed_IC19_60kmax_smallerfiles_E5to200_all_all_start_all_end_flat_195bins_variableevtperbin_file10.hdf5
+I put 4697130 - 5166843 train events and 1174290 - 1291719 validate events into /mnt/scratch/micall12/training_files/batch_file/PID_149999_129999_genie_level6_cleanedpulses_transformed_IC19_60kmax_smallerfiles_E5to200_all_all_start_all_end_flat_195bins_variableevtperbin_file10.hdf5
+Saved:  ['test', 'weights', 'train', 'validation', 'output label names', 'output transform factors', 'input transform factors']
+I put 11 - 12 test events into /mnt/scratch/micall12/training_files/batch_file/PID_149999_129999_genie_level6_cleanedpulses_transformed_IC19_60kmax_smallerfiles_E5to200_all_all_start_all_end_flat_195bins_variableevtperbin_file11.hdf5
+I put 5166843 - 5636556 train events and 1291719 - 1409148 validate events into /mnt/scratch/micall12/training_files/batch_file/PID_149999_129999_genie_level6_cleanedpulses_transformed_IC19_60kmax_smallerfiles_E5to200_all_all_start_all_end_flat_195bins_variableevtperbin_file11.hdf5
+Saved:  ['test', 'weights', 'train', 'validation', 'output label names', 'output transform factors', 'input transform factors']
+I put 12 - 13 test events into /mnt/scratch/micall12/training_files/batch_file/PID_149999_129999_genie_level6_cleanedpulses_transformed_IC19_60kmax_smallerfiles_E5to200_all_all_start_all_end_flat_195bins_variableevtperbin_file12.hdf5
+I put 5636556 - 6106269 train events and 1409148 - 1526577 validate events into /mnt/scratch/micall12/training_files/batch_file/PID_149999_129999_genie_level6_cleanedpulses_transformed_IC19_60kmax_smallerfiles_E5to200_all_all_start_all_end_flat_195bins_variableevtperbin_file12.hdf5
+Saved:  ['test', 'weights', 'train', 'validation', 'output label names', 'output transform factors', 'input transform factors']
+I put 13 - 14 test events into /mnt/scratch/micall12/training_files/batch_file/PID_149999_129999_genie_level6_cleanedpulses_transformed_IC19_60kmax_smallerfiles_E5to200_all_all_start_all_end_flat_195bins_variableevtperbin_file13.hdf5
+I put 6106269 - 6575982 train events and 1526577 - 1644006 validate events into /mnt/scratch/micall12/training_files/batch_file/PID_149999_129999_genie_level6_cleanedpulses_transformed_IC19_60kmax_smallerfiles_E5to200_all_all_start_all_end_flat_195bins_variableevtperbin_file13.hdf5
+Saved:  ['test', 'weights', 'train', 'validation', 'output label names', 'output transform factors', 'input transform factors']
+I put 14 - 15 test events into /mnt/scratch/micall12/training_files/batch_file/PID_149999_129999_genie_level6_cleanedpulses_transformed_IC19_60kmax_smallerfiles_E5to200_all_all_start_all_end_flat_195bins_variableevtperbin_file14.hdf5
+I put 6575982 - 7045695 train events and 1644006 - 1761435 validate events into /mnt/scratch/micall12/training_files/batch_file/PID_149999_129999_genie_level6_cleanedpulses_transformed_IC19_60kmax_smallerfiles_E5to200_all_all_start_all_end_flat_195bins_variableevtperbin_file14.hdf5
+Saved:  ['test', 'weights', 'train', 'validation', 'output label names', 'output transform factors', 'input transform factors']
+I put 15 - 16 test events into /mnt/scratch/micall12/training_files/batch_file/PID_149999_129999_genie_level6_cleanedpulses_transformed_IC19_60kmax_smallerfiles_E5to200_all_all_start_all_end_flat_195bins_variableevtperbin_file15.hdf5
+I put 7045695 - 7515408 train events and 1761435 - 1878864 validate events into /mnt/scratch/micall12/training_files/batch_file/PID_149999_129999_genie_level6_cleanedpulses_transformed_IC19_60kmax_smallerfiles_E5to200_all_all_start_all_end_flat_195bins_variableevtperbin_file15.hdf5
+Saved:  ['test', 'weights', 'train', 'validation', 'output label names', 'output transform factors', 'input transform factors']
+I put 16 - 17 test events into /mnt/scratch/micall12/training_files/batch_file/PID_149999_129999_genie_level6_cleanedpulses_transformed_IC19_60kmax_smallerfiles_E5to200_all_all_start_all_end_flat_195bins_variableevtperbin_file16.hdf5
+I put 7515408 - 7985121 train events and 1878864 - 1996293 validate events into /mnt/scratch/micall12/training_files/batch_file/PID_149999_129999_genie_level6_cleanedpulses_transformed_IC19_60kmax_smallerfiles_E5to200_all_all_start_all_end_flat_195bins_variableevtperbin_file16.hdf5
+Saved:  ['test', 'weights', 'train', 'validation', 'output label names', 'output transform factors', 'input transform factors']
+I put 17 - 0 test events into /mnt/scratch/micall12/training_files/batch_file/PID_149999_129999_genie_level6_cleanedpulses_transformed_IC19_60kmax_smallerfiles_E5to200_all_all_start_all_end_flat_195bins_variableevtperbin_file17.hdf5
+I put 7985121 - 8454824 train events and 1996293 - 2113706 validate events into /mnt/scratch/micall12/training_files/batch_file/PID_149999_129999_genie_level6_cleanedpulses_transformed_IC19_60kmax_smallerfiles_E5to200_all_all_start_all_end_flat_195bins_variableevtperbin_file17.hdf5
+Saved:  ['test', 'weights', 'train', 'validation', 'output label names', 'output transform factors', 'input transform factors']

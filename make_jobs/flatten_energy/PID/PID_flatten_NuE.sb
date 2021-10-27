@@ -12,9 +12,9 @@
 
 INDIR=/mnt/home/micall12/LowEnergyNeuralNetwork
 INFILE="NuE_genie_129999_*k_level6.zst_cleanedpulses_*all_start_all_end_flat_499bins_250000evtperbin.hdf5"
-NAME=PID_129999_genie_level6_cleanedpulses_transformed_IC19_
+NAME=PID_129999_genie_level6_cleanedpulses_transformed_IC19_60kmax
 MAX=30000
-NUMOUT=10
+NUMOUT=5
 
 source /mnt/home/micall12/setup_anaconda.sh
 

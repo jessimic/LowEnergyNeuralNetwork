@@ -34,12 +34,12 @@ parser.add_argument("-i", "--input_file",type=str,default=None,
                     dest="input_file", help="names for test only input file")
 parser.add_argument("-d", "--path",type=str,default='/data/icecube/jmicallef/processed_CNN_files/',
                     dest="path", help="path to input files")
-parser.add_argument("-o", "--output_dir",type=str,default='/mnt/home/micall12/LowEnergyNeuralNetwork/',
-                    dest="output_dir", help="path to output_plots directory, do not end in /")
-parser.add_argument("-n", "--name",type=str,default=None,
+parser.add_argument("-o", "--output_dir",type=str,default='/mnt/home/micall12/LowEnergyNeuralNetwork/output_plots/',
+                    dest="output_dir", help="path to save output plots")
+parser.add_argument("-n", "--name",type=str,default="prediction_values",
                     dest="name", help="name for output directory and where model file located")
-parser.add_argument("-t","--test", type=str,default="oscnext",
-                        dest='test',help="name of reco")
+parser.add_argument("-t","--test", default=None,
+                        dest='test',help="name of subfoler for plots")
 parser.add_argument("--model_dir", type=str,default="/mnt/home/micall12/LowEnergyNeuralNetwork/output_plots/",
                         dest='model_dir',help="name of reco")
 parser.add_argument("--variable_list",nargs='+',default=[],
@@ -74,13 +74,15 @@ model_name_list = []
 num_variables = len(variable_list)
 for variable_index in range(num_variables):
     if epoch_list[variable_index] is None:
-        model_name = args.model_dir + "/" + modelname_list[variable_index]
+        model_name = args.model_dir + "/" + modelname_list[variable_index] + ".hdf5"
     else:
         model_name = "%s/%s/%s_%sepochs_model.hdf5"%(args.model_dir,modelname_list[variable_index], modelname_list[variable_index],epoch_list[variable_index])
     model_name_list.append(model_name)
 
 save = True
-save_folder_name = "%soutput_plots/%s/"%(args.output_dir,filename)
+save_folder_name = "%s"%(args.output_dir)
+if args.test is not None:
+    save_folder_name += "/%s/"%args.test
 if save==True:
     if os.path.isdir(save_folder_name) != True:
         os.mkdir(save_folder_name)
@@ -144,7 +146,7 @@ for network in range(num_variables):
     print("Time to run CNN Predict %s on %i events: %f seconds"%(variable_list[network],X_test_DC_use.shape[0],t1-t0))
 
 
-print("Saving output file: %s/prediction_values.hdf5"%(save_folder_name))
+print("Saving output file: %s/%s.hdf5"%(save_folder_name,filename))
 f = h5py.File("%s/prediction_values.hdf5"%(save_folder_name), "w")
 f.create_dataset("Y_test_use", data=Y_test_use)
 f.create_dataset("X_test_DC", data=Y_test_use)

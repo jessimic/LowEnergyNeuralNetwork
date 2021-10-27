@@ -20,12 +20,12 @@ LR_DROP=0.5
 LR=0.001
 OUTNAME="energy_numu_level6_cleanedpulses_IC19_E1to500_40000evtperbin_logE_extended4_LRe-3DROPe-.5EPOCHS${LR_EPOCH}"
 
-START=0
+START=210
 END=600
-STEP=22
+STEP=7
 for ((EPOCH=$START;EPOCH<=$END;EPOCH+=$STEP));
 do
-    MODELNAME="$OUTDIR/output_plots/${OUTNAME}/${OUTNAME}_${EPOCH}epochs_model.hdf5"
+    MODELNAME="$OUTDIR/output_plots/${OUTNAME}/current_model_while_running.hdf5"
     
     case $EPOCH in
     0)

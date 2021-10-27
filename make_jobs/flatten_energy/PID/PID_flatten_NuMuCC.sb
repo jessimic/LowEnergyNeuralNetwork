@@ -11,10 +11,10 @@
 ########### Command Lines to Run ##########
 
 INDIR=/mnt/home/micall12/LowEnergyNeuralNetwork
-INFILE="NuMu_genie_149999_*k_level6.zst_cleanedpulses_*_CC_all_start_all_end_flat_499bins_250000evtperbin.hdf5"
-NAME=PID_149999_genie_level6_cleanedpulses_transformed_IC19_
+INFILE="NuMu_genie_149999_[0,1,2,3,4]*k_level6.zst_cleanedpulses_*_CC_all_start_all_end_flat_499bins_250000evtperbin.hdf5"
+NAME=PID_149999_genie_level6_cleanedpulses_transformed_IC19_60kmax
 MAX=30000
-NUMOUT=10
+NUMOUT=5
 
 source /mnt/home/micall12/setup_anaconda.sh
 

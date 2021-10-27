@@ -340,12 +340,17 @@ retro_prob_track = retro_prob_track[mask_here]
 
 
 #save_folder += "/%s/"%mask_name_here
-save_folder += "/Upgoing_L7RetroCompare/"
+save_folder += "/Upgoing_L7RetroCompare_Oct/"
 print("Working on %s"%save_folder)
 if os.path.isdir(save_folder) != True:
     os.mkdir(save_folder)
 
 if plot_nu_resolution:
+    
+    zmin_cut = -495
+    zmax_cut = -225
+    rmax_cut = 165
+
     variable_name = "Energy"
     units = "(GeV)"
     """
@@ -481,6 +486,39 @@ if plot_nu_resolution:
                             legend="lower center",xline=[-500,-200],
                             flavor=a_flavor_here,sample="CC")
 
+    print("NuMu CC")
+    weights_here = weights[a_mask_here]
+    cnn_rcut = cnn_r[a_mask_here] < 165
+    retro_rcut = retro_r[a_mask_here] < 165
+    true_rcut = true_r[a_mask_here] < 165
+    print("R Cut: CNN, Retro, True")
+    print(sum(cnn_rcut), sum(retro_rcut), sum(true_rcut))
+    print(sum(weights_here[cnn_rcut]), sum(weights_here[retro_rcut]), sum(weights_here[true_rcut]))
+    cnn_zcut = np.logical_and(cnn_z[a_mask_here] > -495, cnn_z[a_mask_here] < -225)
+    retro_zcut = np.logical_and(retro_z[a_mask_here] > -495, retro_z[a_mask_here] < -225)
+    true_zcut = np.logical_and(true_z[a_mask_here] > -495, true_z[a_mask_here] < -225)
+    print("Z Cut: CNN, Retro, True")
+    print(sum(cnn_zcut), sum(retro_zcut), sum(true_zcut))
+    print(sum(weights_here[cnn_zcut]), sum(weights_here[retro_zcut]), sum(weights_here[true_zcut]))
+    
+    print("NuMu all")
+    a_mask_here = true_isNuMu
+    weights_here = weights[a_mask_here]
+    cnn_rcut = cnn_r[a_mask_here] < 165
+    retro_rcut = retro_r[a_mask_here] < 165
+    true_rcut = true_r[a_mask_here] < 165
+    print("R Cut: CNN, Retro, True")
+    print(sum(cnn_rcut), sum(retro_rcut), sum(true_rcut))
+    print(sum(weights_here[cnn_rcut]), sum(weights_here[retro_rcut]), sum(weights_here[true_rcut]))
+    cnn_zcut = np.logical_and(cnn_z[a_mask_here] > -495, cnn_z[a_mask_here] < -225)
+    retro_zcut = np.logical_and(retro_z[a_mask_here] > -495, retro_z[a_mask_here] < -225)
+    true_zcut = np.logical_and(true_z[a_mask_here] > -495, true_z[a_mask_here] < -225)
+    print("Z Cut: CNN, Retro, True")
+    print(sum(cnn_zcut), sum(retro_zcut), sum(true_zcut))
+    print(sum(weights_here[cnn_zcut]), sum(weights_here[retro_zcut]), sum(weights_here[true_zcut]))
+
+
+
     a_mask_here = true_isNuE&true_isCC
     a_flavor_here = "NuE"
     plot_2D_prediction(true_energy[a_mask_here],
@@ -565,6 +603,35 @@ if plot_nu_resolution:
                             variable="Z Depth Position", units="(m)",
                             flavor=a_flavor_here,sample="CC",
                             xline=[-500,-200],legend="lower center")
+    
+    print("NuE CC")
+    cnn_rcut = cnn_r[a_mask_here] < 165
+    retro_rcut = retro_r[a_mask_here] < 165
+    true_rcut = true_r[a_mask_here] < 165
+    print("R Cut: CNN, Retro, True")
+    print(sum(cnn_rcut), sum(retro_rcut), sum(true_rcut))
+    print(sum(weights_here[cnn_rcut]), sum(weights_here[retro_rcut]), sum(weights_here[true_rcut]))
+    cnn_zcut = np.logical_and(cnn_z[a_mask_here] > -495, cnn_z[a_mask_here] < -225)
+    retro_zcut = np.logical_and(retro_z[a_mask_here] > -495, retro_z[a_mask_here] < -225)
+    true_zcut = np.logical_and(true_z[a_mask_here] > -495, true_z[a_mask_here] < -225)
+    print("Z Cut: CNN, Retro, True")
+    print(sum(cnn_zcut), sum(retro_zcut), sum(true_zcut))
+    print(sum(weights_here[cnn_zcut]), sum(weights_here[retro_zcut]), sum(weights_here[true_zcut]))
+    
+    print("NuE all")
+    a_mask_here = true_isNuE 
+    cnn_rcut = cnn_r[a_mask_here] < 165
+    retro_rcut = retro_r[a_mask_here] < 165
+    true_rcut = true_r[a_mask_here] < 165
+    print("R Cut: CNN, Retro, True")
+    print(sum(cnn_rcut), sum(retro_rcut), sum(true_rcut))
+    print(sum(weights_here[cnn_rcut]), sum(weights_here[retro_rcut]), sum(weights_here[true_rcut]))
+    cnn_zcut = np.logical_and(cnn_z[a_mask_here] > -495, cnn_z[a_mask_here] < -225)
+    retro_zcut = np.logical_and(retro_z[a_mask_here] > -495, retro_z[a_mask_here] < -225)
+    true_zcut = np.logical_and(true_z[a_mask_here] > -495, true_z[a_mask_here] < -225)
+    print("Z Cut: CNN, Retro, True")
+    print(sum(cnn_zcut), sum(retro_zcut), sum(true_zcut))
+    print(sum(weights_here[cnn_zcut]), sum(weights_here[retro_zcut]), sum(weights_here[true_zcut]))
     
     print("NuMu Events: ", sum(true_isNuMu), "NuE Events: ", sum(true_isNuE))
     plt.figure(figsize=(10,7))

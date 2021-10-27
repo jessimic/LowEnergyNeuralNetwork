@@ -135,7 +135,7 @@ def plot_history(network_history,save=False,savefolder=None,use_logscale=False):
 
     plt.show()
 
-def plot_history_from_list(loss,val,save=False,savefolder=None,logscale=False,ymin=None,ymax=None,title=None,variable="Energy",pick_epoch=None,lr_start=None,lr_drop=None,lr_epoch=None,step=1):
+def plot_history_from_list(loss,val,save=False,savefolder=None,logscale=False,ymin=None,ymax=None,title=None,variable="Energy",pick_epoch=None,lr_start=None,lr_drop=None,lr_epoch=None,step=1,notebook=False):
     
     fig,ax = plt.subplots(figsize=(10,7))
     start=step
@@ -187,10 +187,11 @@ def plot_history_from_list(loss,val,save=False,savefolder=None,logscale=False,ym
 
     if save == True:
         plt.savefig("%sloss_vs_epochs.png"%savefolder,bbox_inches='tight') 
-    plt.close()
+    if not notebook:
+        plt.close()
 
 
-def plot_history_from_list_split(energy_loss,val_energy_loss,zenith_loss,val_zenith_loss,save=True,savefolder=None,logscale=False,ymin=None,ymax=None,title=None):
+def plot_history_from_list_split(energy_loss,val_energy_loss,zenith_loss,val_zenith_loss,save=True,savefolder=None,logscale=False,ymin=None,ymax=None,title=None,notebook=False):
     
     plt.figure(figsize=(10,7))
     plt.plot(energy_loss,'b',label="Energy Training")
@@ -219,9 +220,10 @@ def plot_history_from_list_split(energy_loss,val_energy_loss,zenith_loss,val_zen
     
     if save == True:
         plt.savefig("%sloss_vs_epochs_split.png"%savefolder)
-    plt.close()
+    if not notebook:
+        plt.close()
 
-def plot_distributions_CCNC(truth_all_labels,truth,reco,save=False,savefolder=None):
+def plot_distributions_CCNC(truth_all_labels,truth,reco,save=False,savefolder=None,notebook=False):
     """
     Plot testing set distribution, with CC and NC distinguished
     Recieves:
@@ -256,9 +258,10 @@ def plot_distributions_CCNC(truth_all_labels,truth,reco,save=False,savefolder=No
     plt.legend(fontsize=10)
     if save:
         plt.savefig("%sNNEnergyDistribution_CCNC.png"%savefolder)
-    plt.close()
+    if not notebook:
+        plt.close()
 
-def plot_distributions(truth,reco=None,save=False,savefolder=None,old_reco=None,weights=None,variable="Energy",units="(GeV)",reco_name="Retro", minval=None, maxval=None,bins=100,cnn_name="CNN",ylog=False,xlog=False,old_reco_weights=None,title=None,xline=None,xline_label=None,flavor=None,sample=None):
+def plot_distributions(truth,reco=None,save=False,savefolder=None,old_reco=None,weights=None,variable="Energy",units="(GeV)",reco_name="Retro", minval=None, maxval=None,bins=100,cnn_name="CNN",ylog=False,xlog=False,old_reco_weights=None,title=None,xline=None,xline_label=None,flavor=None,sample=None,notebook=False):
     """
     Plot testing set distribution
     Recieves:
@@ -367,7 +370,8 @@ def plot_distributions(truth,reco=None,save=False,savefolder=None,old_reco=None,
         outname += "%s"%sample.replace(" ","")
     if save:
         plt.savefig("%s%sDistribution_%ito%i.png"%(savefolder,outname,int(minval),int(maxval)),bbox_inches='tight')
-    plt.close()
+    if not notebook:
+        plt.close()
 
 
 def plot_2D_prediction(truth, nn_reco, \
@@ -379,7 +383,7 @@ def plot_2D_prediction(truth, nn_reco, \
                         flavor="NuMu", sample=None,\
                         variable_type="True", reco_name="CNN",new_labels=None,
                         new_units=None,save_name=None,no_contours=False,
-                        xline=None,yline=None):
+                        xline=None,yline=None,notebook=False):
     """
     Plot testing set reconstruction vs truth
     Recieves:
@@ -530,11 +534,12 @@ def plot_2D_prediction(truth, nn_reco, \
         nocut_name += "%s"%save_name.replace(" ","")
     if save:
         plt.savefig("%s%s%sReco%s_2DHist%s%s.png"%(savefolder,variable_type,reco_name,variable,syst_set,nocut_name),bbox_inches='tight')
-    plt.close()
+    if not notebook:
+        plt.close()
 
 def plot_2D_prediction_fraction(truth, nn_reco, weights=None,\
                             save=False,savefolder=None,syst_set="",\
-                            bins=60,xminval=None,xmaxval=None,\
+                            bins=60,xminval=None,xmaxval=None,notebook=False,\
                             yminval=None,ymaxval=None,log=True,zmax=None,\
                             variable="Energy", units = "(GeV)",reco_name="CNN"):
     """
@@ -600,7 +605,7 @@ def plot_2D_prediction_fraction(truth, nn_reco, weights=None,\
     if save:
         plt.savefig("%sTruth%sRecoFrac%s_2DHist%s%s.png"%(savefolder,reco_name,variable,syst_set,nocut_name),bbox_inches='tight')
 
-def plot_resolution_CCNC(truth_all_labels,truth,reco,save=False,savefolder=None,variable="Energy", units = "(GeV)"):
+def plot_resolution_CCNC(truth_all_labels,truth,reco,save=False,savefolder=None,variable="Energy", units = "(GeV)",notebook=False):
     """
     Plot testing set resolution of reconstruction - truth, with CC and NC distinguished
     Recieves:
@@ -642,14 +647,15 @@ def plot_resolution_CCNC(truth_all_labels,truth,reco,save=False,savefolder=None,
     variable = variable.replace(" ","")
     if save:
         plt.savefig("%s%sResolutionFrac_CCNC.png"%(savefolder,variable))
-    plt.close()
+    if not notebook:
+        plt.close()
 
 def plot_single_resolution(truth,nn_reco,weights=None, \
                            bins=100, use_fraction=False,\
                            use_old_reco = False, old_reco=None,\
                            old_reco_truth=None,old_reco_weights=None,\
                            mintrue=None,maxtrue=None,\
-                           minaxis=None,maxaxis=None,\
+                           minaxis=None,maxaxis=None,notebook=False,\
                            save=False,savefolder=None,
                            flavor="NuMu", sample=None,
                            variable="Energy", units = "GeV", epochs=None,
@@ -827,11 +833,12 @@ def plot_single_resolution(truth,nn_reco,weights=None, \
         savename += "_truthcut"
     if save == True:
         plt.savefig("%s%s.png"%(savefolder,savename),bbox_inches='tight')
-    plt.close()
+    if not notebook:
+        plt.close()
 
 def plot_compare_resolution(truth,nn_reco,namelist, weights_dict=None, savefolder=None,\
                             save=False,bins=100,use_fraction=False, mask_dict=None,mask_index=None,
-                            minval=None,maxval=None,reco_name="CNN",variable="Energy",units="(GeV)"):
+                            minval=None,maxval=None,reco_name="CNN",variable="Energy",units="(GeV)",notebook=False):
     """Plots resolution for dict of inputs
     Receives:
         truth = dict of truth or Y_test labels
@@ -940,12 +947,13 @@ def plot_compare_resolution(truth,nn_reco,namelist, weights_dict=None, savefolde
     basename += "%sResolution_CompareSets%s"%(variable,reco_name)
     if save:
         plt.savefig("%s%s.png"%(savefolder,basename))
-    plt.close()
+    if not notebook:
+        plt.close()
 
 def plot_systematic_slices(truth_dict, nn_reco_dict, namelist,
                            weights_dict = None, use_fraction=False,
                            mask_dict=None, mask_index=None,title=None,\
-                           use_old_reco = False, old_reco_dict=None,
+                           use_old_reco = False, old_reco_dict=None,notebook=False,
                            old_reco_weights_dict = None, old_reco_truth_dict = None,\
                            save=False,savefolder=None,cnn_name="CNN",old_reco_name="Retro"):
     """Plots different arrays vs each other (systematic set arrays)
@@ -1065,7 +1073,8 @@ def plot_systematic_slices(truth_dict, nn_reco_dict, namelist,
     savename += "SystematicResolutionCompare"
     if save == True:
         plt.savefig("%s%s.png"%(savefolder,savename))
-    plt.close()
+    if not notebook:
+        plt.close()
 
 def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
                        use_fraction = False, old_reco=None,old_reco_truth=None,\
@@ -1074,7 +1083,7 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
                        save=False,savefolder=None,vs_predict=False,\
                        flavor="NuMu", sample="CC",style="contours",\
                        variable="Energy",units="(GeV)",xlog=False,
-                       xvariable="Energy",xunits="(GeV)",\
+                       xvariable="Energy",xunits="(GeV)",notebook=False,
                        specific_bins = None,xline=None,xline_name="DeepCore",
                        epochs=None,reco_name="Retro",cnn_name="CNN",legend="upper center"):
     """Plots different variable slices vs each other (systematic set arrays)
@@ -1317,14 +1326,16 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
         savename += "_ylim"
     if save == True:
         plt.savefig("%s%s.png"%(savefolder,savename),bbox_inches='tight')
-    plt.close()
+
+    if not notebook:
+        plt.close()
 
 def plot_rms_slices(truth, nn_reco, energy_truth=None, use_fraction = False,  \
                        old_reco=None,old_reco_truth=None, reco_energy_truth=None,\
                        bins=10,min_val=0.,max_val=60., ylim = None,weights=None,\
                        old_reco_weights=None,save=False,savefolder=None,\
                        variable="Energy",units="(GeV)",epochs=None,reco_name="Retro",
-                        flavor="NuMu", sample="CC"):
+                        flavor="NuMu", sample="CC",notebook=False):
     """Plots different variable slices vs each other (systematic set arrays)
     Receives:
         truth= array with truth labels for this one variable
@@ -1461,7 +1472,9 @@ def plot_rms_slices(truth, nn_reco, energy_truth=None, use_fraction = False,  \
         savename += "_ylim"
     if save == True:
         plt.savefig("%s%s.png"%(savefolder,savename),bbox_inches='tight')
-    plt.close()
+    
+    if not notebook:
+        plt.close()
 
 def imshow_plot(array,name,emin,emax,tmin,tmax,zlabel,savename):
     

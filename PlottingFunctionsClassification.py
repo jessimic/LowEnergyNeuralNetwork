@@ -33,7 +33,7 @@ def find_percision(truth,prediction,contamination=0.1):
     return [precision[index_track], recall[index_track], threshold_track], [p_casc[index_casc], r_casc[index_casc], t_casc[index_casc]]
 
 
-def plot_classification_hist(truth,prediction,reco=None,reco_mask=None,mask=None,mask_name="", reco_name="CNN",units="",bins=50,log=False,save=True,save_folder_name=None,weights=None,contamination=0.1,normed=False,savename=None,name_prob1="Track",name_prob0="Cascade"):
+def plot_classification_hist(truth,prediction,reco=None,reco_mask=None,mask=None,mask_name="", reco_name="CNN",units="",bins=50,log=False,save=True,save_folder_name=None,weights=None,contamination=0.1,normed=False,savename=None,name_prob1="Track",name_prob0="Cascade",notebook=False):
 
     if mask is not None:
         print("Masking, using %f of input"%(sum(mask)/len(truth)))
@@ -112,11 +112,12 @@ def plot_classification_hist(truth,prediction,reco=None,reco_mask=None,mask=None
         end+= "log"
     if save:
         plt.savefig("%s%s%s.png"%(save_folder_name,name,end))
-    plt.close()
+    if not notebook:
+        plt.close()
 
     return threshold1, threshold0
 
-def precision(truth, prediction, reco=None, mask=None, mask_name="", reco_mask = None,save=True,save_folder_name=None,reco_name="Retro",contamination=0.1):
+def precision(truth, prediction, reco=None, mask=None, mask_name="", reco_mask = None,save=True,save_folder_name=None,reco_name="Retro",contamination=0.1,notebook=False):
 
     if mask is not None:
         print(sum(mask)/len(truth))
@@ -173,7 +174,7 @@ def precision(truth, prediction, reco=None, mask=None, mask_name="", reco_mask =
     if save:
         plt.savefig("%sPrecision%s.png"%(save_folder_name,name))
 
-def ROC(truth, prediction,reco=None,reco_truth=None,mask=None,mask_name="",reco_mask=None,save=True,save_folder_name=None,reco_name="Retro",variable="Probability Track",contamination=0.1):
+def ROC(truth, prediction,reco=None,reco_truth=None,mask=None,mask_name="",reco_mask=None,save=True,save_folder_name=None,reco_name="Retro",variable="Probability Track",contamination=0.1,notebook=False):
 
     if mask is not None:
         print(sum(mask)/len(truth))
@@ -230,11 +231,12 @@ def ROC(truth, prediction,reco=None,reco_truth=None,mask=None,mask_name="",reco_
         end += "_%s"%mask_name.replace(" ","")
     if save:
         plt.savefig("%s%s.png"%(save_folder_name,end))
-    plt.close()
+    if not notebook:
+        plt.close()
 
     return threshold_track, threshold_casc
 
-def ROC_dict(truth_dict, prediction_dict,namelist, reco_dict=None,mask_dict=None,mask_name="",reco_mask_dict=None,save=True,save_folder_name=None,reco_name="Retro",contamination=0.1):
+def ROC_dict(truth_dict, prediction_dict,namelist, reco_dict=None,mask_dict=None,mask_name="",reco_mask_dict=None,save=True,save_folder_name=None,reco_name="Retro",contamination=0.1,notebook=False):
 
     print("Keyname\t AUC")
     # Plot ROC Curve
@@ -277,11 +279,12 @@ def ROC_dict(truth_dict, prediction_dict,namelist, reco_dict=None,mask_dict=None
         end += "_%s"%mask_name.replace(" ","")
     if save:
         plt.savefig("%s%s.png"%(save_folder_name,end))
-    plt.close()
+    if not notebook:
+        plt.close()
 
     return threshold_track, threshold_casc
 
-def confusion_matrix(truth, prediction, threshold, mask=None, mask_name="", weights=None,save=True, save_folder_name=None,name_prob1 = "Track", name_prob0 = "Cascade",normed=False):
+def confusion_matrix(truth, prediction, threshold, mask=None, mask_name="", weights=None,save=True, save_folder_name=None,name_prob1 = "Track", name_prob0 = "Cascade",normed=False,notebook=False):
     if mask is not None:
         truth = truth[mask]
         prediction = prediction[mask]
@@ -326,4 +329,5 @@ def confusion_matrix(truth, prediction, threshold, mask=None, mask_name="", weig
     if save:
         plt.savefig("%s%sConfusionMaxtrix.png"%(save_folder_name,name),bbox_inches='tight')
 
-    plt.close()
+    if not notebook:
+        plt.close()

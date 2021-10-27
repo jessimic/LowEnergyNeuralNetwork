@@ -1,0 +1,13 @@
+#!/bin/bash --login
+
+########## SBATCH Lines for Resource Request ##########
+
+#SBATCH --time=00:59:00             # limit of wall clock time - how long the job will run (same as -t)
+#SBATCH --gres=gpu:1                # number of different nodes - could be an exact number or a range of nodes (same as -N)
+#SBATCH --mem=100G            # memory required per allocated CPU (or core) - amount of memory (in bytes)
+#SBATCH --job-name CNN_test_energy      # you can give your job a name for easier identification (same as -J)
+#SBATCH --output /mnt/home/micall12/LowEnergyNeuralNetwork/make_jobs/run_CNN/CNN_training_sample_muon.out
+
+########## Command Lines to Run ##########
+
+singularity exec -B /mnt/home/micall12:/mnt/home/micall12 -B /mnt/research/IceCube:/mnt/research/IceCube -B /cvmfs/icecube.opensciencegrid.org:/cvmfs/icecube.opensciencegrid.org --nv /mnt/research/IceCube/Software/icetray_stable-tensorflow.sif python /mnt/home/micall12/LowEnergyNeuralNetwork/CNN_Test_hdf5.py -i test_training_sample.hdf5 -d /mnt/home/micall12/LowEnergyNeuralNetwork/output_plots/L7_FLERCNN/ -o /mnt/home/micall12/LowEnergyNeuralNetwork/output_plots/L7_FLERCNN/ -n prediction_values_training_sample --model_dir /cvmfs/icecube.opensciencegrid.org/users/shiqiyu/FLERCNN/ --variable_list energy class zenith muon --modelname_list energy_FLERCNN PID_FLERCNN zenith_FLERCNN muon_FLERCNN --factor_list 100 1 1 1 1
