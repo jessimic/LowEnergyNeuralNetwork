@@ -1,6 +1,7 @@
 import matplotlib
 matplotlib.rc('xtick', labelsize=20)
 matplotlib.rc('ytick', labelsize=20)
+import matplotlib.colors as colors
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_curve, auc, roc_auc_score, recall_score
 from sklearn.metrics import confusion_matrix #, ConfusionMatrixDisplay
@@ -33,7 +34,7 @@ def find_percision(truth,prediction,contamination=0.1):
     return [precision[index_track], recall[index_track], threshold_track], [p_casc[index_casc], r_casc[index_casc], t_casc[index_casc]]
 
 
-def plot_classification_hist(truth,prediction,reco=None,reco_mask=None,mask=None,mask_name="", reco_name="CNN",units="",bins=50,log=False,save=True,save_folder_name=None,weights=None,contamination=0.1,normed=False,savename=None,name_prob1="Track",name_prob0="Cascade",notebook=False):
+def plot_classification_hist(truth,prediction,reco=None,reco_mask=None,reco_truth=None,reco_weights=None,mask=None,mask_name="", reco_name="CNN",units="",bins=50,log=False,save=True,save_folder_name=None,weights=None,contamination=0.1,normed=False,savename=None,name_prob1="Track",name_prob0="Cascade",notebook=False,ymax=None):
 
     if mask is not None:
         print("Masking, using %f of input"%(sum(mask)/len(truth)))
@@ -44,6 +45,16 @@ def plot_classification_hist(truth,prediction,reco=None,reco_mask=None,mask=None
                 reco = reco[reco_mask]
             else:
                 reco = reco[mask]
+            if reco_truth is not None:
+                reco_mask1 = reco_truth == 1
+                reco_mask0 = reco_truth == 0
+            else:
+                reco_mask1 = truth == 1
+                reco_mask0 = truth == 0
+            if reco_weights is None:
+                reco_weights = weights
+            reco_weights1 = reco_weights[mask1]
+            reco_weights0 = reco_weights[mask0]
         if weights is not None:
             weights = weights[mask]
         #save_folder_name += mask_name.replace(" ","") + "/"
@@ -74,17 +85,19 @@ def plot_classification_hist(truth,prediction,reco=None,reco_mask=None,mask=None
         ax.set_yscale("log")
 
     if reco is not None:
-        ax.hist(reco[mask1], bins=bins,color='r',alpha=1,range=[0.,1.],weights=weights1,label="True Retro %s"%name_prob1,density=normed);
-        ax.hist(reco[mask0], bins=bins,color='orange',alpha=1,range=[0.,1.],weights=weights0,label="True Retro %s"%name_prob0,density=normed);
+        ax.hist(reco[reco_mask1], bins=bins,color='g',linestyle=":",alpha=1,range=[0.,1.],weights=reco_weights1,label="True Retro %s"%name_prob1,density=normed);
+        ax.hist(reco[reco_mask0], bins=bins,color='b',linestyle=":",alpha=1,range=[0.,1.],weights=reco_weights0,label="True Retro %s"%name_prob0,density=normed);
         label1 = "True CNN %s"%name_prob1
         label0 = "True CNN %s"%name_prob0
     else:
         label1 = "True %s"%name_prob1
         label0 = "True %s"%name_prob0
     print(sum(mask0),sum(mask1),len(mask1))
-    print(sum(weights[mask0])/sum(weights),sum(weights[mask1])/sum(weights))
     ax.hist(prediction[mask1], bins=bins,color='g',alpha=0.5,range=[0.,1.],weights=weights1,label=label1,density=normed);
     ax.hist(prediction[mask0], bins=bins,color='b',alpha=0.5,range=[0.,1.],weights=weights0,label=label0,density=normed);
+
+    if ymax is not None:
+        ax.set_ylim(0,ymax)
 
     #Plot contamination lines
     threshold1, threshold0, rates_t, rates_c = find_thresholds(truth, prediction, contamination)
@@ -189,7 +202,7 @@ def ROC(truth, prediction,reco=None,reco_truth=None,mask=None,mask_name="",reco_
             else:
                 reco_truth = reco_truth[reco_mask]
 
-    print("Fraction of true tracks: %.3f"%(sum(truth)/len(truth)))
+    print("Fraction of true label = 1: %.3f"%(sum(truth)/len(truth)))
     
     # Find ROC Curve + Stats
     fpr, tpr, thresholds = roc_curve(truth, prediction)
@@ -234,7 +247,7 @@ def ROC(truth, prediction,reco=None,reco_truth=None,mask=None,mask_name="",reco_
     if not notebook:
         plt.close()
 
-    return threshold_track, threshold_casc
+    return threshold_track, threshold_casc, auc
 
 def ROC_dict(truth_dict, prediction_dict,namelist, reco_dict=None,mask_dict=None,mask_name="",reco_mask_dict=None,save=True,save_folder_name=None,reco_name="Retro",contamination=0.1,notebook=False):
 
@@ -284,50 +297,117 @@ def ROC_dict(truth_dict, prediction_dict,namelist, reco_dict=None,mask_dict=None
 
     return threshold_track, threshold_casc
 
-def confusion_matrix(truth, prediction, threshold, mask=None, mask_name="", weights=None,save=True, save_folder_name=None,name_prob1 = "Track", name_prob0 = "Cascade",normed=False,notebook=False):
-    if mask is not None:
-        truth = truth[mask]
-        prediction = prediction[mask]
-        if weights is not None:
-            weights = weights[mask]
+def my_confusion_matrix(binary_truth, binary_class, weights, mask=None, color="Blues",
+                     label0="Muon",label1="Neutrino",ylabel="CNN Prediction",xlabel="Truth",
+                     title="CNN Muon Cut",save=True,save_folder_name=None,notebook=False):
 
-    #Change to 0 or 1
-    prediction0 = prediction < threshold
-    prediction1 = prediction >= threshold
-    prediction[prediction0] = 0.5
-    prediction[prediction1] = 1.5
-    is1 = truth == 1
-    is0 = truth == 0
-    truth[is0] = .5
-    truth[is1] = 1.5
+    if mask is None:
+        mask = np.ones(len(binary_truth),dtype=bool)
+
+    cm = confusion_matrix(binary_truth[mask], binary_class[mask], sample_weight=weights[mask])
+    invert_binary_truth = np.invert(binary_truth[mask])
+    
+    weights_squared = weights*weights
+    hist_squared, xbins_notused, ybins_notused = np.histogram2d(invert_binary_truth, binary_class[mask],bins=2,weights=weights_squared[mask]);
+    fig, ax = plt.subplots(figsize=(10,10))
+    ax.set_aspect("equal")
+    blues=plt.get_cmap("%s"%color)
+    minval = np.min(cm)
+    maxval = np.max(cm)
 
     
-    #cm = confusion_matrix(truth, prediction)
-    #cm_display = ConfusionMatrixDisplay(cm,display_labels=[name_prob0,name_prob1]).plot()
-    fig, ax = plt.subplots()
-    cts,xbin,ybin,img = plt.hist2d(prediction, truth, bins=2,range=[[0,2],[0,2]],cmap=plt.cm.get_cmap('Blues'), weights=weights,density=normed)
-    cbar = plt.colorbar()
-    cbar.ax.set_ylabel('Rate (Hz)', rotation=90)
+    hist, xbins, ybins, im = ax.hist2d(invert_binary_truth, binary_class[mask], bins=2,
+                                       cmap=blues,weights=weights[mask],
+                                       norm=colors.LogNorm(vmin=minval, vmax=maxval));
+    fig.colorbar(im, orientation='vertical')
+    plt.yticks(ticks=[0.25,0.75],labels=["%s"%label0, "%s"%label1],fontsize=20)
+    plt.xticks(ticks=[0.25,0.75],labels=["%s"%label1, "%s"%label0],fontsize=20)
+    ax.set_ylabel("%s"%ylabel,fontsize=25)
+    ax.set_xlabel("%s"%xlabel,fontsize=25)
+    ax.set_title("%s"%title,fontsize=30)
+     
+    
+    true_one = binary_truth == 1
+    true_zero = binary_truth == 0
+    mask_true_one = np.logical_and(true_one,mask)
+    mask_true_zero = np.logical_and(true_zero,mask)
+ 
+    transposed_hist_squared = np.transpose(hist_squared)
+    
+    save_percent = []
+    for i in range(len(ybins)-1):
+        for j in range(len(xbins)-1):
+            c="k"
+            if j == 0:
+                total = sum(weights[mask_true_one])
+            if j == 1:
+                total = sum(weights[mask_true_zero])
+            events = hist.T[i,j]
+            error = np.sqrt(transposed_hist_squared[i,j])
+            percent = (float(events)/float(total))*100
+            save_percent.append(percent)
+            s = "%.2e"%(events) + r'$\pm$' + "%.2e\n %.2f"%(error,percent) + '% of truth'
+            if events > maxval/2.:
+                c="w"
+            ax.text(xbins[j]+0.25,ybins[i]+0.25,"%s"%s, 
+                    color=c, ha="center", va="center", fontweight="bold",fontsize=18)
 
-    name = ""
-    if weights is not None:
-        name +="Weighted"
-    if normed:
-        ax.set_title("%s Normalized Confusion Matrix"%name,fontsize=20)
-    else:
-        ax.set_title("%s Confusion Matrix"%name,fontsize=20)
-    ax.set_xlabel("Predicted Label",fontsize=20)
-    ax.set_ylabel("True Label",fontsize=20)
-    ax.set_xticks([0.5,1.5])
-    ax.set_yticks([0.5,1.5])
-    ax.set_xticklabels([name_prob0,name_prob1],fontsize=15)
-    ax.set_yticklabels([name_prob0,name_prob1],fontsize=15)
-    for i in range(len(ybin)-1):
-        for j in range(len(xbin)-1):
-            ax.text(xbin[j]+0.5,ybin[i]+0.5, "%.2e"%cts.T[i,j],
-            color="w", ha="center", va="center", fontweight="bold",fontsize=20)
+    name = title.replace(" ","")
     if save:
         plt.savefig("%s%sConfusionMaxtrix.png"%(save_folder_name,name),bbox_inches='tight')
+
+    if not notebook:
+        plt.close()
+
+    # Order = (x=0,y=0), (x=1, y=0), (x=0, y=1), (x=1, y=1)
+    return save_percent
+
+def plot_osc_hist_given_hist(hist_here,label_factor=1,title="Counts",
+                            label_factor_title=None,pid="CNN Track",
+                            save_folder_name=None,save=True,notebook=False):
+    
+    if label_factor_title is None:
+        label_factor_title = str(label_factor)
+    
+    fig, ax = plt.subplots(figsize=(15,13))
+    ax.set_title("%s: True Muon, %s (label x %s)"%(title,pid,label_factor_title),fontsize=25)
+    im = ax.imshow(hist_here,origin='lower', cmap='viridis_r')
+    fig.colorbar(im, orientation='vertical')
+    ax.set_xlabel("CNN Energy (GeV)",fontsize=20)
+    ax.set_ylabel("CNN Cos Zenith",fontsize=20)
+
+    xlabels=[]
+    for i in range(0,len(energy_bins)):
+        if i%2==0:
+            xlabels.append("%.2f"%energy_bins[i])
+    ylabels=[]
+    for i in range(0,len(coszen_bins)):
+        if i%2==0:
+            ylabels.append("%.2f"%coszen_bins[i])
+    ax.set_xticks([-0.5,1.5,3.5,5.5,7.5,9.5,11.5])
+    ax.set_yticks([-0.5,1.5,3.5,5.5,7.5,9.5])
+    ax.get_xaxis().set_major_formatter(ticker.ScalarFormatter())
+    ax.get_yaxis().set_major_formatter(ticker.ScalarFormatter())
+    ax.set_xticklabels(xlabels)
+    ax.set_yticklabels(ylabels)
+    
+    maxhist = np.nanmax(hist_here)
+    for i in range(len(ybins)-1):
+        for j in range(len(xbins)-1):
+            c="k"
+            #total = sum(weights1[mask])
+            events = hist_here[i,j]
+            if events > maxhist/2.:
+                c="w"
+            s = "%.2f"%(events*label_factor)
+            ax.text(j, i,"%s"%s, 
+                    color=c, ha="center", va="center",fontsize=15)
+    
+    name = "%s"%title.replace(" ","")
+    name += "%s"%pid.replace(" ","")
+    
+    if save:
+        plt.savefig("%s%sOscMatrix.png"%(save_folder_name,name),bbox_inches='tight')
 
     if not notebook:
         plt.close()

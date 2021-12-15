@@ -13,7 +13,7 @@ INDIR=/mnt/home/micall12/LowEnergyNeuralNetwork
 
 source /mnt/home/micall12/setup_anaconda.sh
 
-python $INDIR/flatten_energy_distribution.py -i NuMu_genie_149999_036???_level6.zst_cleanedpulses_transformed_IC19.hdf5 -d /mnt/scratch/micall12/training_files/single_file/149999/ -o /mnt/scratch/micall12/training_files/batch_file/149999/ -n NuMu_genie_149999_36k_level6.zst_cleanedpulses_transformed_IC19 --emax 500 --emin 1 --max_per_bin 250000 --cuts NC --num_out 1 --start "all_start" --end "all_end" --transformed
+python $INDIR/flatten_energy_distribution.py -i NuMu_genie_149999_036???_level6.zst_cleanedpulses_transformed_IC19.hdf5 -d /mnt/scratch/micall12/training_files/single_file/149999/ -o /mnt/scratch/micall12/training_files/batch_file/149999/ -n NuMu_genie_149999_36k_level6.zst_cleanedpulses_transformed_IC19_nocut8hits --emax 500 --emin 1 --max_per_bin 40000 --cuts NC --num_out 1 --start "all_start" --end "all_end" --transformed --no_cut8hits
 
 exit $?
 

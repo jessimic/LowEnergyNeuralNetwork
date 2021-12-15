@@ -1,0 +1,13 @@
+#!/bin/bash --login
+
+########## SBATCH Lines for Resource Request ##########
+
+#SBATCH --time=00:59:00             # limit of wall clock time - how long the job will run (same as -t)
+#SBATCH --gres=gpu:1                # number of different nodes - could be an exact number or a range of nodes (same as -N)
+#SBATCH --mem=100G            # memory required per allocated CPU (or core) - amount of memory (in bytes)
+#SBATCH --job-name CNN_test_muon      # you can give your job a name for easier identification (same as -J)
+#SBATCH --output /mnt/home/micall12/LowEnergyNeuralNetwork/make_jobs/run_CNN/CNN_Muon_PID_800drop.out
+
+########## Command Lines to Run ##########
+
+singularity exec -B /mnt/home/micall12:/mnt/home/micall12 -B /mnt/research/IceCube:/mnt/research/IceCube -B /mnt/scratch/micall12:/mnt/scratch/micall12 --nv /mnt/research/IceCube/Software/icetray_stable-tensorflow.sif python /mnt/home/micall12/LowEnergyNeuralNetwork/CNN_Test_hdf5.py -i oscNext_level6_flercnn_pass2.120000_140000.01h_01h.cleanedpulses_transformed_IC19.no_cuts.testonly.hdf5 -d /mnt/scratch/micall12/training_files/batch_file/ -o /mnt/home/micall12/LowEnergyNeuralNetwork/output_plots/PID_level6_cleanedpulses_IC19_E5to200_60000kmax_variableevtperbin_LRe-3DROPe-.5EPOCHS800/ -n prediction_values_46epochs --variable_list class --epoch_list 46 --modelname_list PID_level6_cleanedpulses_IC19_E5to200_60000kmax_variableevtperbin_LRe-3DROPe-.5EPOCHS800

@@ -59,6 +59,12 @@ parser.add_argument("-s", "--start",type=str, default="all_start",
                     dest="start_cut", help="Vertex start cut (all_start, old_start_DC, start_DC, start_IC, start_IC19)")
 parser.add_argument("-e", "--end",type=str, default="all_end",
                     dest="end_cut", help="End position cut (end_start, end_IC7, end_IC19)")
+parser.add_argument("--count_only",default=False,action='store_true',
+                    dest="count_only", help="add flag if you just want total event count, not energy bins")
+parser.add_argument("--no_energy_cut",default=False,action='store_true',
+                    dest="no_energy_cut", help="add flag if you don't want to cut on energy")
+parser.add_argument("--no_cuts",default=False,action='store_true',
+                    dest="no_cuts", help="add flag if you don't want to cut on energy or type")
 args = parser.parse_args()
 
 input_files = args.input_files
@@ -76,6 +82,11 @@ truth_name = args.labels
 start_cut = args.start_cut
 end_cut = args.end_cut
 transformed = args.transformed
+no_energy_cut = args.no_energy_cut
+count_only = args.count_only
+no_cuts = args.no_cuts
+if no_cuts:
+    no_energy_cut = True
 
 azimuth_index = 2
 track_index = 7
@@ -95,7 +106,10 @@ if os.path.isdir(outdir) != True:
 bins = int((emax-emin)/float(bin_size))
 if emax%bin_size !=0:
     bins +=1 #Put remainder into additional bin
-count_energy = np.zeros((bins))
+if count_only:
+    count_energy = 0
+else:
+    count_energy = np.zeros((bins))
 
 file_count = 0
 print("Evts in File\t After Type Cut\t After Energy Cut")
@@ -126,32 +140,43 @@ for a_file in event_file_names:
     # Make cuts for event type and energy
     energy = np.array(file_labels[:,0])
     total_events = len(energy)
+    if no_cuts:
+        mask = np.ones(len(energy),dtype=bool)
     energy = energy[mask]
     events_after_type_cut = len(energy)
-    energy_mask = np.logical_and(energy > emin, energy < emax)
-    #if sum(energy_mask) == 0:
-    #    print(energy[:10])
-    energy = energy[energy_mask]
+    
+    if not no_energy_cut:
+        energy_mask = np.logical_and(energy > emin, energy < emax)
+        #if sum(energy_mask) == 0:
+        #    print(energy[:10])
+        energy = energy[energy_mask]
     events_after_energy_cut = len(energy)
     if file_count < 10:
         print("%i\t %i\t %i\t"%(total_events,events_after_type_cut,events_after_energy_cut))
 
-    #Sort into bins and count
-    emin_array = np.ones((events_after_energy_cut))*emin
-    energy_bins = np.floor((energy-emin_array)/float(bin_size))
-    count_energy += np.bincount(energy_bins.astype(int),minlength=bins)
+    if count_only:
+        count_energy += events_after_energy_cut
+    else:
+        #Sort into bins and count
+        emin_array = np.ones((events_after_energy_cut))*emin
+        energy_bins = np.floor((energy-emin_array)/float(bin_size))
+        count_energy += np.bincount(energy_bins.astype(int),minlength=bins)
+
     file_count += 1
     if file_count%100 == 0 and file_count > 0:
         print("Gone through %i files so far"%file_count)
-    
-min_number_events = min(count_energy)
-min_bin = np.where(count_energy==min_number_events)
-if type(min_bin) is tuple:
-    min_bin = min_bin[0][0]
-print("Minimum bin value %i events at %i GeV"%(min_number_events,energy_bin_array[min_bin]))
-print("Cutting there gives total events: %i"%(min_number_events*bins))
-print("Total of %i events without flattening"%sum(count_energy))
-print(count_energy)
+
+if count_only:
+    print("Total number of events: %i"%count_energy)
+else:
+    min_number_events = min(count_energy)
+    min_bin = np.where(count_energy==min_number_events)
+    if type(min_bin) is tuple:
+        min_bin = min_bin[0][0]
+    print("Minimum bin value %i events at %i GeV"%(min_number_events,energy_bin_array[min_bin]))
+    print("Cutting there gives total events: %i"%(min_number_events*bins))
+    print("Total of %i events without flattening"%sum(count_energy))
+    print(count_energy)
 
 afile = open("%s/final_distribution_emin%.0femax%.0f_%s.txt"%(outdir,emin,emax,cut_name),"w")
 afile.write("Minimum bin value %i events at %i GeV"%(min_number_events,energy_bin_array[min_bin]))

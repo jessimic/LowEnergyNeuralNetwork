@@ -36,6 +36,10 @@ parser.add_argument("--lr_drop", type=float, default=0.1,
                     dest="lr_drop",help="Number that the LR changes by")
 parser.add_argument("--lr_start", type=float, default=0.001,
                     dest="lr_start",help="Number that the LR starts at")
+parser.add_argument("--xline", default=None,
+                    dest="xline",help="Epoch for xline to be at (not adjusted)")
+parser.add_argument("--xline_label", type=str, default="Changed Model",
+                    dest="xline_label",help="Label for xline on legend")
 args = parser.parse_args()
 
 lr_start=args.lr_start
@@ -59,6 +63,9 @@ if ymin:
     ymin = float(ymin)
 if ymax:
     ymax = float(ymax)
+
+xline = args.xline
+xline_label = args.xline_label
 
 print("Epoch: %s, ymin: %s, ymax: %s"%(epoch,ymin,ymax))
 
@@ -95,7 +102,7 @@ plt.savefig("%s%s.png"%(full_path,savename))
 
 # Loss Plots
 print(args.title,variable)
-plot_history_from_list(data['loss'],data['val_loss'],save=True,savefolder=full_path,logscale=True,ymin=ymin,ymax=ymax,title=args.title,variable=variable,pick_epoch=best_epoch,lr_start=lr_start,lr_drop=lr_drop,lr_epoch=lr_epoch,step=1/num_files)
+plot_history_from_list(data['loss'],data['val_loss'],save=True,savefolder=full_path,logscale=True,ymin=ymin,ymax=ymax,title=args.title,variable=variable,pick_epoch=best_epoch,lr_start=lr_start,lr_drop=lr_drop,lr_epoch=lr_epoch,step=1/num_files,xline=xline,xline_label=xline_label)
 if len(header)-3 == 6:
     plot_history_from_list_split(data['EnergyLoss'],data['val_EnergyLoss'],data['ErrorLoss'],data['val_ErrorLoss'],save=True,savefolder=full_path,logscale=True,ymin=ymin,ymax=ymax)
 

@@ -50,16 +50,25 @@ parser.add_argument("--modelname_list",nargs='+',default=[None,None,None,None,No
                     dest="modelname_list", help="name output folder where model is stored, if NONE, assumes it is in the modeldir directly")
 parser.add_argument("--factor_list",nargs='+',default=[100,1,1,1,1],
                     dest="factor_list", help="factor to multiply output by")
+parser.add_argument("--small_network",default=False,action='store_true',
+                    dest="small_network",help="Use smaller network model (cnn_model_simple.py)")
+parser.add_argument("--dense_nodes", type=int,default=300,
+                    dest="dense_nodes",help="Number of nodes in dense layer, only works for small network")
+parser.add_argument("--conv_nodes", type=int,default=100,
+                    dest="conv_nodes",help="Number of nodes in conv layers, only works for small network")
 args = parser.parse_args()
 
 test_file = args.path + args.input_file
 filename = args.name
 
 dropout = 0.2
-learning_rate = 1e-3
 DC_drop_value = dropout
 IC_drop_value =dropout
 connected_drop_value = dropout
+
+small_network = args.small_network
+dense_nodes = args.dense_nodes
+conv_nodes = args.conv_nodes
 
 variable_list = args.variable_list
 epoch_list = args.epoch_list
@@ -87,15 +96,18 @@ if save==True:
     if os.path.isdir(save_folder_name) != True:
         os.mkdir(save_folder_name)
 
-def cnn_test(features_DC, features_IC, load_model_name, output_variables=1,DC_drop_value=0.2,IC_drop_value=0.2,connected_drop_value=0.2,model_type="energy"):
-    if model_type == "class" or model_type == "muon":
-        from cnn_model_classification import make_network
-    elif model_type == "error":
-        from cnn_model_losserror import make_network
+def cnn_test(features_DC, features_IC, load_model_name, output_variables=1,DC_drop=0.2,IC_drop=0.2,connected_drop=0.2,dense_nodes=300,conv_nodes=100,model_type="energy"):
+    if small_network:
+        from cnn_model_simple import make_network
+        model_DC = make_network(features_DC,features_IC,1,DC_drop,IC_drop,connected_drop,conv_nodes=conv_nodes,dense_nodes=dense_nodes)
     else:
-        from cnn_model import make_network
-
-    model_DC = make_network(features_DC,features_IC, output_variables, DC_drop_value, IC_drop_value,connected_drop_value)
+        if model_type == "class" or model_type == "muon":
+            from cnn_model_classification import make_network
+        elif model_type == "error":
+            from cnn_model_losserror import make_network
+        else:
+            from cnn_model import make_network
+        model_DC = make_network(features_DC,features_IC, output_variables, DC_drop, IC_drop,connected_drop)
     model_DC.load_weights(load_model_name)
 
     Y_test_predicted = model_DC.predict([features_DC,features_IC])
@@ -133,7 +145,7 @@ for network in range(num_variables):
     #    output_var = output_var*2
 
     t0 = time.time()
-    cnn_predictions.append(cnn_test(X_test_DC_use, X_test_IC_use, model_name_list[network],model_type=variable_list[network], output_variables=output_var))
+    cnn_predictions.append(cnn_test(X_test_DC_use, X_test_IC_use, model_name_list[network],model_type=variable_list[network], output_variables=output_var,DC_drop=DC_drop_value,IC_drop=IC_drop_value,connected_drop=connected_drop_value,dense_nodes=dense_nodes,conv_nodes=conv_nodes))
     if factor is not None:
         factor = int(factor)
         if output_var == 1:
@@ -142,15 +154,18 @@ for network in range(num_variables):
             cnn_predictions[network] = cnn_predictions[network][0]*factor
             cnn_predictions[network] = cnn_predictions[network][1]*factor
             cnn_predictions[network] = cnn_predictions[network][2]*factor
+        #untransform truth
+        if variable_list[network] == "energy":
+            Y_test_use[:,0] = Y_test_use[:,0]*factor
     t1 = time.time()
     print("Time to run CNN Predict %s on %i events: %f seconds"%(variable_list[network],X_test_DC_use.shape[0],t1-t0))
 
 
 print("Saving output file: %s/%s.hdf5"%(save_folder_name,filename))
-f = h5py.File("%s/prediction_values.hdf5"%(save_folder_name), "w")
+f = h5py.File("%s/%s.hdf5"%(save_folder_name,filename), "w")
 f.create_dataset("Y_test_use", data=Y_test_use)
-f.create_dataset("X_test_DC", data=Y_test_use)
-f.create_dataset("X_test_IC", data=Y_test_use)
+f.create_dataset("X_test_DC", data=X_test_DC_use)
+f.create_dataset("X_test_IC", data=X_test_IC_use)
 f.create_dataset("Y_predicted", data=cnn_predictions)
 if reco_test_use is not None:
     f.create_dataset("reco_test", data=reco_test_use)

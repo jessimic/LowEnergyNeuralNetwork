@@ -242,8 +242,8 @@ def read_i3_files(filenames_list, variable_list):
                 count_cleaned_pulses = 0
                 clean_pulses_8_or_more = False
                 for omkey, pulselist in cleaned_ice_pulses:
-                    if clean_pulses_8_or_more == True:
-                        break
+                    #if clean_pulses_8_or_more == True:
+                    #    break
                     for pulse in pulselist:
 
                         a_charge = pulse.charge
@@ -254,9 +254,9 @@ def read_i3_files(filenames_list, variable_list):
 
                         #Count number pulses > 0.25 PE in event
                         count_cleaned_pulses +=1
-                        if count_cleaned_pulses >=8:
-                            clean_pulses_8_or_more = True
-                            break
+                        #if count_cleaned_pulses >=8:
+                        #    clean_pulses_8_or_more = True
+                        #    break
                 output_info.append( np.array([ float(coin_muon), float(prob_nu), float(true_ndoms), fit_success, float( noise_class), float(nhit_doms), float(n_top15), float(n_outer), float(prob_nu2), clean_pulses_8_or_more, float(HLC_vertex.x), float(HLC_vertex.y), float(HLC_vertex.z) ]))
 
                 #Weights

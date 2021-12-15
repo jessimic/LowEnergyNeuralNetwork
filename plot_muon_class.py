@@ -177,7 +177,7 @@ cnn_mu_cut = .45
 cnn_nu = cnn_prob_mu < cnn_mu_cut
 cnn_prob_nu = np.ones(len(cnn_prob_mu)) - cnn_prob_mu
 e_large_cut = np.logical_and(cnn_energy > e_min_cut, cnn_energy < 200)
-e_small_cut = np.logical_and(cnn_energy > e_min_cut, cnn_energy < 200)
+e_small_cut = np.logical_and(cnn_energy > e_min_cut, cnn_energy < 100)
 
 noise_cut = noise_class > 0.95
 nhits_cut = nhit_doms >= 3

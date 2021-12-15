@@ -135,12 +135,12 @@ def plot_history(network_history,save=False,savefolder=None,use_logscale=False):
 
     plt.show()
 
-def plot_history_from_list(loss,val,save=False,savefolder=None,logscale=False,ymin=None,ymax=None,title=None,variable="Energy",pick_epoch=None,lr_start=None,lr_drop=None,lr_epoch=None,step=1,notebook=False):
+def plot_history_from_list(loss,val,save=False,savefolder=None,logscale=False,ymin=None,ymax=None,title=None,variable="Energy",pick_epoch=None,lr_start=None,lr_drop=None,lr_epoch=None,step=1,notebook=False,xline=None,xline_label="Changed Model"):
     
     fig,ax = plt.subplots(figsize=(10,7))
     start=step
     end=len(loss)*step
-    epochs = numpy.arange(start,end+step,step)
+    epochs = numpy.arange(start,end+(step/2.),step)
     ax.plot(epochs,loss,'b',label="Training")
     ax.plot(epochs,val,'c',label="Validation")
    
@@ -158,10 +158,14 @@ def plot_history_from_list(loss,val,save=False,savefolder=None,logscale=False,ym
         ymin = min(min(loss),min(val))
     ax.set_ylim(ymin,ymax)
     
+    if xline is not None:
+        ax.axvline(int(xline)*step, linewidth=4, color='k', alpha=0.8, label="%s"%xline_label)
+
     if pick_epoch is not None:
         ax.axvline(pick_epoch*step,linewidth=4, color='g',alpha=0.5,label="Chosen Model")
 
     if lr_epoch is not None:
+        #epoch_drop = numpy.arange(396*step,end,lr_epoch*step)
         epoch_drop = numpy.arange(0,end,lr_epoch*step)
         for lr_print in range(len(epoch_drop)):
             lrate = lr_start*(lr_drop**lr_print)
@@ -1082,7 +1086,7 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
                        bins=10,min_val=0.,max_val=60., ylim = None,\
                        save=False,savefolder=None,vs_predict=False,\
                        flavor="NuMu", sample="CC",style="contours",\
-                       variable="Energy",units="(GeV)",xlog=False,
+                       variable="Energy",units="(GeV)",xlog=False,save_name=None,
                        xvariable="Energy",xunits="(GeV)",notebook=False,
                        specific_bins = None,xline=None,xline_name="DeepCore",
                        epochs=None,reco_name="Retro",cnn_name="CNN",legend="upper center"):
@@ -1324,6 +1328,8 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
         savename += "_Compare%sReco"%reco_name
     if ylim is not None:
         savename += "_ylim"
+    if save_name is not None:
+        savename += "_%s"%savename
     if save == True:
         plt.savefig("%s%s.png"%(savefolder,savename),bbox_inches='tight')
 

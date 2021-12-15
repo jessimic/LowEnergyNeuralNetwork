@@ -193,15 +193,22 @@ for a_file in event_file_names:
         keep_index = np.ones(file_labels.shape[0],dtype=bool) #true energy > 0, should be all true
         assert sum(keep_index)==len(keep_index), "True energy is not > 0 for all events"
     if cut_8_hits:
-        assert file_labels.shape[1] > 15, "file does not have 8 hit saved, likely this cut was already applied using an older version of i3_to_hdf5.py"
-        has_8_hit = file_labels[:,15] == 1
-        print("Skipping %i events with < 8 hits"%(len(has_8_hit)-sum(has_8_hit)))
-        keep_index = np.logical_and(keep_index,has_8_hit)
+        try:
+            has_8_hit = file_labels[:,15] == 1
+            print("Skipping %i events with < 8 hits"%(len(has_8_hit)-sum(has_8_hit)))
+            keep_index = np.logical_and(keep_index,has_8_hit)
+        except:
+            print("file does not have 8 hit saved, likely this cut was already applied using an older version of i3_to_hdf5.py")
+        #assert file_labels.shape[1] > 15, "file does not have 8 hit saved, likely this cut was already applied using an older version of i3_to_hdf5.py"
+        
     if cut_ProbNu:
-        assert file_labels.shape[1] > 15, "file does not have ProbNu saved, likely this cut was already applied using an older version of i3_to_hdf5.py"
-        passes_ProbNu = file_labels[:,16] > 0.95
-        print("Skipping %i events with ProbNu > 0.95"%(len(passes_ProbNu)-sum(passes_ProbNu)))
-        keep_index = np.logical_and(keep_index,passes_ProbNu)
+        try:
+            passes_ProbNu = file_labels[:,16] > 0.95
+            print("Skipping %i events with ProbNu > 0.95"%(len(passes_ProbNu)-sum(passes_ProbNu)))
+            keep_index = np.logical_and(keep_index,passes_ProbNu)
+        except:
+            print("file does not have ProbNu saved, likely this cut was already applied using an older version of i3_to_hdf5.py")
+        #assert file_labels.shape[1] > 15, "file does not have ProbNu saved, likely this cut was already applied using an older version of i3_to_hdf5.py"
 
     number_events = sum(keep_index)
 
@@ -218,6 +225,12 @@ for a_file in event_file_names:
     if full_labels is None:
         full_labels = file_labels[keep_index]
     else:
+        if full_labels.shape[-1] < 17 and file_labels.shape[-1] == 17:
+            file_labels = file_labels[:,:15]
+            print("Getting rid of the 8 hit & prob nu labels in the labels array, to make sure the arrays match between files!")
+        if full_labels.shape[-1] == 17 and file_labels.shape[-1] < 17:
+            full_labels = full_labels[:,:15]
+            print("Getting rid of the 8 hit & prob nu labels in the labels array, to make sure the arrays match between files!")
         full_labels = np.concatenate((full_labels, file_labels[keep_index]))
     
     if file_weights is not None:

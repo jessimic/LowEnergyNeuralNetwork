@@ -6,7 +6,7 @@
 # Runs Energy and Zenith only (must do both atm)
 ####################################
 
-import numpy
+import numpy as np
 import h5py
 import time
 import math
@@ -17,6 +17,8 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import tensorflow as tf
+from handle_data import CutMask
+from handle_data import VertexMask
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input_files",type=str,default=None,
@@ -37,6 +39,8 @@ parser.add_argument("--model",default=None,
                     dest="model",help="Name of file with model weights to load--will start from here if file given")
 parser.add_argument("--first_variable", type=str,default="energy",
                     dest="first_variable", help = "name for first variable (energy, zenith, or class are the only supported)")
+parser.add_argument("--dropout", type=float,default=0.2,
+                    dest="dropout",help="dropout value as float")
 parser.add_argument("--lr", type=float,default=0.001,
                     dest="learning_rate",help="learning rate as a FLOAT")
 parser.add_argument("--lr_drop", type=float,default=0.1,
@@ -49,6 +53,18 @@ parser.add_argument("--cut_downgoing",default=False,action='store_true',
                     dest="cut_downgoing",help="Add flag if you want to only train on upgoing events (cosine zenith < 0.3)")
 parser.add_argument("--logE",default=False,action='store_true',
                     dest="logE",help="Add flag if want to train for energy in log scale")
+parser.add_argument("--small_network",default=False,action='store_true',
+                    dest="small_network",help="Use smaller network model (cnn_model_simple.py)")
+parser.add_argument("--dense_nodes", type=int,default=300,
+                    dest="dense_nodes",help="Number of nodes in dense layer, only works for small network")
+parser.add_argument("--conv_nodes", type=int,default=100,
+                    dest="conv_nodes",help="Number of nodes in conv layers, only works for small network")
+parser.add_argument("--chop_energy",default=False,action='store_true',
+                    dest="chop_energy",help="Cut out low energy, specified by the ecut value")
+parser.add_argument("--vertex_cut",default=False,action='store_true',
+                    dest="vertex_cut",help="Add starting vertex cut")
+parser.add_argument("--ecut", type=int,default=3,
+                    dest="ecut",help="Energy cut value, in GeV")
 args = parser.parse_args()
 
 # Settings from args
@@ -72,14 +88,23 @@ initial_lr = args.learning_rate
 
 train_variables = args.train_variables
 batch_size = 256
-dropout = 0.2
+dropout = args.dropout
 DC_drop_value = dropout
 IC_drop_value =dropout
 connected_drop_value = dropout
+
+small_network = args.small_network
+dense_nodes = args.dense_nodes
+conv_nodes = args.conv_nodes
+
 start_epoch = args.start_epoch
 do_error = args.do_error
 cut_downgoing = args.cut_downgoing
 logE = args.logE
+
+chop_energy = args.chop_energy
+ecut = args.ecut
+vertex_cut = args.vertex_cut
 
 old_model_given = args.model
 
@@ -90,8 +115,10 @@ if args.first_variable == "Zenith" or args.first_variable == "zenith" or args.fi
 elif args.first_variable == "energy" or args.first_variable == "Energy" or args.first_variable == "e" or args.first_variable == "E":
     first_var = "energy"
     print("training with energy as the first index")
-elif args.first_variable == "class" or args.first_variable == "classification" or args.first_variable == "Class" or args.first_variable == "Classification" or args.first_variable == "C" or args.first_variable == "c":
+elif args.first_variable == "class" or args.first_variable == "classification" or args.first_variable == "Class" or args.first_variable == "Classification" or args.first_variable == "C" or args.first_variable == "c" or args.first_variable == "PID" or args.first_variable == "pid":
     first_var = "class"
+elif args.first_variable == "muon" or args.first_variable == "Muon":
+    first_var = "muon"
 else:
     first_var = None
 
@@ -119,10 +146,15 @@ file_names = sorted(glob.glob(files_with_paths))
 
 print("\nFiles Used \nTraining %i files that look like %s \nStarting with model: %s \nSaving output to: %s"%(len(file_names),file_names[0],old_model_given,save_folder_name))
 
-print("\nNetwork Parameters \nbatch_size: %i \ndropout: %f \nstarting learning rate: %f"%(batch_size,dropout,initial_lr))
+print("\nNetwork Parameters \nbatch_size: %i \ndropout: %f \nstarting learning rate: %f \ndense nodes: %i \nconv nodes: %i"%(batch_size,dropout,initial_lr,dense_nodes, conv_nodes))
+if small_network:
+    print("number conv layers: 5")
 
 #print("Starting at epoch: %s \nTraining until: %s epochs \nTraining on %s variables \nUsing Network Config in %s"%(start_epoch,start_epoch+num_epochs,train_variables,network))
 print("Starting at epoch: %s \nTraining until: %s epochs \nTraining on %s variables with %s first"%(start_epoch,start_epoch+num_epochs,train_variables, first_var))
+
+if chop_energy:
+    print("CUTTING OUT ENERGY ABOVE %.2f"%ecut)
 
 afile = file_names[0]
 f = h5py.File(afile, 'r')
@@ -134,14 +166,18 @@ print("Train Data DC", X_train_DC.shape)
 print("Train Data IC", X_train_IC.shape)
 
 # LOAD MODEL
-if first_var == "class":
-    from cnn_model_classification import make_network
+if small_network:
+    from cnn_model_simple import make_network
+    model_DC = make_network(X_train_DC,X_train_IC,1,DC_drop_value,IC_drop_value,connected_drop_value,conv_nodes=conv_nodes,dense_nodes=dense_nodes)
 else:
-    if do_error:
-        from cnn_model_losserror import make_network
+    if first_var == "class" or first_var == "muon":
+        from cnn_model_classification import make_network
     else:
-        from cnn_model import make_network
-model_DC = make_network(X_train_DC,X_train_IC,train_variables,DC_drop_value,IC_drop_value,connected_drop_value)
+        if do_error:
+            from cnn_model_losserror import make_network
+        else:
+            from cnn_model import make_network
+    model_DC = make_network(X_train_DC,X_train_IC,train_variables,DC_drop_value,IC_drop_value,connected_drop_value)
 
 # WRITE OWN LOSS FOR MORE THAN ONE REGRESSION OUTPUT
 from keras.optimizers import SGD
@@ -228,9 +264,9 @@ for epoch in range(start_epoch,end_epoch):
   
     if cut_downgoing:
         print("Cutting downgoing events, only keeping cosine zenith < 0.3")
-        check_coszenith = numpy.logical_or(Y_train[:,1] > 1, Y_train[:,1] < -1)
+        check_coszenith = np.logical_or(Y_train[:,1] > 1, Y_train[:,1] < -1)
         assert sum(check_coszenith)==0, "check truth label for train, not in cosine potentially (numbers > 1 or < -1"
-        check_coszenith = numpy.logical_or(Y_validate[:,1] > 1, Y_validate[:,1] < -1)
+        check_coszenith = np.logical_or(Y_validate[:,1] > 1, Y_validate[:,1] < -1)
         assert sum(check_coszenith)==0, "check truth label for validate, not in cosine potentially (numbers > 1 or < -1"
         mask_train = Y_train[:,1] < 0.3
         mask_validate = Y_validate[:,1] < 0.3
@@ -243,8 +279,41 @@ for epoch in range(start_epoch,end_epoch):
 
     if logE:
         print("Training and validating on LOG E")
-        Y_train[:,0] = numpy.log10(Y_train[:,0])
-        Y_validate[:,0] = numpy.log10(Y_validate[:,0])
+        Y_train[:,0] = np.log10(Y_train[:,0])
+        Y_validate[:,0] = np.log10(Y_validate[:,0])
+    
+    if chop_energy:
+        cut_train = Y_train[:,0] < ecut/100.
+        cut_validate = Y_validate[:,0] < ecut/100.
+        Y_train = Y_train[cut_train]
+        X_train_DC = X_train_DC[cut_train]
+        X_train_IC = X_train_IC[cut_train]
+        Y_validate = Y_validate[cut_validate]
+        X_validate_DC = X_validate_DC[cut_validate]
+        X_validate_IC = X_validate_IC[cut_validate]
+
+    if vertex_cut:
+        vertex_mask_train = VertexMask(Y_train,azimuth_index=7,track_index=2,max_track=200.)
+        cut_train = vertex_mask_train["start_IC19"]
+        vertex_mask_val = VertexMask(Y_validate,azimuth_index=7,track_index=2,max_track=200.)
+        cut_validate = vertex_mask_val["start_IC19"]
+        print("Removing %i events from train, %i events from validate"%((len(cut_train)-sum(cut_train)),(len(cut_validate)-sum(cut_validate))))
+        Y_train = Y_train[cut_train]
+        X_train_DC = X_train_DC[cut_train]
+        X_train_IC = X_train_IC[cut_train]
+        Y_validate = Y_validate[cut_validate]
+        X_validate_DC = X_validate_DC[cut_validate]
+        X_validate_IC = X_validate_IC[cut_validate]
+    
+    #Set up binary crosentropy calculation for classificaiton
+    if first_var == "muon":
+        muon_mask_train = (Y_train[:,9]) == 13
+        Y_train = np.array(muon_mask_train,dtype=int)
+        muon_mask_val = (Y_validate[:,9]) == 13
+        Y_validate = np.array(muon_mask_val,dtype=int)
+    if first_var == "class":
+        Y_train = np.array(Y_train[:,8],dtype=int)
+        Y_validate = np.array(Y_validate[:,8],dtype=int)
 
     # Compile model
     if train_variables == 1:
@@ -266,9 +335,7 @@ for epoch in range(start_epoch,end_epoch):
                 model_DC.compile(loss=CustomLoss,
                     optimizer=Adam(lr=learning_rate),
                     metrics=[ZenithLoss])
-        if first_var == "class":
-            Y_train = numpy.array(Y_train[:,8],dtype=int)
-            Y_validate = numpy.array(Y_validate[:,8],dtype=int)
+        if first_var == "class" or first_var == "muon":
             model_DC.compile(loss=BinaryCrossentropy(),
             optimizer=Adam(lr=learning_rate))
     elif train_variables == 2:
