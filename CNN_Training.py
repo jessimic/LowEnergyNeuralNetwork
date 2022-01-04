@@ -55,6 +55,10 @@ parser.add_argument("--logE",default=False,action='store_true',
                     dest="logE",help="Add flag if want to train for energy in log scale")
 parser.add_argument("--small_network",default=False,action='store_true',
                     dest="small_network",help="Use smaller network model (cnn_model_simple.py)")
+parser.add_argument("--layer_network",default=False,action='store_true',
+                    dest="layer_network",help="Use network model with layer normalization instead of batch (cnn_model_layer.py)")
+parser.add_argument("--instance_network",default=False,action='store_true',
+                    dest="instance_network",help="Use network model with instance normalization instead of batch (cnn_model_layer.py)")
 parser.add_argument("--dense_nodes", type=int,default=300,
                     dest="dense_nodes",help="Number of nodes in dense layer, only works for small network")
 parser.add_argument("--conv_nodes", type=int,default=100,
@@ -65,6 +69,10 @@ parser.add_argument("--vertex_cut",default=False,action='store_true',
                     dest="vertex_cut",help="Add starting vertex cut")
 parser.add_argument("--ecut", type=int,default=3,
                     dest="ecut",help="Energy cut value, in GeV")
+parser.add_argument("--cut_nDOM",default=False,action='store_true',
+                    dest="cut_nDOM",help="Cut based on theshold of nDOMs in CNN strings")
+parser.add_argument("--nDOM", type=int,default=4,
+                    dest="nDOM",help="Number of DOMs for threshold, will cut any number < value, so 4 means it will cut events with < 4 hit DOMs")
 args = parser.parse_args()
 
 # Settings from args
@@ -96,6 +104,10 @@ connected_drop_value = dropout
 small_network = args.small_network
 dense_nodes = args.dense_nodes
 conv_nodes = args.conv_nodes
+instance_network = args.instance_network
+layer_network = args.layer_network
+check_only_one_special_network = [small_network,instance_network,layer_network]
+assert sum(check_only_one_special_network) <= 1, "too many special networks, choose between small, instance, OR layered"
 
 start_epoch = args.start_epoch
 do_error = args.do_error
@@ -105,6 +117,8 @@ logE = args.logE
 chop_energy = args.chop_energy
 ecut = args.ecut
 vertex_cut = args.vertex_cut
+cut_nDOM = args.cut_nDOM
+threshold_nDOM = args.nDOM
 
 old_model_given = args.model
 
@@ -169,6 +183,12 @@ print("Train Data IC", X_train_IC.shape)
 if small_network:
     from cnn_model_simple import make_network
     model_DC = make_network(X_train_DC,X_train_IC,1,DC_drop_value,IC_drop_value,connected_drop_value,conv_nodes=conv_nodes,dense_nodes=dense_nodes)
+elif layer_network:
+    from cnn_model_layer import make_network
+    model_DC = make_network(X_train_DC,X_train_IC,1,DC_drop_value,IC_drop_value,connected_drop_value)
+elif instance_network:
+    from cnn_model_instance import make_network
+    model_DC = make_network(X_train_DC,X_train_IC,1,DC_drop_value,IC_drop_value,connected_drop_value)
 else:
     if first_var == "class" or first_var == "muon":
         from cnn_model_classification import make_network
@@ -189,7 +209,6 @@ from keras.losses import mean_squared_logarithmic_error
 from keras.losses import logcosh
 from keras.losses import mean_absolute_percentage_error
 from keras.losses import BinaryCrossentropy
-from keras.losses import SparseCategoricalCrossentropy
 
 if first_var == "energy":
     def EnergyLoss(y_truth,y_predicted):
@@ -261,6 +280,33 @@ for epoch in range(start_epoch,end_epoch):
     Y_validate = f['Y_validate'][:]
     f.close()
     del f
+
+    if cut_nDOM:
+        charge_DC = X_train_DC[:,:,:,0] > 0
+        charge_IC = X_train_IC[:,:,:,0] > 0
+        DC_flat = np.reshape(charge_DC,[X_train_DC.shape[0],480])
+        IC_flat = np.reshape(charge_IC,[X_train_IC.shape[0],1140])
+        DOMs_hit_DC = np.sum(DC_flat,axis=-1)
+        DOMs_hit_IC = np.sum(IC_flat,axis=-1)
+        DOMs_hit = DOMs_hit_DC + DOMs_hit_IC
+        check_min_nDOM = DOMs_hit >= threshold_nDOM
+        Y_train = Y_train[check_min_nDOM]
+        X_train_DC = X_train_DC[check_min_nDOM]
+        X_train_IC = X_train_IC[check_min_nDOM]
+        print("Cut %i training events due to nDOM >= %i"%(len(check_min_nDOM)-sum(check_min_nDOM),threshold_nDOM))
+        
+        charge_DC = X_validate_DC[:,:,:,0] > 0
+        charge_IC = X_validate_IC[:,:,:,0] > 0
+        DC_flat = np.reshape(charge_DC,[X_validate_DC.shape[0],480])
+        IC_flat = np.reshape(charge_IC,[X_validate_IC.shape[0],1140])
+        DOMs_hit_DC = np.sum(DC_flat,axis=-1)
+        DOMs_hit_IC = np.sum(IC_flat,axis=-1)
+        DOMs_hit = DOMs_hit_DC + DOMs_hit_IC
+        check_min_nDOM = DOMs_hit >= threshold_nDOM
+        Y_validate = Y_validate[check_min_nDOM]
+        X_validate_DC = X_validate_DC[check_min_nDOM]
+        X_validate_IC = X_validate_IC[check_min_nDOM]
+        print("Cut %i validation events due to nDOM >= %i"%(len(check_min_nDOM)-sum(check_min_nDOM),threshold_nDOM))
   
     if cut_downgoing:
         print("Cutting downgoing events, only keeping cosine zenith < 0.3")

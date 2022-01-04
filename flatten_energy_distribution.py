@@ -76,6 +76,8 @@ parser.add_argument("--no_cut8hits",default=False,action='store_true',
                     dest="no_cut_8hits", help="set flag if you DO NOT want to cut events with 8 hits")
 parser.add_argument("--no_cutProbNu",default=False,action='store_true',
                     dest="no_cut_ProbNu", help="set flag if you DO NOT want to cut events with ProbNu < 0.95")
+parser.add_argument("--nDOM_cut",type=int,default=1,
+                    dest="nDOM_cut",help="number of CNN seen nDOMs to require (i.e. 1 means events with < 1 DOM hit are cut, 2 is < 2 DOMs hit cut")
 args = parser.parse_args()
 
 input_files = args.input_files
@@ -93,6 +95,7 @@ max_events_per_bin = args.max_evt_per_bin
 emax = args.emax
 emin = args.emin
 cut_name = args.cuts
+nDOM_cut = args.nDOM_cut
 print("Keeping %s event types"%cut_name)
 flatten = not(args.no_flatten)
 if not flatten:
@@ -184,6 +187,7 @@ print("USING HARD CODED MAX PER BIN ARRAY!!!!!!!!")
 """
 count_no_save = 0
 count_out_bounds  = 0
+count_cut_nDOM = 0 #keep count of events cut due to too little nDOMs
 for a_file in event_file_names:
 
     f = h5py.File(a_file, "r")
@@ -248,6 +252,15 @@ for a_file in event_file_names:
         energy=file_labels[:,0]
     print("Total events this file: %i"%len(energy))
 
+    #Calculate number of DOMs hit
+    charge_DC = file_features_DC[:,:,:,0] > 0
+    charge_IC = file_features_IC[:,:,:,0] > 0
+    DC_flat = np.reshape(charge_DC,[file_features_DC.shape[0],480])
+    IC_flat = np.reshape(charge_IC,[file_features_IC.shape[0],1140])
+    DOMs_hit_DC = np.sum(DC_flat,axis=-1)
+    DOMs_hit_IC = np.sum(IC_flat,axis=-1)
+    DOMs_hit = DOMs_hit_DC + DOMs_hit_IC
+
     # Check how many events already in each bin, save if under max
     if flatten == True:
         keep_index = [False]*len(energy)
@@ -264,6 +277,9 @@ for a_file in event_file_names:
             if cut_8_hits:
                 if has_8_hit[index] == False:
                     continue
+            if DOMs_hit[index] < nDOM_cut:
+                count_cut_nDOM +=1
+                continue
             if cut_ProbNu:
                 if passes_ProbNu[index] == False:
                     continue
@@ -367,6 +383,9 @@ for a_file in event_file_names:
             if verbose:
                 print(count_energy)
 
+if count_cut_nDOM > 0:
+    print("Cut %i events that didnt have nDOM hits < %i"%(count_cut_nDOM,nDOM_cut))
+
 if count_out_bounds > 0:
     print("Got rid of %i events out of the energy bounds [%f, %f]"%(count_out_bounds, emin, emax))
 
@@ -426,7 +445,7 @@ if split_data:
             filenum = "_file%02d"%sep_file
         else:
             filenum = ""
-        output_name = outdir + outname + "_E%i"%emin + "to%i_"%emax + "%s_"%cut_name + "%s_%s_"%(start_cut,end_cut) + "flat_%sbins_%sevtperbin"%(bins,max_events_per_bin) + filenum + ".hdf5"
+        output_name = outdir + outname + "_E%i"%emin + "to%i_"%emax + "%s_"%cut_name + "%s_%s_"%(start_cut,end_cut) + "%iminDOM"%nDOM_cut + "flat_%sbins_%sevtperbin"%(bins,max_events_per_bin) + filenum + ".hdf5"
 
         test_start = test_per_file*sep_file
         train_start = train_per_file*sep_file
@@ -506,7 +525,7 @@ else:
             filenum = "_file%02d"%sep_file
         else:
             filenum = ""
-        output_name = outdir + outname + "lt%03d_"%emax + "%s_"%cut_name + "%s_%s_"%(start_cut,end_cut) + "flat_%sbins_%sevtperbin"%(bins,max_events_per_bin) + filenum + ".hdf5"
+        output_name = outdir + outname + "lt%03d_"%emax + "%s_"%cut_name + "%s_%s_"%(start_cut,end_cut) + "%iminDOM"%nDOM_cut + "flat_%sbins_%sevtperbin"%(bins,max_events_per_bin) + filenum + ".hdf5"
         print("I put evnts %i - %i into %s"%(start,end,output_name))
 
         f = h5py.File(output_name, "w")

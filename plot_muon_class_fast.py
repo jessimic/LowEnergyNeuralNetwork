@@ -1,13 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import h5py
+import glob
 import matplotlib.colors as colors
 from scipy.interpolate import UnivariateSpline
 from scipy import interpolate
 import scipy.stats
 import itertools
 #import wquantiles as wq
-from sklearn.metrics import confusion_matrix
 import argparse
 import os, sys
 from matplotlib import ticker
@@ -28,21 +27,36 @@ parser.add_argument("-o", "--outdir",default=None,
 parser.add_argument("--savename", default=None,
                     dest="savename", help="additional dir in the output_dir to save the plots under")
 parser.add_argument("--no_nutau",default=False,action='store_true',
-                    dest="no_nutau",help="Remove nutau events")
+                    dest="no_nutau",help="remove nutau events")
+parser.add_argument("--i3",default=False,action='store_true',
+                    dest="i3",help="flag if inputting i3 files (not hdf5)")
+parser.add_argument("--given_threshold",default=None,
+                    dest="given_threshold",help="Define cut value (0-1) to apply cut for confusion matrix, if not use, finds closest to true neutrino at 80%")
 args = parser.parse_args()
 
 filename = args.input_file
-output_plots = args.path
+path = args.path
 model_name = args.model_name
-full_path = output_plots + "/" + model_name + "/" + filename
+i3 = args.i3
+if i3:
+    files = path + filename
+    full_path = sorted(glob.glob(files))
+    print("Using %i i3 files"%len(full_path))
+else:
+    full_path = path + "/" + model_name + "/" + filename
+    print("Using file %s"%full_path)
+
 if args.output_dir is None:
-    outdir = output_plots + "/" + model_name + "/"
+    outdir = path + "/" + model_name + "/"
 else:
     outdir = args.output_dir + "/"
 if args.savename is not None:
     outdir = outdir + "/" + args.savename + "/"
 
-print("Using file %s"%full_path)
+given_threshold = args.given_threshold
+if given_threshold:
+    given_threshold = float(given_threshold)
+
 
 save = True
 save_folder = outdir
@@ -50,108 +64,129 @@ print("Saving to %s"%save_folder)
 if os.path.isdir(save_folder) != True:
         os.mkdir(save_folder)
 
-f = h5py.File(full_path, "r")
-list(f.keys())
-truth1 = f["Y_test_use"][:]
-predict1 = f["Y_predicted"][:]
-try:
-    info1 = f["additional_info"][:]
-except:
-    info1 = None
-try:
-    raw_weights1 = f["weights_test"][:]
-except:
-    raw_weights1 = None
-f.close()
-del f
+if i3:
+    from read_cnn_i3_files import read_i3_files
+    variable_list = ["energy", "prob_track", "zenith", "vertex_x", "vertex_y", "vertex_z", "prob_muon", "prob_muon_v2"] 
+    predict, truth, old_reco, info, raw_weights, input_features_DC, input_features_IC= read_i3_files(full_path,variable_list)
 
-cnn_prob_mu1 = np.array(predict1[:,:,0][-1])
-cnn_prob_nu1 = 1-cnn_prob_mu1
+    cnn_prob_mu = predict[:,6]
 
-true_PID1 = truth1[:,9]
+    #Find number of files
+    numu_files = len(list(filter(lambda x: "pass2.14" in x, full_path)))
+    nue_files = len(list(filter(lambda x: "pass2.12" in x, full_path)))
+    muon_files = len(list(filter(lambda x: "pass2.13" in x, full_path)))
+    nutau_files = len(list(filter(lambda x: "pass2.16" in x, full_path)))
+    print("Using %i numu files, %i nue files, %i nutau files, %i muon files"%(numu_files, nue_files, nutau_files, muon_files))
 
-muon_mask_test1 = (true_PID1) == 13
-true_isMuon1 = np.array(muon_mask_test1,dtype=bool)
-numu_mask_test1 = (true_PID1) == 14
-true_isNuMu1 = np.array(numu_mask_test1,dtype=bool)
-nue_mask_test1 = (true_PID1) == 12
-true_isNuE1 = np.array(nue_mask_test1,dtype=bool)
-nutau_mask_test1 = (true_PID1) == 16
-true_isNuTau1 = np.array(nutau_mask_test1,dtype=bool)
-nu_mask1 = np.logical_or(np.logical_or(numu_mask_test1, nue_mask_test1), nutau_mask_test1)
-true_isNu1 = np.array(nu_mask1,dtype=bool)
+else:
+    import h5py
+    f = h5py.File(full_path, "r")
+    list(f.keys())
+    truth = f["Y_test_use"][:]
+    predict = f["Y_predicted"][:]
+    try:
+        info = f["additional_info"][:]
+    except:
+        info = None
+    try:
+        raw_weights = f["weights_test"][:]
+    except:
+        raw_weights = None
+    f.close()
+    del f
 
-weights1 = raw_weights1[:,8]
+    cnn_prob_mu = np.array(predict[:,:,0][-1])
+    
+    numu_files =97
+    nue_files = 91
+    muon_files = 1999
+    nutau_files = 45
 
-numu_files1 =97
-nue_files1 = 91
-muon_files1 = 1999
-nutau_files1 = 45
-if weights1 is not None:
-    if sum(true_isNuMu1) > 1:
-        #print("NuMu:",sum(true_isNuMu1),sum(weights1[true_isNuMu1]))
-        weights1[true_isNuMu1] = weights1[true_isNuMu1]/numu_files1
-        #print(sum(weights1[true_isNuMu1]))
-    if sum(true_isNuE1) > 1:
-        #print("NuE:",sum(true_isNuE1),sum(weights1[true_isNuE1]))
-        weights1[true_isNuE1] = weights1[true_isNuE1]/nue_files1
-        #print(sum(weights1[true_isNuE1]))
-    if sum(true_isMuon1) > 1:
-        #print("Muon:",sum(true_isMuon1),sum(weights1[true_isMuon1]))
-        weights1[true_isMuon1] = weights1[true_isMuon1]/muon_files1
-        #print(sum(weights1[true_isMuon1]))
-    if sum(nutau_mask_test1) > 1:
-        #print("NuTau:",sum(true_isNuTau1),sum(weights1[true_isNuTau1]))
-        weights1[true_isNuTau1] = weights1[true_isNuTau1]/nutau_files1
-        #print(sum(weights1[true_isNuTau1]))
+#Seperate by PID and reweight
+cnn_prob_nu = 1-cnn_prob_mu
+
+true_PID = truth[:,9]
+
+muon_mask_test = (true_PID) == 13
+true_isMuon = np.array(muon_mask_test,dtype=bool)
+numu_mask_test = (true_PID) == 14
+true_isNuMu = np.array(numu_mask_test,dtype=bool)
+nue_mask_test = (true_PID) == 12
+true_isNuE = np.array(nue_mask_test,dtype=bool)
+nutau_mask_test = (true_PID) == 16
+true_isNuTau = np.array(nutau_mask_test,dtype=bool)
+nu_mask = np.logical_or(np.logical_or(numu_mask_test, nue_mask_test), nutau_mask_test)
+true_isNu = np.array(nu_mask,dtype=bool)
+
+weights = raw_weights[:,8]
+if weights is not None:
+    if sum(true_isNuMu) > 1:
+        #print("NuMu:",sum(true_isNuMu),sum(weights[true_isNuMu]))
+        weights[true_isNuMu] = weights[true_isNuMu]/numu_files
+        #print(sum(weights[true_isNuMu]))
+    if sum(true_isNuE) > 1:
+        #print("NuE:",sum(true_isNuE),sum(weights[true_isNuE]))
+        weights[true_isNuE] = weights[true_isNuE]/nue_files
+        #print(sum(weights[true_isNuE]))
+    if sum(true_isMuon) > 1:
+        #print("Muon:",sum(true_isMuon),sum(weights[true_isMuon]))
+        weights[true_isMuon] = weights[true_isMuon]/muon_files
+        #print(sum(weights[true_isMuon]))
+    if sum(nutau_mask_test) > 1:
+        #print("NuTau:",sum(true_isNuTau),sum(weights[true_isNuTau]))
+        weights[true_isNuTau] = weights[true_isNuTau]/nutau_files
+        #print(sum(weights[true_isNuTau]))
 
 if args.no_nutau:
     print("Removing nutau events from testing sample!!!")
-    not_NuTau1 = np.invert(true_isNuTau1)
-    cnn_prob_mu1 = cnn_prob_mu1[not_NuTau1]
-    cnn_prob_nu1 = cnn_prob_nu1[not_NuTau1]
-    weights1 = weights1[not_NuTau1]
-    true_isMuon1 = true_isMuon1[not_NuTau1]
-    true_isNu1 = true_isNu1[not_NuTau1]
-    true_isNuMu1 = true_isNuMu1[not_NuTau1]
-    true_isNuE1 = true_isNuE1[not_NuTau1]
+    not_NuTau = np.invert(true_isNuTau)
+    cnn_prob_mu = cnn_prob_mu[not_NuTau]
+    cnn_prob_nu = cnn_prob_nu[not_NuTau]
+    weights = weights[not_NuTau]
+    true_isMuon = true_isMuon[not_NuTau]
+    true_isNu = true_isNu[not_NuTau]
+    true_isNuMu = true_isNuMu[not_NuTau]
+    true_isNuE = true_isNuE[not_NuTau]
 
-weights_squared1 = weights1*weights1
-true_all1 = np.ones(len(weights1),dtype=bool)
+true_all = np.ones(len(weights),dtype=bool)
 
 from PlottingFunctionsClassification import plot_classification_hist
 from PlottingFunctionsClassification import ROC
 from PlottingFunctionsClassification import my_confusion_matrix
 
-plot_classification_hist(true_isNu1,cnn_prob_nu1,mask=true_all1,
+plot_classification_hist(true_isNu,cnn_prob_nu,mask=true_all,
                         mask_name="No Cuts", units="",bins=50,
-                        weights=weights1, log=False,save=save,
+                        weights=weights, log=False,save=save,
                         save_folder_name=save_folder,
-                        name_prob1 = "Neutrino", name_prob0 = "Muon")
+                        name_prob = "Neutrino", name_prob0 = "Muon")
 
-threshold1, threshold0, auc = ROC(true_isNu1,cnn_prob_nu1,
+threshold1, threshold0, auc = ROC(true_isNu,cnn_prob_nu,
                                 mask=None,mask_name="No Cuts",
                                 save=save,save_folder_name=save_folder,
                                 variable="Probability Neutrino")
 #Confusion Matrix
-total = sum(weights1[true_isNuMu1])
-try_cuts = np.arange(0.01,1.00,0.01)
-fraction_numu = []
-for mu_cut in try_cuts:
-    cut_attempt = cnn_prob_mu1 <= mu_cut
-    cut_mask = np.logical_and(true_isNuMu1, cut_attempt)
-    fraction_numu.append(sum(weights1[cut_mask])/total)
+total = sum(weights[true_isNuMu])
+if given_threshold is None:
+    try_cuts = np.arange(0.01,1.00,0.01)
+    fraction_numu = []
+    for mu_cut in try_cuts:
+        cut_attempt = cnn_prob_mu <= mu_cut
+        cut_mask = np.logical_and(true_isNuMu, cut_attempt)
+        fraction_numu.append(sum(weights[cut_mask])/total)
 #Find closest to 80.61% to match L6 Teseting
-eighty_array = np.ones(len(fraction_numu),dtype=float)*0.8061
-nearest_to_80 = abs(fraction_numu - eighty_array)
-best_index = nearest_to_80.argmin()
-best_mu_cut = try_cuts[best_index]
+    eighty_array = np.ones(len(fraction_numu),dtype=float)*0.8061
+    nearest_to_80 = abs(fraction_numu - eighty_array)
+    best_index = nearest_to_80.argmin()
+    best_mu_cut = try_cuts[best_index]
 #print(fraction_num)
 #print(nearest_to_80)
-print(best_index,best_mu_cut)
+    print("best index %i, cut value %f"%(best_index,best_mu_cut))
+else:
+    best_mu_cut = given_threshold
+    print("given cut value %f"%(best_mu_cut))
 
-cnn_binary_class = cnn_prob_mu1 <= best_mu_cut
-percent_save = my_confusion_matrix(true_isNu1, cnn_binary_class, weights1,
+cnn_binary_class = cnn_prob_mu <= best_mu_cut
+percent_save = my_confusion_matrix(true_isNu, cnn_binary_class, weights,
                     mask=None,title="CNN Muon Cut",
                     save=save,save_folder_name=save_folder)
 

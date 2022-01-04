@@ -87,6 +87,7 @@ for variable_index in range(num_variables):
     else:
         model_name = "%s/%s/%s_%sepochs_model.hdf5"%(args.model_dir,modelname_list[variable_index], modelname_list[variable_index],epoch_list[variable_index])
     model_name_list.append(model_name)
+    print("Predicting: %s,\nOutput transformation scale factor: %.2f.,\nUsing model: %s"%(variable_list[variable_index], factor_list[variable_index], model_name))
 
 save = True
 save_folder_name = "%s"%(args.output_dir)
@@ -144,21 +145,33 @@ for network in range(num_variables):
     #if "error" in variable_list[network]:
     #    output_var = output_var*2
 
-    t0 = time.time()
-    cnn_predictions.append(cnn_test(X_test_DC_use, X_test_IC_use, model_name_list[network],model_type=variable_list[network], output_variables=output_var,DC_drop=DC_drop_value,IC_drop=IC_drop_value,connected_drop=connected_drop_value,dense_nodes=dense_nodes,conv_nodes=conv_nodes))
-    if factor is not None:
-        factor = int(factor)
-        if output_var == 1:
-            cnn_predictions[network] = cnn_predictions[network]*factor
-        if output_var == 3:
-            cnn_predictions[network] = cnn_predictions[network][0]*factor
-            cnn_predictions[network] = cnn_predictions[network][1]*factor
-            cnn_predictions[network] = cnn_predictions[network][2]*factor
-        #untransform truth
-        if variable_list[network] == "energy":
-            Y_test_use[:,0] = Y_test_use[:,0]*factor
-    t1 = time.time()
-    print("Time to run CNN Predict %s on %i events: %f seconds"%(variable_list[network],X_test_DC_use.shape[0],t1-t0))
+    if variable_list[network] == "nDOM":
+        t0 = time.time() 
+        charge_DC = X_test_DC_use[:,:,:,0] > 0
+        charge_IC = X_test_IC_use[:,:,:,0] > 0
+        DC_flat = np.reshape(charge_DC,[X_test_DC_use.shape[0],480])
+        IC_flat = np.reshape(charge_IC,[X_test_IC_use.shape[0],1140])
+        DOMs_hit_DC = np.sum(DC_flat,axis=-1)
+        DOMs_hit_IC = np.sum(IC_flat,axis=-1)
+        DOMs_hit = DOMs_hit_DC + DOMs_hit_IC
+        t1 = time.time()
+        print("Time to calculate CNN %s on %i events: %f seconds"%(variable_list[network],X_test_DC_use.shape[0],t1-t0))
+    else:
+        t0 = time.time()
+        cnn_predictions.append(cnn_test(X_test_DC_use, X_test_IC_use, model_name_list[network],model_type=variable_list[network], output_variables=output_var,DC_drop=DC_drop_value,IC_drop=IC_drop_value,connected_drop=connected_drop_value,dense_nodes=dense_nodes,conv_nodes=conv_nodes))
+        if factor is not None:
+            factor = int(factor)
+            if output_var == 1:
+                cnn_predictions[network] = cnn_predictions[network]*factor
+            if output_var == 3:
+                cnn_predictions[network] = cnn_predictions[network][0]*factor
+                cnn_predictions[network] = cnn_predictions[network][1]*factor
+                cnn_predictions[network] = cnn_predictions[network][2]*factor
+            #untransform truth
+            if variable_list[network] == "energy":
+                Y_test_use[:,0] = Y_test_use[:,0]*factor
+        t1 = time.time()
+        print("Time to run CNN Predict %s on %i events: %f seconds"%(variable_list[network],X_test_DC_use.shape[0],t1-t0))
 
 
 print("Saving output file: %s/%s.hdf5"%(save_folder_name,filename))

@@ -10,15 +10,13 @@
 ########### Command Lines to Run ##########
 
 INDIR=/mnt/home/micall12/LowEnergyNeuralNetwork
-INFILE=$1
-NAME=$2
-#MAX=20000
-MAX=100000
+MAX=40000
+#MAX=100000
 NUMOUT=4
 
 source /mnt/home/micall12/setup_anaconda.sh
 
-python /mnt/home/micall12/LowEnergyNeuralNetwork/flatten_energy_distribution.py -i NuMu_genie_149999_[4,5]?k_level6.zst_cleanedpulses_transformed_IC19lt500_CC_all_start_all_end_flat_499bins_250000evtperbin.hdf5 -d /mnt/scratch/micall12/training_files/batch_file/149999/ -o /mnt/scratch/micall12/training_files/batch_file/149999/ -n NuMu_genie_149999_40k_to_59k_level6_cleanedpulses_tranformed_IC19 --emax 500 --emin 1 --max_per_bin ${MAX} --cuts CC --num_out $NUMOUT --transformed
+python /mnt/home/micall12/LowEnergyNeuralNetwork/flatten_energy_distribution.py -i NuMu_genie_149999_[4,5]?k_level6.zst_cleanedpulses_transformed_IC19_nocut8hitslt500_CC_all_start_all_end_flat_499bins_40000evtperbin.hdf5 -d /mnt/scratch/micall12/training_files/batch_file/149999/ -o /mnt/scratch/micall12/training_files/batch_file/149999/ -n NuMu_genie_149999_40k_to_59k_level6_cleanedpulses_tranformed_IC19_nocut8hits --emax 500 --emin 1 --max_per_bin ${MAX} --cuts CC --num_out $NUMOUT --transformed --no_cut8hits
 
 
 exit $?

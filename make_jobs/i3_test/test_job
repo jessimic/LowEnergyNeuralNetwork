@@ -1,0 +1,35 @@
+Using TensorFlow backend.
+WARNING:tensorflow:From /usr/local/lib/python2.7/dist-packages/tensorflow/python/ops/resource_variable_ops.py:435: colocate_with (from tensorflow.python.framework.ops) is deprecated and will be removed in a future version.
+Instructions for updating:
+Colocations handled automatically by placer.
+2021-12-19 16:08:32.323966: I tensorflow/compiler/xla/service/service.cc:150] XLA service 0x55b713f29ad0 executing computations on platform CUDA. Devices:
+2021-12-19 16:08:32.324527: I tensorflow/compiler/xla/service/service.cc:158]   StreamExecutor device (0): Tesla K20m, Compute Capability 3.5
+2021-12-19 16:08:32.342598: I tensorflow/core/platform/profile_utils/cpu_utils.cc:94] CPU Frequency: 2500100000 Hz
+2021-12-19 16:08:32.343338: I tensorflow/compiler/xla/service/service.cc:150] XLA service 0x55b713b38550 executing computations on platform Host. Devices:
+2021-12-19 16:08:32.343805: I tensorflow/compiler/xla/service/service.cc:158]   StreamExecutor device (0): <undefined>, <undefined>
+2021-12-19 16:08:32.344408: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1433] Found device 0 with properties: 
+name: Tesla K20m major: 3 minor: 5 memoryClockRate(GHz): 0.7055
+pciBusID: 0000:03:00.0
+totalMemory: 4.63GiB freeMemory: 4.57GiB
+2021-12-19 16:08:32.344671: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1512] Adding visible gpu devices: 0
+2021-12-19 16:08:32.345662: I tensorflow/core/common_runtime/gpu/gpu_device.cc:984] Device interconnect StreamExecutor with strength 1 edge matrix:
+2021-12-19 16:08:32.346078: I tensorflow/core/common_runtime/gpu/gpu_device.cc:990]      0 
+2021-12-19 16:08:32.346401: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1003] 0:   N 
+2021-12-19 16:08:32.346660: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1115] Created TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:0 with 4384 MB memory) -> physical GPU (device: 0, name: Tesla K20m, pci bus id: 0000:03:00.0, compute capability: 3.5)
+2021-12-19 16:08:42.004454: I tensorflow/stream_executor/dso_loader.cc:152] successfully opened CUDA library libcublas.so.10.0 locally
+0
+yassss
+Predicting: muonL4,
+Output transformation scale factor: 1.00.,
+Using model: /cvmfs/icecube.opensciencegrid.org/users/shiqiyu/FLERCNN//muon_L4_FLERCNN.hdf5
+Predicting: nDOM,
+Output transformation scale factor: 1.00.,
+Using model: Not_CNN
+Writing to /mnt/scratch/micall12/training_files/oscNext_genie_level7_flercnn_pass2.140000.000200_FLERCNN.i3.zst
+reading file: /mnt/scratch/micall12/oscnext_official/140000_flercnn/oscNext_genie_level7_flercnn_pass2.140000.000200.i3.zst
+Number events with 0 or > 1 SMT3 triggers: 0, Number events with less than 8 hits: 0
+((2915, 8, 60, 5), (2915, 19, 60, 5))
+Time to run CNN Predict muonL4 on 2915 events: 19.010433 seconds
+Time to calculate number DOMs hit on 2915 events: 0.017926 seconds
+Removed 0 events due to cuts
+Total time: 32.345049

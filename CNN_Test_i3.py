@@ -42,48 +42,16 @@ parser.add_argument("-o", "--outdir",type=str,default='/mnt/scratch/micall12/tra
                     dest="output_dir", help="path of ouput file")
 parser.add_argument("--model_dir",type=str,default='/mnt/home/micall12/LowEnergyNeuralNetwork/output_plots/',
                     dest="model_dir", help="path for where to pull the model from")
-parser.add_argument("--model_name",type=str,
-                    dest="model_name", help="name of output folder where model is located")
-parser.add_argument("--variable",type=str,default="energy",
-                    dest="variable", help="name of variable to predict, class has specific unique function to run the classifier")
-parser.add_argument("-e","--epochs",default=None,
-                    dest="epochs", help="epoch number for model to use")
-parser.add_argument("-f","--factor", type=float, default=100.,
-                    dest="factor", help="transformation factor to adjust output by")
+parser.add_argument("--modelname_list",nargs='+',default=[],
+                    dest="modelname_list", help="name of output folder where model is located")
+parser.add_argument("--variable_list",nargs='+',default=[],
+                    dest="variable_list", help="names of variables to predict, from energy, zenith, class, muon, muonL4, vertex, nDOMs")
+parser.add_argument("-e","--epochs_list",nargs='+',default=[],
+                    dest="epochs_list", help="epoch numbers for models to use")
+parser.add_argument("-f","--factor_list", nargs='+', default=[100.,1,1,1,1,1,1,1],
+                    dest="factor_list", help="transformation factors to adjust output by")
 parser.add_argument("--cleaned",type=str,default="True",
                     dest="cleaned", help="True if wanted to use SRTTWOfflinePulsesDC")
-parser.add_argument("--model_name2",default=None,
-                    dest="model_name2", help="name of output folder where model is located")
-parser.add_argument("--epochs2",default=None,
-                    dest="epochs2", help="epoch number for model 2 to use")
-parser.add_argument("--variable2",type=str,default="class",
-                    dest="variable2", help="name of second variable to predict, class has specific unique function to run the classifier")
-parser.add_argument("--factor2", type=float, default=1.,
-                    dest="factor2", help="transformation factor to adjust output by")
-parser.add_argument("--model_name3",default=None,
-                    dest="model_name3", help="name of output folder where model is located")
-parser.add_argument("--epochs3",default=None,
-                    dest="epochs3", help="epoch number for model 3 to use")
-parser.add_argument("--variable3",type=str,default="zenith",
-                    dest="variable3", help="name of third variable to predict, class has specific unique function to run the classifier")
-parser.add_argument("--factor3", type=float, default=1.,
-                    dest="factor3", help="transformation factor to adjust output by")
-parser.add_argument("--model_name4",default=None,
-                    dest="model_name4", help="name of output folder where model is located")
-parser.add_argument("--epochs4",default=None,
-                    dest="epochs4", help="epoch number for model 4 to use")
-parser.add_argument("--variable4",type=str,default="vertex",
-                    dest="variable4", help="name of fourth variable to predict, class has specific unique function to run the classifier")
-parser.add_argument("--factor4", type=float, default=1.,
-                    dest="factor4", help="transformation factor to adjust output by")
-parser.add_argument("--model_name5",default=None,
-                    dest="model_name5", help="name of output folder where model is located")
-parser.add_argument("--epochs5",default=None,
-                    dest="epochs5", help="epoch number for model 4 to use")
-parser.add_argument("--variable5",type=str,default="muon",
-                    dest="variable5", help="name of fifth variable to predict, class & muon specific unique function to run the classifier")
-parser.add_argument("--factor5", type=float, default=1.,
-                    dest="factor5", help="transformation factor to adjust output by")
 parser.add_argument("--charge_min", type=float, default=0.25,
                     dest="charge_min", help="minimum charge pulse to keep, remove < this")
 parser.add_argument("--gcd", default=None,
@@ -101,73 +69,46 @@ else:
     use_cleaned_pulses = False
 charge_min = args.charge_min
 
-variable = args.variable
-scale_factor=args.factor
-model_name = args.model_name
-model_path = args.model_dir + args.model_name
-if args.epochs is None:
-    model_name ="%s.hdf5"%(model_path)
-else:
-    model_name ="%s/%s_%sepochs_model.hdf5"%(model_path,model_name,args.epochs)
-print("Predicting: %s,\nOutput transformation scale factor: %.2f.,\nUsing model: %s"%(variable, scale_factor, model_name))
+variable_list = args.variable_list
+scale_factor=args.factor_list
+scale_factor_list =np.array(scale_factor,dtype=float)
+modelname_list = args.modelname_list
+epoch_list = args.epochs_list
+epoch_list = np.array(epoch_list,dtype=float)
+print(len(epoch_list))
+model_path = args.model_dir
 
-variable2 = args.variable2
-scale_factor2=args.factor2
-model_name2 = args.model_name2
-if model_name2 is not None:
-    model_path2 = args.model_dir + args.model_name2
-    if args.epochs2 is None:
-        model_name2 ="%s.hdf5"%(model_path2)
+accepted_names = ["energy", "zenith", "class", "vertex", "muon", "muonL4", "nDOM"]
+for var in variable_list:
+        assert var in accepted_names, "Variable must be one of the accepted names, check parse arg help for variable for more info"
+
+model_name_list = []
+num_variables = len(variable_list)
+for variable_index in range(num_variables):
+    if variable_list[variable_index] == "nDOM":
+        model_name = "Not_CNN"
     else:
-        model_name2 ="%s/%s_%sepochs_model.hdf5"%(model_path2,model_name2,args.epochs2)
-    print("ALSO Predicting: %s,\nOutput transformation scale factor: %.2f.,\nUsing model: %s"%(variable2, scale_factor2, model_name2))
+        if len(epoch_list) == 0:
+            model_name = args.model_dir + "/" + modelname_list[variable_index] + ".hdf5"
+            print("yassss")
+        else:
+            if epoch_list[variable_index] is None:
+                model_name = args.model_dir + "/" + modelname_list[variable_index] + ".hdf5"
+            else:
+                model_name = "%s/%s/%s_%sepochs_model.hdf5"%(args.model_dir,modelname_list[variable_index], modelname_list[variable_index],epoch_list[variable_index])
+    model_name_list.append(model_name)
+    print("Predicting: %s,\nOutput transformation scale factor: %.2f.,\nUsing model: %s"%(variable_list[variable_index], scale_factor_list[variable_index], model_name))
 
-variable3 = args.variable3
-scale_factor3=args.factor3
-model_name3 = args.model_name3
-if model_name3 is not None:
-    model_path3 = args.model_dir + args.model_name3
-    if args.epochs3 is None:
-        model_name3 ="%s.hdf5"%(model_path3)
-    else:
-        model_name3 ="%s/%s_%sepochs_model.hdf5"%(model_path3,model_name3,args.epochs3)
-    print("ALSO Predicting: %s,\nOutput transformation scale factor: %.2f.,\nUsing model: %s"%(variable3, scale_factor3, model_name3))
-
-variable4 = args.variable4
-scale_factor4=args.factor4
-model_name4 = args.model_name4
-if model_name4 is not None:
-    model_path4 = args.model_dir + args.model_name4
-    if args.epochs4 is None:
-        model_name4 ="%s.hdf5"%(model_path4)
-    else:
-        model_name4 ="%s/%s_%sepochs_model.hdf5"%(model_path4,model_name4,args.epochs4)
-    print("ALSO Predicting: %s,\nOutput transformation scale factor: %.2f.,\nUsing model: %s"%(variable4, scale_factor4, model_name4))
-
-variable5 = args.variable5
-scale_factor5=args.factor5
-model_name5 = args.model_name5
-if model_name5 is not None:
-    model_path5 = args.model_dir + args.model_name5
-    if args.epochs5 is None:
-        model_name5 ="%s.hdf5"%(model_path5)
-    else:
-        model_name5 ="%s/%s_%sepochs_model.hdf5"%(model_path5,model_name5,args.epochs5)
-    print("ALSO Predicting: %s,\nOutput transformation scale factor: %.2f.,\nUsing model: %s"%(variable5, scale_factor5, model_name5))
-
-model_name_list = [model_name, model_name2, model_name3, model_name4, model_name5]
-variable_list = [variable, variable2, variable3, variable4, variable5]
-scale_factor_list = [scale_factor, scale_factor2, scale_factor3, scale_factor4, scale_factor5]
-max_number_cnns = 5
-number_cnns = 0
-for network in range(max_number_cnns):
-    if model_name_list[network] is not None:
-        number_cnns = network + 1
-assert number_cnns > 0, "NO MODELS GIVEN TO RECONSTRUCT WITH"
-print("Using %i cnn models to reconstruct variables"%number_cnns)
-model_name_list = model_name_list[:number_cnns]
-variable_list = variable_list[:number_cnns]
-scale_factor_list = scale_factor_list[:number_cnns]
+#max_number_cnns = len(accepted_names)
+#number_cnns = 0
+#for network in range(max_number_cnns):
+#    if model_name_list[network] is not None:
+#        number_cnns = network + 1
+#assert number_cnns > 0, "NO MODELS GIVEN TO RECONSTRUCT WITH"
+#print("Using %i cnn models to reconstruct variables"%number_cnns)
+#model_name_list = model_name_list[:number_cnns]
+#variable_list = variable_list[:number_cnns]
+#scale_factor_list = scale_factor_list[:number_cnns]
 
 def get_observable_features(frame,low_window=-500,high_window=4000,use_cleaned_pulses=True,charge_min=charge_min):
     """
@@ -246,104 +187,104 @@ def get_observable_features(frame,low_window=-500,high_window=4000,use_cleaned_p
     array_IC_near_DC[...,1:] = -20000
     
     #Only go through pulse series if we're keeping it    
-    if clean_pulses_8_or_more == True:
-        for omkey, pulselist in ice_pulses:
-            dom_index =  omkey.om-1
-            string_val = omkey.string
-            timelist = []
-            chargelist = []
+    #if clean_pulses_8_or_more == True:
+    for omkey, pulselist in ice_pulses:
+        dom_index =  omkey.om-1
+        string_val = omkey.string
+        timelist = []
+        chargelist = []
 
-            DC_flag = False
-            IC_near_DC_flag = False
+        DC_flag = False
+        IC_near_DC_flag = False
 
+        
+        for pulse in pulselist:
             
-            for pulse in pulselist:
-                
-                charge = pulse.charge
+            charge = pulse.charge
 
-                #Cut any pulses < 0.25 PE
-                if charge < charge_min:
-                    continue
-                
-                # Quantize pulse chargest to make all seasons appear the same
-                quanta = 0.05
-                charge = (np.float64(charge) // quanta) * quanta + quanta / 2.
-
-                if string_val not in store_string:
-                    store_string.append(string_val)
-
-                # Check IceCube near DeepCore DOMs
-                if( (string_val in IC_near_DC_strings) and dom_index<60):
-                    string_index = IC_near_DC_strings.index(string_val)
-                    timelist.append(pulse.time)
-                    chargelist.append(charge)
-                    IC_near_DC_flag = True
-
-                # Check DeepCore DOMS
-                elif ( (string_val in DC_strings) and dom_index<60): #dom_index >=10
-                    string_index = DC_strings.index(string_val)
-                    timelist.append(pulse.time)
-                    chargelist.append(charge)
-                    DC_flag = True
-
-
-                else:
-                    count_outside +=1
-                    charge_outside += charge
-                    
-            if DC_flag == True or IC_near_DC_flag == True:
-
-                charge_array = np.array(chargelist)
-                time_array = np.array(timelist)
-                time_array = [ (t_value - shift_time_by) for t_value in time_array ]
-                time_shifted = [ (t_value - time_array[0]) for t_value in time_array ]
-                time_shifted = np.array(time_shifted)
-                mask_500 = time_shifted<500
-                mask_100 = time_shifted<100
-
-                # Remove pulses so only those in certain time window are saved
-                original_num_pulses = len(timelist)
-                time_array_in_window = list(time_array)
-                charge_array_in_window = list(charge_array)
-                for time_index in range(0,original_num_pulses):
-                    time_value =  time_array[time_index]
-                    if time_value < low_window or time_value > high_window:
-                        time_array_in_window.remove(time_value)
-                        charge_array_in_window.remove(charge_array[time_index])
-                charge_array = np.array(charge_array_in_window)
-                time_array = np.array(time_array_in_window)
-                assert len(charge_array)==len(time_array), "Mismatched pulse time and charge"
-                if len(charge_array) == 0:
-                    continue
-
-                #Original Stats
-                count_inside += len(chargelist)
-                charge_inside += sum(chargelist)
-
-                # Check that pulses are sorted in time
-                for i_t,time in enumerate(time_array):
-                    assert time == sorted(time_array)[i_t], "Pulses are not pre-sorted!"
-
-                # Charge weighted mean and stdev
-                weighted_avg_time = np.average(time_array,weights=charge_array)
-                weighted_std_time = np.sqrt( np.average((time_array - weighted_avg_time)**2, weights=charge_array) )
-
-
-            if DC_flag == True:
-                array_DC[string_index,dom_index,0] = sum(chargelist)
-                array_DC[string_index,dom_index,1] = time_array[0]
-                array_DC[string_index,dom_index,2] = time_array[-1]
-                array_DC[string_index,dom_index,3] = weighted_avg_time
-                array_DC[string_index,dom_index,4] = weighted_std_time
-                
-                num_pulses_per_dom[string_index,dom_index,0] = len(chargelist)
+            #Cut any pulses < 0.25 PE
+            if charge < charge_min:
+                continue
             
-            if IC_near_DC_flag == True:
-                array_IC_near_DC[string_index,dom_index,0] = sum(chargelist)
-                array_IC_near_DC[string_index,dom_index,1] = time_array[0]
-                array_IC_near_DC[string_index,dom_index,2] = time_array[-1]
-                array_IC_near_DC[string_index,dom_index,3] = weighted_avg_time
-                array_IC_near_DC[string_index,dom_index,4] = weighted_std_time
+            # Quantize pulse chargest to make all seasons appear the same
+            quanta = 0.05
+            charge = (np.float64(charge) // quanta) * quanta + quanta / 2.
+
+            if string_val not in store_string:
+                store_string.append(string_val)
+
+            # Check IceCube near DeepCore DOMs
+            if( (string_val in IC_near_DC_strings) and dom_index<60):
+                string_index = IC_near_DC_strings.index(string_val)
+                timelist.append(pulse.time)
+                chargelist.append(charge)
+                IC_near_DC_flag = True
+
+            # Check DeepCore DOMS
+            elif ( (string_val in DC_strings) and dom_index<60): #dom_index >=10
+                string_index = DC_strings.index(string_val)
+                timelist.append(pulse.time)
+                chargelist.append(charge)
+                DC_flag = True
+
+
+            else:
+                count_outside +=1
+                charge_outside += charge
+                
+        if DC_flag == True or IC_near_DC_flag == True:
+
+            charge_array = np.array(chargelist)
+            time_array = np.array(timelist)
+            time_array = [ (t_value - shift_time_by) for t_value in time_array ]
+            time_shifted = [ (t_value - time_array[0]) for t_value in time_array ]
+            time_shifted = np.array(time_shifted)
+            mask_500 = time_shifted<500
+            mask_100 = time_shifted<100
+
+            # Remove pulses so only those in certain time window are saved
+            original_num_pulses = len(timelist)
+            time_array_in_window = list(time_array)
+            charge_array_in_window = list(charge_array)
+            for time_index in range(0,original_num_pulses):
+                time_value =  time_array[time_index]
+                if time_value < low_window or time_value > high_window:
+                    time_array_in_window.remove(time_value)
+                    charge_array_in_window.remove(charge_array[time_index])
+            charge_array = np.array(charge_array_in_window)
+            time_array = np.array(time_array_in_window)
+            assert len(charge_array)==len(time_array), "Mismatched pulse time and charge"
+            if len(charge_array) == 0:
+                continue
+
+            #Original Stats
+            count_inside += len(chargelist)
+            charge_inside += sum(chargelist)
+
+            # Check that pulses are sorted in time
+            for i_t,time in enumerate(time_array):
+                assert time == sorted(time_array)[i_t], "Pulses are not pre-sorted!"
+
+            # Charge weighted mean and stdev
+            weighted_avg_time = np.average(time_array,weights=charge_array)
+            weighted_std_time = np.sqrt( np.average((time_array - weighted_avg_time)**2, weights=charge_array) )
+
+
+        if DC_flag == True:
+            array_DC[string_index,dom_index,0] = sum(chargelist)
+            array_DC[string_index,dom_index,1] = time_array[0]
+            array_DC[string_index,dom_index,2] = time_array[-1]
+            array_DC[string_index,dom_index,3] = weighted_avg_time
+            array_DC[string_index,dom_index,4] = weighted_std_time
+            
+            num_pulses_per_dom[string_index,dom_index,0] = len(chargelist)
+        
+        if IC_near_DC_flag == True:
+            array_IC_near_DC[string_index,dom_index,0] = sum(chargelist)
+            array_IC_near_DC[string_index,dom_index,1] = time_array[0]
+            array_IC_near_DC[string_index,dom_index,2] = time_array[-1]
+            array_IC_near_DC[string_index,dom_index,3] = weighted_avg_time
+            array_IC_near_DC[string_index,dom_index,4] = weighted_std_time
 
     return array_DC, array_IC_near_DC, trigger_time, num_extra_DC_triggers, clean_pulses_8_or_more
 
@@ -365,7 +306,7 @@ def apply_transform(features_DC, features_IC, labels=None, energy_factor=100., t
 
 
 def cnn_test(features_DC, features_IC, load_model_name, output_variables=1,DC_drop_value=0.2,IC_drop_value=0.2,connected_drop_value=0.2,model_type="energy"):
-    if model_type == "class" or model_type == "muon":
+    if model_type == "class" or model_type == "muon" or model_type == "muonL4":
         from cnn_model_classification import make_network
     else:
         from cnn_model import make_network
@@ -472,15 +413,28 @@ def test_write(filename_list, model_name_list,output_dir, output_name, model_fac
             DC_array, IC_near_DC_array = apply_transform(DC_array, IC_near_DC_array)
 
             cnn_predictions=[]
-            for network in range(len(model_name_list)):
-                if model_type_list[network] == "vertex":
-                    output_var = 3
+            for network in range(num_variables):
+                if model_type_list[network] == "nDOM":
+                    t0 = time.time()
+                    charge_DC = DC_array[:,:,:,0] > 0
+                    charge_IC = IC_near_DC_array[:,:,:,0] > 0
+                    DC_flat = np.reshape(charge_DC,[DC_array.shape[0],480])
+                    IC_flat = np.reshape(charge_IC,[IC_near_DC_array.shape[0],1140])
+                    DOMs_hit_DC = np.sum(DC_flat,axis=-1)
+                    DOMs_hit_IC = np.sum(IC_flat,axis=-1)
+                    DOMs_hit = DOMs_hit_DC + DOMs_hit_IC
+                    t1 = time.time()
+                    cnn_predictions.append(DOMs_hit)
+                    print("Time to calculate number DOMs hit on %i events: %f seconds"%(DC_array.shape[0],t1-t0))
                 else:
-                    output_var = 1
-                t0 = time.time()
-                cnn_predictions.append(cnn_test(DC_array, IC_near_DC_array, model_name_list[network],model_type=model_type_list[network], output_variables=output_var))
-                t1 = time.time()
-                print("Time to run CNN Predict %s on %i events: %f seconds"%(model_type_list[network],DC_array.shape[0],t1-t0))
+                    if model_type_list[network] == "vertex":
+                        output_var = 3
+                    else:
+                        output_var = 1
+                    t0 = time.time()
+                    cnn_predictions.append(cnn_test(DC_array, IC_near_DC_array, model_name_list[network],model_type=model_type_list[network], output_variables=output_var))
+                    t1 = time.time()
+                    print("Time to run CNN Predict %s on %i events: %f seconds"%(model_type_list[network],DC_array.shape[0],t1-t0))
                 
         index = 0
         skipped_write = 0
@@ -509,7 +463,7 @@ def test_write(filename_list, model_name_list,output_dir, output_name, model_fac
                     continue
 
                 check_overwrite = []
-                for network in range(len(model_name_list)):
+                for network in range(num_variables):
                     factor = model_factor_list[network]
                     model_type = model_type_list[network]
                     prediction = cnn_predictions[network]
@@ -519,6 +473,8 @@ def test_write(filename_list, model_name_list,output_dir, output_name, model_fac
                         key_name = "FLERCNN_prob_track"
                     elif model_type == "muon":
                         key_name = "FLERCNN_prob_muon"
+                    elif model_type == "muonL4":
+                        key_name = "FLERCNN_prob_muon_v2"
                     else:
                         key_name = "FLERCNN_%s"%model_type
                
@@ -534,11 +490,15 @@ def test_write(filename_list, model_name_list,output_dir, output_name, model_fac
                         y_origin = -34.880001068115234
                         r = np.sqrt( (x - x_origin)**2 + (y - y_origin)**2 )
                         frame["FLERCNN_vertex_rho36"] = dataclasses.I3Double(r)
+                    elif model_type == "nDOM":
+                        frame[key_name] = dataclasses.I3Double(prediction[index])
                     else:
                         adjusted_prediction = prediction[index][0]*factor
                         frame[key_name] = dataclasses.I3Double(adjusted_prediction)
                         if model_type == "muon":
                             frame["FLERCNN_prob_nu"] = dataclasses.I3Double(1. - adjusted_prediction)
+                        if model_type == "muon_v2":
+                            frame["FLERCNN_prob_nu_v2"] = dataclasses.I3Double(1. - adjusted_prediction)
                         if model_type == "zenith":
                             frame["FLERCNN_coszen"] = dataclasses.I3Double(np.cos(adjusted_prediction))
 
