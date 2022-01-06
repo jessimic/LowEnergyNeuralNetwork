@@ -1,5 +1,8 @@
 #What files to ingore
 
+#singularity image is large
+*sif
+
 VariableChecks/*
 subset_L_16_16_tanh_weightsFalse/*
 best_network_test/*
@@ -26,6 +29,7 @@ outdated/make_even/job_logs/*
 outdated/make_jobs/make_even/job_logs/*
 data_files/*
 vertex_study/*.hdf5
+
 #Kill all core files
 *core*
 

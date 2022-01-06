@@ -126,6 +126,7 @@ def read_i3_files(filenames_list, variable_list,save_cnn_input=False,sim_type=No
                 total_daughter_energy = 0
                 em_equiv_daughter_energy = 0
                 for particle in tree.get_daughters(nu.id):
+                    #elif (str(particle.type) == "311" or str(particle.type) == "-311" or str(particle.type) == "O16Nucleus" or str(particle.type) == "1000080160"): #THERE IS A BETTER WAY TO FIX THIS, THIS WILL CAUSE ERRORS IN THE EM equiv SCALE calculation!!!!
                     # Do not scale neutrinos 
                     if (particle.type == dataclasses.I3Particle.NuMu or particle.type == dataclasses.I3Particle.NuMuBar \
                     or particle.type == dataclasses.I3Particle.NuE or particle.type == dataclasses.I3Particle.NuEBar\

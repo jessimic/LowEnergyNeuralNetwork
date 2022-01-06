@@ -158,7 +158,7 @@ plot_classification_hist(true_isNu,cnn_prob_nu,mask=true_all,
                         mask_name="No Cuts", units="",bins=50,
                         weights=weights, log=False,save=save,
                         save_folder_name=save_folder,
-                        name_prob = "Neutrino", name_prob0 = "Muon")
+                        name_prob1 = "Neutrino", name_prob0 = "Muon")
 
 threshold1, threshold0, auc = ROC(true_isNu,cnn_prob_nu,
                                 mask=None,mask_name="No Cuts",
