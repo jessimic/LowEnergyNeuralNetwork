@@ -99,7 +99,7 @@ if i3:
         nutau_files = len(nutau_file_list)
         print("Including all %i NuTau files"%nutau_files)
     else:
-        nutau_files = int(nuta_files)
+        nutau_files = int(nutau_files)
         print("Cutting NuTau files to include first %i files, from %s to %s"%(nutau_files,nutau_file_list[0],nutau_file_list[nutau_files-1]))
     if muon_files is None:
         muon_files = len(muon_file_list)
