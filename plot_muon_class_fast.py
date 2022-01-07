@@ -26,6 +26,14 @@ parser.add_argument("-o", "--outdir",default=None,
                     dest="output_dir", help="path of ouput file, if different that the output_plot model dir")
 parser.add_argument("--savename", default=None,
                     dest="savename", help="additional dir in the output_dir to save the plots under")
+parser.add_argument("--numu", default=None,
+                    dest="numu", help="number of numu files to use")
+parser.add_argument("--nue", default=None,
+                    dest="nue", help="number of nue files to use")
+parser.add_argument("--nutau", default=None,
+                    dest="nutau", help="number of nutau files to use")
+parser.add_argument("--muon", default=None,
+                    dest="muon", help="number of muon files to use")
 parser.add_argument("--no_nutau",default=False,action='store_true',
                     dest="no_nutau",help="remove nutau events")
 parser.add_argument("--i3",default=False,action='store_true',
@@ -64,19 +72,56 @@ print("Saving to %s"%save_folder)
 if os.path.isdir(save_folder) != True:
         os.mkdir(save_folder)
 
+numu_files = args.numu
+nue_files = args.nue
+nutau_files = args.nutau
+muon_files = args.muon
+
 if i3:
+    #Find (and edit) number of files
+    numu_file_list = list(filter(lambda x: "pass2.14" in x, full_path))
+    nue_file_list = list(filter(lambda x: "pass2.12" in x, full_path))
+    muon_file_list = list(filter(lambda x: "pass2.13" in x, full_path))
+    nutau_file_list = list(filter(lambda x: "pass2.16" in x, full_path))
+    if numu_files is None:
+        numu_files = len(numu_file_list)
+        print("Including all %i NuMu files"%numu_files)
+    else:
+        numu_files = int(numu_files)
+        print("Cutting NuMu files to include first %i files, from %s to %s"%(numu_files,numu_file_list[0],numu_file_list[numu_files-1]))
+    if nue_files is None:
+        nue_files = len(nue_file_list)
+        print("Including all %i NuE files"%nue_files)
+    else:
+        nue_files = int(nue_files)
+        print("Cutting NuE files to include LAST %i files, from %s to %s"%(nue_files,nue_file_list[nue_files-1],nue_file_list[-1]))
+    if nutau_files is None:
+        nutau_files = len(nutau_file_list)
+        print("Including all %i NuTau files"%nutau_files)
+    else:
+        nutau_files = int(nuta_files)
+        print("Cutting NuTau files to include first %i files, from %s to %s"%(nutau_files,nutau_file_list[0],nutau_file_list[nutau_files-1]))
+    if muon_files is None:
+        muon_files = len(muon_file_list)
+        print("Including all %i Muon files"%muon_files)
+    else:
+        muon_files = int(muon_files)
+        print("Cutting Muon files to include LAST %i files, from %s to %s"%(muon_files,muon_file_list[muon_files-1],muon_file_list[-1]))
+
+    print("Using %i numu files, %i nue files, %i nutau files, %i muon files"%(numu_files, nue_files, nutau_files, muon_files))
+    numu_file_list = numu_file_list[:numu_files]
+    nue_file_list = nue_file_list[-nue_files:]
+    nutau_file_list = nutau_file_list[:nutau_files]
+    muon_file_list = muon_file_list[-muon_files:]
+    full_path = np.concatenate((numu_file_list,nue_file_list,nutau_file_list,muon_file_list))
+
+
     from read_cnn_i3_files import read_i3_files
     variable_list = ["energy", "prob_track", "zenith", "vertex_x", "vertex_y", "vertex_z", "prob_muon", "prob_muon_v2"] 
     predict, truth, old_reco, info, raw_weights, input_features_DC, input_features_IC= read_i3_files(full_path,variable_list)
 
     cnn_prob_mu = predict[:,6]
 
-    #Find number of files
-    numu_files = len(list(filter(lambda x: "pass2.14" in x, full_path)))
-    nue_files = len(list(filter(lambda x: "pass2.12" in x, full_path)))
-    muon_files = len(list(filter(lambda x: "pass2.13" in x, full_path)))
-    nutau_files = len(list(filter(lambda x: "pass2.16" in x, full_path)))
-    print("Using %i numu files, %i nue files, %i nutau files, %i muon files"%(numu_files, nue_files, nutau_files, muon_files))
 
 else:
     import h5py
