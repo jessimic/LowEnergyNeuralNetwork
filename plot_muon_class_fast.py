@@ -94,7 +94,7 @@ if i3:
         print("Including all %i NuE files"%nue_files)
     else:
         nue_files = int(nue_files)
-        print("Cutting NuE files to include LAST %i files, from %s to %s"%(nue_files,nue_file_list[nue_files-1],nue_file_list[-1]))
+        print("Cutting NuE files to include LAST %i files, from %s to %s"%(nue_files,nue_file_list[-nue_files],nue_file_list[-1]))
     if nutau_files is None:
         nutau_files = len(nutau_file_list)
         print("Including all %i NuTau files"%nutau_files)
@@ -106,7 +106,7 @@ if i3:
         print("Including all %i Muon files"%muon_files)
     else:
         muon_files = int(muon_files)
-        print("Cutting Muon files to include LAST %i files, from %s to %s"%(muon_files,muon_file_list[muon_files-1],muon_file_list[-1]))
+        print("Cutting Muon files to include LAST %i files, from %s to %s"%(muon_files,muon_file_list[-muon_files],muon_file_list[-1]))
 
     print("Using %i numu files, %i nue files, %i nutau files, %i muon files"%(numu_files, nue_files, nutau_files, muon_files))
     numu_file_list = numu_file_list[:numu_files]
