@@ -38,6 +38,8 @@ parser.add_argument("--no_nutau",default=False,action='store_true',
                     dest="no_nutau",help="remove nutau events")
 parser.add_argument("--i3",default=False,action='store_true',
                     dest="i3",help="flag if inputting i3 files (not hdf5)")
+parser.add_argument("--save_output",default=False,action='store_true',
+                    dest="save_output",help="flag if saving i3 file output together into to hdf5")
 parser.add_argument("--given_threshold",default=None,
                     dest="given_threshold",help="Define cut value (0-1) to apply cut for confusion matrix, if not use, finds closest to true neutrino at 80%")
 args = parser.parse_args()
@@ -45,11 +47,12 @@ args = parser.parse_args()
 filename = args.input_file
 path = args.path
 model_name = args.model_name
+save_output_data = args.save_output
 i3 = args.i3
 if i3:
     files = path + filename
     full_path = sorted(glob.glob(files))
-    print("Using %i i3 files"%len(full_path))
+    print("Given %i i3 files"%len(full_path))
 else:
     full_path = path + "/" + model_name + "/" + filename
     print("Using file %s"%full_path)
@@ -120,7 +123,7 @@ if i3:
     variable_list = ["energy", "prob_track", "zenith", "vertex_x", "vertex_y", "vertex_z", "prob_muon", "prob_muon_v2"] 
     predict, truth, old_reco, info, raw_weights, input_features_DC, input_features_IC= read_i3_files(full_path,variable_list)
 
-    cnn_prob_mu = predict[:,6]
+    cnn_prob_mu = predict[:,7]
 
 
 else:
@@ -240,3 +243,11 @@ print("AUC: %.3f"%auc)
 #save percent order: (CNN Muon, True Neutrino), (CNN Muon, True Muon), (CNN Neutrino, True Neutrino), (CNN Neutrino, True Muon)
 print("CNN Neutrino, True Neutrino: %.2f"%percent_save[2])
 print("CNN Neutrino, True Muon: %.2f"%percent_save[3])
+
+if save_output_data and i3:
+    f = h5py.File("%s/prediction_values_%inumu_%inue_%inutau_%imuon.hdf5"%(save_folder,numu_files,nue_files,nutau_files,muon_files), "w")
+    f.create_dataset("Y_predicted", data=predict)
+    f.create_dataset("Y_test_use", data=truth)
+    f.create_dataset("additional_info", data=info)
+    f.create_dataset("weights_test", data=raw_weights)
+    f.close()
