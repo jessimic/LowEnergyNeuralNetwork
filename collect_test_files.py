@@ -12,15 +12,19 @@ parser.add_argument("-n", "--name",type=str,default=None,
                     dest="name", help="name for output file")
 parser.add_argument("--old_reco",default=False,action='store_true',
                     dest="old_reco",help="use flag if concatonating all train, test, val into one file")
+parser.add_argument("--train_into_test",default=False,action='store_true',
+                    dest="train_into_test",help="use flag if concatonating all train, test, val into one file")
 args = parser.parse_args()
 
+train_into_test = args.train_into_test
 use_old_reco = args.old_reco
 file_name_base = args.path + args.input_file
-if not use_old_reco:
-    file_names = sorted(glob.glob(file_name_base))
-    print("Using %i files with names like %s"%(len(file_names), file_names[0]))
+file_names = sorted(glob.glob(file_name_base))
+num_files = len(file_names)
+if num_files > 1:
+    print("Using %i files with names like %s"%(num_files, file_names[0]))
 else:
-    file_names = file_name_base
+    #file_names = file_name_base
     print("Using file %s"%file_names)
 
 name = args.name
@@ -41,8 +45,9 @@ X_test_IC_use = None
 weights_test_use = None
 reco_test_use = None
 
-if use_old_reco:
-    f = h5py.File(file_names, 'r')
+def concat_train_test(a_file,use_old_reco=False):
+
+    f = h5py.File(a_file, 'r')
     Y_test = f['Y_test'][:]
     X_test_DC = f['X_test_DC'][:]
     X_test_IC = f['X_test_IC'][:]
@@ -52,9 +57,10 @@ if use_old_reco:
     Y_validate = f['Y_validate'][:]
     X_validate_DC = f['X_validate_DC'][:]
     X_validate_IC = f['X_validate_IC'][:]
-    reco_test = f['reco_test'][:]
-    reco_train = f['reco_train'][:]
-    reco_validate = f['reco_validate'][:]
+    if use_old_reco:
+        reco_test = f['reco_test'][:]
+        reco_train = f['reco_train'][:]
+        reco_validate = f['reco_validate'][:]
     weights_test = f['weights_test'][:]
     weights_train = f['weights_train'][:]
     weights_validate = f['weights_validate'][:]
@@ -78,44 +84,85 @@ if use_old_reco:
     del X_test_IC
     del X_train_IC
     del X_validate_IC
-    reco_test_use = numpy.concatenate((reco_test, reco_train, reco_validate))
-    del reco_test
-    del reco_train
-    del reco_validate
-    print("Concatted reco")
+    if use_old_reco:
+        reco_test_use = numpy.concatenate((reco_test, reco_train, reco_validate))
+        del reco_test
+        del reco_train
+        del reco_validate
+        print("Concatted reco")
+    else:
+        reco_test_use = None
     weights_test_use = numpy.concatenate((weights_test, weights_train, weights_validate))
     del weights_test
     del weights_train
     del weights_validate
     print("Concatted weights")
 
-else:
-    for file in file_names:
-        f = h5py.File(file, 'r')
+    return Y_test_use, X_test_DC_use, X_test_IC_use, reco_test_use, weights_test_use
+
+def append_to_test(Y_test,X_test_DC,X_test_IC,reco_test,weights_test,Y_test_use=None,X_test_DC_use=None,X_test_IC_use=None,reco_test_use=None,weights_test_use=None):
+
+    if Y_test_use is None:
+        Y_test_use = Y_test
+        X_test_DC_use = X_test_DC
+        X_test_IC_use = X_test_IC
+        reco_test_use = reco_test
+        weights_test_use = weights_test
+        print("Created new array with %i events"%Y_test_use.shape[0])
+    else:
+        Y_test_use = numpy.concatenate((Y_test_use, Y_test))
+        X_test_DC_use = numpy.concatenate((X_test_DC_use, X_test_DC))
+        X_test_IC_use = numpy.concatenate((X_test_IC_use, X_test_IC))
+        if reco_test_use is not None:
+            reco_test_use = numpy.concatenate((reco_test_use, reco_test))
+        if weights_test_use is not None:
+            weights_test_use = numpy.concatenate((weights_test_use, weights_test))
+    
+        print("Added %i events"%Y_test_use.shape[0])
+    
+    return Y_test_use, X_test_DC_use, X_test_IC_use, reco_test_use, weights_test_use
+
+Y_test_full=None
+X_test_DC_full=None
+X_test_IC_full=None
+reco_test_full=None
+weights_test_full=None
+for a_file in file_names:
+    if train_into_test or use_old_reco:
+        Y_test, X_test_DC, X_test_IC, reco_test, weights_test = concat_train_test(a_file,use_old_reco=use_old_reco)
+    
+        if num_files > 1:
+            Y_test_full, X_test_DC_full, X_test_IC_full, reco_test_full, weights_test_full = append_to_test(Y_test, X_test_DC, X_test_IC, reco_test, weights_test,  Y_test_use=Y_test_full, X_test_DC_use=X_test_DC_full, X_test_IC_use=X_test_IC_full, reco_test_use=reco_test_full, weights_test_use=weights_test_full)
+        else:
+            Y_test_full = Y_test
+            Y_test_DC_full = X_test_DC
+            Y_test_IC_full = X_test_IC
+            reco_test_full = reco_test
+            weights_test_full = weights_test
+    else:
+        f = h5py.File(a_file, 'r')
         Y_test = f['Y_test'][:]
         X_test_DC = f['X_test_DC'][:]
         X_test_IC = f['X_test_IC'][:]
+        try:
+            reco_test = f['reco_test'][:]
+        except:
+            reco_test = None
+        try:
+            weights_test = f['weights_test'][:]
+        except:
+            weights_test = None
         f.close()
         del f
-
-        if Y_test_use is None:
-            Y_test_use = Y_test
-            X_test_DC_use = X_test_DC
-            X_test_IC_use = X_test_IC
-        else:
-            Y_test_use = numpy.concatenate((Y_test_use, Y_test))
-            X_test_DC_use = numpy.concatenate((X_test_DC_use, X_test_DC))
-            X_test_IC_use = numpy.concatenate((X_test_IC_use, X_test_IC))
-
-print(Y_test_use.shape)
+        Y_test_full, X_test_DC_full, X_test_IC_full, reco_test_full, weights_test_full = append_to_test(Y_test, X_test_DC, X_test_IC, reco_test, weights_test, Y_test_use=Y_test_full, X_test_DC_use=X_test_DC_full, X_test_IC_use=X_test_IC_full, reco_test_use=reco_test_full,weights_test_use=weights_test_full)
 
 print("Saving output file: %s"%output_file)
 f = h5py.File(output_file, "w")
-f.create_dataset("Y_test", data=Y_test_use)
-f.create_dataset("X_test_DC", data=X_test_DC_use)
-f.create_dataset("X_test_IC", data=X_test_IC_use)
+f.create_dataset("Y_test", data=Y_test_full)
+f.create_dataset("X_test_DC", data=X_test_DC_full)
+f.create_dataset("X_test_IC", data=X_test_IC_full)
 if weights_test_use is not None:
-    f.create_dataset("weights_test", data=weights_test_use)
+    f.create_dataset("weights_test", data=weights_test_full)
 if use_old_reco:
-    f.create_dataset("reco_test", data=reco_test_use)
+    f.create_dataset("reco_test", data=reco_test_full)
 f.close()

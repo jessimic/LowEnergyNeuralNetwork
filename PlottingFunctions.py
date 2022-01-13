@@ -1308,6 +1308,7 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
 
     reco_name = reco_name.replace(" ","")
     variable = variable.replace(" ","")
+    cnn_name = cnn_name.replace(" ","")
     savename = "%s%sResolutionSlices"%(variable,cnn_name)
     if vs_predict:
         savename +="VsPredict"

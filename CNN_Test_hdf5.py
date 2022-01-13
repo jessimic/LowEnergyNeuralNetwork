@@ -56,10 +56,13 @@ parser.add_argument("--dense_nodes", type=int,default=300,
                     dest="dense_nodes",help="Number of nodes in dense layer, only works for small network")
 parser.add_argument("--conv_nodes", type=int,default=100,
                     dest="conv_nodes",help="Number of nodes in conv layers, only works for small network")
+parser.add_argument("--save_inputs", default=False,action='store_true',
+                    dest="save_inputs", help="saving input features of the cnn")
 args = parser.parse_args()
 
 test_file = args.path + args.input_file
 filename = args.name
+save_inputs = args.save_inputs
 
 dropout = 0.2
 DC_drop_value = dropout
@@ -73,9 +76,9 @@ conv_nodes = args.conv_nodes
 variable_list = args.variable_list
 epoch_list = args.epoch_list
 modelname_list = args.modelname_list
-factor_list = args.factor_list
+factor_list = np.array(args.factor_list,dtype=float)
 
-accepted_names = ["energy", "zenith", "class", "vertex", "muon", "error"]
+accepted_names = ["energy", "zenith", "class", "vertex", "muon", "error", "nDOM"]
 for var in variable_list:
     assert var in accepted_names, "Variable must be one of the accepted names, check parse arg help for variable for more info"
 
@@ -135,7 +138,11 @@ f.close
 del f
 print(X_test_DC_use.shape,X_test_IC_use.shape,Y_test_use.shape)
 
-cnn_predictions=[]
+total_variables = num_variables
+if "vertex" in variable_list:
+    total_variables += 2
+cnn_predictions=np.zeros((Y_test_use.shape[0],total_variables))
+output_index = 0
 for network in range(num_variables):
     factor = factor_list[network]
     if variable_list[network] == "vertex":
@@ -154,32 +161,37 @@ for network in range(num_variables):
         DOMs_hit_DC = np.sum(DC_flat,axis=-1)
         DOMs_hit_IC = np.sum(IC_flat,axis=-1)
         DOMs_hit = DOMs_hit_DC + DOMs_hit_IC
+        cnn_predictions[:,output_index] = DOMs_hit
+        output_index += 1
         t1 = time.time()
         print("Time to calculate CNN %s on %i events: %f seconds"%(variable_list[network],X_test_DC_use.shape[0],t1-t0))
     else:
         t0 = time.time()
-        cnn_predictions.append(cnn_test(X_test_DC_use, X_test_IC_use, model_name_list[network],model_type=variable_list[network], output_variables=output_var,DC_drop=DC_drop_value,IC_drop=IC_drop_value,connected_drop=connected_drop_value,dense_nodes=dense_nodes,conv_nodes=conv_nodes))
+        cnn_predict = cnn_test(X_test_DC_use, X_test_IC_use, model_name_list[network],model_type=variable_list[network], output_variables=output_var,DC_drop=DC_drop_value,IC_drop=IC_drop_value,connected_drop=connected_drop_value,dense_nodes=dense_nodes,conv_nodes=conv_nodes)
         if factor is not None:
             factor = int(factor)
             if output_var == 1:
-                cnn_predictions[network] = cnn_predictions[network]*factor
+                cnn_predictions[:,output_index] = cnn_predict[:,0]*factor
+                output_index += 1
             if output_var == 3:
-                cnn_predictions[network] = cnn_predictions[network][0]*factor
-                cnn_predictions[network] = cnn_predictions[network][1]*factor
-                cnn_predictions[network] = cnn_predictions[network][2]*factor
+                for i in range(0,3):
+                    cnn_predictions[:,output_index] = cnn_predict[:,i]*factor
+                    output_index += 1
             #untransform truth
             if variable_list[network] == "energy":
                 Y_test_use[:,0] = Y_test_use[:,0]*factor
         t1 = time.time()
         print("Time to run CNN Predict %s on %i events: %f seconds"%(variable_list[network],X_test_DC_use.shape[0],t1-t0))
+    
 
 
 print("Saving output file: %s/%s.hdf5"%(save_folder_name,filename))
 f = h5py.File("%s/%s.hdf5"%(save_folder_name,filename), "w")
 f.create_dataset("Y_test_use", data=Y_test_use)
-f.create_dataset("X_test_DC", data=X_test_DC_use)
-f.create_dataset("X_test_IC", data=X_test_IC_use)
 f.create_dataset("Y_predicted", data=cnn_predictions)
+if save_inputs:
+    f.create_dataset("X_test_DC", data=X_test_DC_use)
+    f.create_dataset("X_test_IC", data=X_test_IC_use)
 if reco_test_use is not None:
     f.create_dataset("reco_test", data=reco_test_use)
 if weights is not None:

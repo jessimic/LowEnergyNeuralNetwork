@@ -47,7 +47,7 @@ args = parser.parse_args()
 filename = args.input_file
 path = args.path
 model_name = args.model_name
-save_output_data = args.save_output
+#save_output_data = args.save_output
 i3 = args.i3
 if i3:
     files = path + filename
@@ -143,12 +143,16 @@ else:
     f.close()
     del f
 
-    cnn_prob_mu = np.array(predict[:,:,0][-1])
+    try:
+        cnn_prob_mu = np.array(predict[:,:,0][-1])
+    except:
+        cnn_prob_mu = np.array(predict[:,6])
     
-    numu_files =97
-    nue_files = 91
-    muon_files = 1999
+    numu_files = 294 #97
+    nue_files = 92 #91
+    muon_files = 600 #1999
     nutau_files = 45
+    print("Using given numbers %i numu files, %i nue files, %i muon files, %i nutau files for weighting"%(numu_files,nue_files,muon_files,nutau_files))
 
 #Seperate by PID and reweight
 cnn_prob_nu = 1-cnn_prob_mu
@@ -244,10 +248,10 @@ print("AUC: %.3f"%auc)
 print("CNN Neutrino, True Neutrino: %.2f"%percent_save[2])
 print("CNN Neutrino, True Muon: %.2f"%percent_save[3])
 
-if save_output_data and i3:
-    f = h5py.File("%s/prediction_values_%inumu_%inue_%inutau_%imuon.hdf5"%(save_folder,numu_files,nue_files,nutau_files,muon_files), "w")
-    f.create_dataset("Y_predicted", data=predict)
-    f.create_dataset("Y_test_use", data=truth)
-    f.create_dataset("additional_info", data=info)
-    f.create_dataset("weights_test", data=raw_weights)
-    f.close()
+#if save_output_data and i3:
+#    f = h5py.File("%s/prediction_values_%inumu_%inue_%inutau_%imuon.hdf5"%(save_folder,numu_files,nue_files,nutau_files,muon_files), "w")
+#    f.create_dataset("Y_predicted", data=predict)
+#    f.create_dataset("Y_test_use", data=truth)
+#    f.create_dataset("additional_info", data=info)
+#    f.create_dataset("weights_test", data=raw_weights)
+#    f.close()

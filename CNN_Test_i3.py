@@ -90,7 +90,6 @@ for variable_index in range(num_variables):
     else:
         if len(epoch_list) == 0:
             model_name = args.model_dir + "/" + modelname_list[variable_index] + ".hdf5"
-            print("yassss")
         else:
             if epoch_list[variable_index] is None:
                 model_name = args.model_dir + "/" + modelname_list[variable_index] + ".hdf5"

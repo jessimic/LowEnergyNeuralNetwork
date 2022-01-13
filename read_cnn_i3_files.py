@@ -262,7 +262,10 @@ def read_i3_files(filenames_list, variable_list,save_cnn_input=False,sim_type=No
         if (max_files > 10) and (count%ten_percent == 0):
             print("Progress Percent: %i"%(count/max_files*100))
 
-    output_cnn=np.asarray(output_cnn)
+    if output_cnn is None:
+        output_cnn.append(np.nan)
+        print("DID NOT SAVE ANY CNN VALUES!!")
+    output_cnn=np.asarray(output_cnn,dtype=float)
     output_labels=np.asarray(output_labels)
     output_reco_labels=np.asarray(output_reco_labels)
     output_info = np.asarray(output_info)
