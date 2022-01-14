@@ -17,16 +17,38 @@ parser.add_argument("-o", "--outdir",type=str,default='/mnt/home/micall12/LowEne
                     dest="output_dir", help="path of ouput file")
 parser.add_argument("-n", "--savename",default=None,
                     dest="savename", help="additional directory to save in")
+parser.add_argument("--compare_cnn", default=False,action='store_true',
+                        dest='compare_cnn',help="compare to CNN")
 args = parser.parse_args()
 
 input_file = args.input_file
 input_file2 = args.input_file2
+compare_cnn = args.compare_cnn
 save_folder_name = args.output_dir + "/"
 if args.savename is not None:
     save_folder_name += args.savename + "/"
     if os.path.isdir(save_folder_name) != True:
             os.mkdir(save_folder_name)
 print("Saving to %s"%save_folder_name)
+
+#CUT values
+r_cut1 = 165
+zmin_cut1 = -495
+zmax_cut1 = -225
+coszen_cut1 = 0.3
+emin_cut1 = 5
+emax_cut1 = 100
+mu_cut1 = 0.01
+nDOM_cut1 = 8
+
+r_cut2 = 165
+zmin_cut2 = -495
+zmax_cut2 = -225
+coszen_cut2 = 0.3
+emin_cut2 = 5
+emax_cut2 = 100
+mu_cut2 = 0.01
+nDOM_cut2 = 8
 
 #IMPORT FILE 1
 f = h5py.File(input_file, "r")
@@ -74,6 +96,17 @@ reco1_z = np.array(predict1[:,5])
 reco1_r = np.sqrt( (reco1_x - x1_origin)**2 + (reco1_y - y1_origin)**2 )
 reco1_prob_mu = np.array(predict1[:,6])
 reco1_nDOMs = np.array(predict1[:,7])
+
+#RECO masks
+mask1Energy = np.logical_and(reco1_energy > emin_cut1, reco1_energy < emax_cut1)
+mask1Zenith = reco1_coszenith <= coszen_cut1
+mask1R = reco1_r < r_cut1
+mask1Z = np.logical_and(reco1_z > zmin_cut1, reco1_z < zmax_cut1)
+mask1Vertex = np.logical_and(mask1R, mask1Z)
+mask1ProbMu = reco1_prob_mu <= mu_cut1
+mask1Reco = np.logical_and(mask1ProbMu, np.logical_and(mask1Zenith, np.logical_and(mask1Energy, mask1Vertex)))
+mask1RecoNoEn = np.logical_and(mask1ProbMu, np.logical_and(mask1Zenith, mask1Vertex))
+mask1DOM = reco1_nDOMs >= nDOM_cut1
 
 #PID identification
 muon_mask_test1 = (true1_PID) == 13
@@ -125,12 +158,18 @@ if info1 is not None:
     mask1Class = np.logical_and(mask1Nu,mask1Noise)
     mask1MC = np.logical_and(mask1Hits,mask1Class)
 
+#Combined Masks
+mask1Analysis = np.logical_and(mask1MC, mask1Reco)
+
 #IMPORT FILE 2
 f2 = h5py.File(input_file2, "r")
 truth2 = f2["Y_test_use"][:]
 predict2 = f2["Y_predicted"][:]
-#reco2 = f2["reco_test"][:]
 raw_weights2 = f2["weights_test"][:]
+try:
+    reco2 = f2["reco_test"][:]
+except:
+    reco2 = None
 try:
     info2 = f2["additional_info"][:]
 except: 
@@ -160,17 +199,53 @@ true2_PID = truth2[:,9]
 true2_zenith = np.array(truth2[:,12])
 true2_coszenith = np.cos(np.array(truth2[:,12]))
 
-#Reconstructed values (CNN)
-reco2_energy = np.array(predict2[:,0])
-reco2_prob_track = np.array(predict2[:,1])
-reco2_zenith = np.array(predict2[:,2])
-reco2_coszenith = np.cos(reco2_zenith)
-reco2_x = np.array(predict2[:,3])
-reco2_y = np.array(predict2[:,4])
-reco2_z = np.array(predict2[:,5])
-reco2_r = np.sqrt( (reco2_x - x2_origin)**2 + (reco2_y - y2_origin)**2 )
-reco2_prob_mu = np.array(predict2[:,6])
-reco2_nDOMs = np.array(predict2[:,7])
+if compare_cnn:
+    #Reconstructed values (CNN)
+    reco2_energy = np.array(predict2[:,0])
+    reco2_prob_track = np.array(predict2[:,1])
+    reco2_zenith = np.array(predict2[:,2])
+    reco2_coszenith = np.cos(reco2_zenith)
+    reco2_x = np.array(predict2[:,3])
+    reco2_y = np.array(predict2[:,4])
+    reco2_z = np.array(predict2[:,5])
+    reco2_r = np.sqrt( (reco2_x - x2_origin)**2 + (reco2_y - y2_origin)**2 )
+    reco2_prob_mu = np.array(predict2[:,6])
+    reco2_nDOMs = np.array(predict2[:,7])
+
+    #RECO masks
+    mask2Energy = np.logical_and(reco2_energy > emin_cut2, reco2_energy < emax_cut2)
+    mask2Zenith = reco2_coszenith <= coszen_cut2
+    mask2R = reco2_r < r_cut2
+    mask2Z = np.logical_and(reco2_z > zmin_cut2, reco2_z < zmax_cut2)
+    mask2Vertex = np.logical_and(mask2R, mask2Z)
+    mask2ProbMu = reco2_prob_mu <= mu_cut2
+    mask2Reco = np.logical_and(mask2ProbMu, np.logical_and(mask2Zenith, np.logical_and(mask2Energy, mask2Vertex)))
+    mask2RecoNoEn = np.logical_and(mask2ProbMu, np.logical_and(mask2Zenith, mask2Vertex))
+    mask2DOM = reco2_nDOMs >= nDOM_cut2
+
+else:
+    reco2_energy = np.array(reco2[:,0])
+    reco2_zenith = np.array(reco2[:,1])
+    reco2_coszenith = np.cos(reco2_zenith)
+    reco2_time = np.array(reco2[:,3])
+    reco2_prob_track = np.array(reco2[:,13])
+    reco2_prob_track_full = np.array(reco2[:,12])
+    reco2_x = np.array(reco2[:,4])
+    reco2_y = np.array(reco2[:,5])
+    reco2_z = np.array(reco2[:,6])
+    reco2_r = np.sqrt( (reco2_x - x2_origin)**2 + (reco2_y - y2_origin)**2 )
+    reco2_iterations = np.array(reco2[:,14])
+    reco2_nan = np.isnan(reco2_energy)
+    
+    mask2Energy = np.logical_and(reco2_energy > emin_cut2, reco2_energy < emax_cut2)
+    mask2Zenith = reco2_coszenith <= coszen_cut2
+    mask2R = reco2_r < r_cut2
+    mask2Z = np.logical_and(reco2_z > zmin_cut2, reco2_z < zmax_cut2)
+    mask2Vertex = np.logical_and(mask2R, mask2Z)
+    mask2ProbMu = reco2_prob_mu <= mu_cut2
+    mask2Reco = np.logical_and(mask2ProbMu, np.logical_and(mask2Zenith, np.logical_and(mask2Energy, mask2Vertex)))
+    mask2RecoNoEn = np.logical_and(mask2ProbMu, np.logical_and(mask2Zenith, mask2Vertex))
+    mask2DOM = reco2_nDOMs >= nDOM_cut2
 
 #PID identification
 muon_mask_test2 = (true2_PID) == 13
@@ -210,6 +285,22 @@ if info2 is not None:
     info2_prob_nu2 = info2[:,8]
     info2_hits8 = info2[:,9]
 
+
+#INFO masks
+if info2 is not None:
+    mask2Hits8 = info2_hits8 == 1
+    mask2Nu = info2_prob_nu > 0.4
+    mask2Noise = info2_noise_class > 0.95
+    mask2nhit = info2_nhit_doms > 2.5
+    mask2ntop = info2_n_top15 < 2.5
+    mask2nouter = info2_n_outer < 7.5
+    mask2Hits = np.logical_and(np.logical_and(mask2nhit, mask2ntop), mask2nouter)
+    mask2Class = np.logical_and(mask2Nu,mask2Noise)
+    mask2MC = np.logical_and(mask2Hits,mask2Class)
+
+    #Combined Masks
+    mask2Analysis = np.logical_and(mask2MC, mask2Reco)
+
 #Print Summary of the two files
 print("Events file 1: %i, NuMu Rate: %.2e"%(len(true1_energy),sum(weights1[true1_isNuMu])))
 print("Events file 2: %i, NuMu Rate: %.2e"%(len(true2_energy),sum(weights2[true2_isNuMu])))
@@ -229,70 +320,172 @@ plot_name = "Energy"
 plot_units = "(GeV)"
 maxabs_factors = 100.
 
-mask1 = true1_isCC #np.logical_and(c1,c1_2)
-mask2 = true2_isCC #np.logical_and(c2,c2_2)
+ana_mask1 = np.logical_and(true1_isCC, mask1Reco)
+ana_mask2 = np.logical_and(true2_isCC, mask2Reco)
+mask1 = np.logical_and(np.logical_and(true1_isCC, mask1RecoNoEn),mask1DOM)
+mask2 = np.logical_and(np.logical_and(true2_isCC, mask2RecoNoEn),mask2DOM)
 save_base_name = save_folder_name
-minval = 1
-maxval = 200
-bins = 100
-syst_bin = 100
+minval = 5
+maxval = 100
+logmax = 10**1.5
+bins_log = 10**np.linspace(0,1.5,100)
+bins = 95
+syst_bin = 95
 name1 = "Old Energy"
 name2 = "New Energy"
 units = "(GeV)"
 
+print(sum(weights1[mask1])/sum(weights1[true1_isCC]), sum(weights1[mask1])/sum(weights1[ana_mask1]))
 print(true1_energy[mask1][:10], reco1_energy[mask1][:10])
+print(sum(weights2[mask2])/sum(weights2[true2_isCC]), sum(weights2[mask2])/sum(weights2[ana_mask2]))
 print(true2_energy[mask2][:10], reco2_energy[mask2][:10])
-"""
-switch = False
-plot_2D_prediction(true_energy[cuts], cnn_energy[cuts],weights=true_weights,\
-                        save=save, savefolder=save_folder_name,bins=bins, switch_axis=switch,
-                        variable=plot_name, units=plot_units, reco_name=name1)
-plot_2D_prediction(true_energy2[cuts2], cnn_energy2[cuts2], weights=true_weights2,
-                        save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
-                        variable=plot_name, units=plot_units, reco_name=name2)
-plot_2D_prediction(true_energy[cuts], cnn_energy[cuts],weights=true_weights,\
-                        save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
-                        minval=minval, maxval=maxval, axis_square=True,\
-                        variable=plot_name, units=plot_units, reco_name=name1)
-plot_2D_prediction(true_energy2[cuts2], cnn_energy2[cuts2], weights=true_weights2,
-                        save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
-                        minval=minval, maxval=maxval, axis_square=True,\
-                        variable=plot_name, units=plot_units, reco_name=name2)
-switch = True
-plot_2D_prediction(true_energy[cuts], cnn_energy[cuts],weights=true_weights,\
-                        save=save, savefolder=save_folder_name,bins=bins, switch_axis=switch,
-                        variable=plot_name, units=plot_units, reco_name=name1)
-plot_2D_prediction(true_energy2[cuts2], cnn_energy2[cuts2], weights=true_weights2,
-                        save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
-                        variable=plot_name, units=plot_units, reco_name=name2)
-plot_2D_prediction(true_energy[cuts], cnn_energy[cuts],weights=true_weights,\
-                        save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
-                        minval=minval, maxval=maxval, cut_truth=True, axis_square=True,\
-                        variable=plot_name, units=plot_units, reco_name=name1)
-plot_2D_prediction(true_energy2[cuts2], cnn_energy2[cuts2], weights=true_weights2,
-                        save=save, savefolder=save_folder_name,bins=bins,switch_axis=switch,\
-                        minval=minval, maxval=maxval, cut_truth=True, axis_square=True,\
-                        variable=plot_name, units=plot_units, reco_name=name2)
 
-plot_single_resolution(true_energy[cuts], cnn_energy[cuts], weights=true_weights,old_reco_weights=true_weights2,\
-                   use_old_reco = True, old_reco = cnn_energy2[cuts2], old_reco_truth=true_energy2[cuts2],\
+path=save_folder_name
+plt.figure(figsize=(10,7))
+plt.hist(true1_energy[mask1], color="green",label="true",
+         bins=bins_log,range=[minval,logmax],
+         weights=weights1[mask1],alpha=0.5)
+plt.hist(reco1_energy[mask1], color="blue",label="CNN",
+         bins=bins_log,range=[minval,logmax],
+         weights=weights1[mask1],alpha=0.5)
+plt.xscale('log')
+plt.title("Energy Distribution Weighted for %s events"%len(true1_energy),fontsize=25)
+plt.xlabel("Energy (GeV)",fontsize=20)
+plt.xticks(fontsize=15)
+plt.yticks(fontsize=15)
+plt.axvline(5,linewidth=3,linestyle="--",color='k',label="Cut at 5 GeV")
+plt.legend(loc='upper left',fontsize=15)
+plt.savefig("%s/%sLogEnergyDist_ZoomInLE.png"%(path,name1.replace(" ","")))
+
+plt.figure(figsize=(10,7))
+plt.hist(true1_energy[mask1], label="true",bins=100,
+        range=[minval,maxval],weights=weights1[mask1],alpha=0.5)
+plt.hist(reco1_energy[mask1], label=name1,bins=100,
+        range=[minval,maxval],weights=weights1[mask1],alpha=0.5)
+plt.title("Energy Distribution Weighted for %s events"%len(true1_energy),fontsize=25)
+plt.xlabel("Energy (GeV)",fontsize=20)
+plt.xticks(fontsize=15)
+plt.yticks(fontsize=15)
+plt.axvline(5,linewidth=3,linestyle="--",color='k',label="Cut at 5 GeV")
+plt.legend(fontsize=15)
+plt.savefig("%s/%sEnergyDist.png"%(path,name1.replace(" ","")))
+
+plt.figure(figsize=(10,7))
+plt.hist(true2_energy[mask2], color="green",label="true",
+         bins=bins_log,range=[minval,logmax],
+         weights=weights2[mask2],alpha=0.5)
+plt.hist(reco2_energy[mask2], color="blue",label="CNN",
+         bins=bins_log,range=[minval,logmax],
+         weights=weights2[mask2],alpha=0.5)
+plt.xscale('log')
+plt.title("Energy Distribution Weighted for %s events"%len(true2_energy),fontsize=25)
+plt.xlabel("Energy (GeV)",fontsize=20)
+plt.xticks(fontsize=15)
+plt.yticks(fontsize=15)
+plt.axvline(5,linewidth=3,linestyle="--",color='k',label="Cut at 5 GeV")
+plt.legend(loc='upper left',fontsize=15)
+plt.savefig("%s/%sLogEnergyDist_ZoomInLE.png"%(path,name2.replace(" ","")))
+
+plt.figure(figsize=(10,7))
+plt.hist(true2_energy[mask2], label="true",bins=100,
+        range=[minval,maxval],weights=weights2[mask2],alpha=0.5)
+plt.hist(reco2_energy[mask2], label=name2,bins=100,
+        range=[minval,maxval],weights=weights2[mask2],alpha=0.5)
+plt.title("Energy Distribution Weighted for %s events"%len(true2_energy),fontsize=25)
+plt.xlabel("Energy (GeV)",fontsize=20)
+plt.xticks(fontsize=15)
+plt.yticks(fontsize=15)
+plt.axvline(5,linewidth=3,linestyle="--",color='k',label="Cut at 5 GeV")
+plt.legend(fontsize=15)
+plt.savefig("%s/%sEnergyDist.png"%(path,name2.replace(" ","")))
+
+switch = False
+plot_2D_prediction(true1_energy[mask1], reco1_energy[mask1],
+                    weights=weights1[mask1],\
+                    save=save, savefolder=save_folder_name,
+                    bins=bins, switch_axis=switch,
+                    variable=plot_name, units=plot_units, reco_name=name1)
+
+plot_2D_prediction(true2_energy[mask2], reco2_energy[mask2],
+                    weights=weights2[mask2],
+                    save=save, savefolder=save_folder_name,
+                    bins=bins,switch_axis=switch,\
+                    variable=plot_name, units=plot_units, reco_name=name2)
+
+plot_2D_prediction(true1_energy[mask1], reco1_energy[mask1],
+                    weights=weights1[mask1],\
+                    save=save, savefolder=save_folder_name,
+                    bins=bins,switch_axis=switch,\
+                    minval=minval, maxval=maxval, axis_square=True,\
+                    variable=plot_name, units=plot_units, reco_name=name1)
+
+plot_2D_prediction(true2_energy[mask2], reco2_energy[mask2],
+                    weights=weights2[mask2],
+                    save=save, savefolder=save_folder_name,
+                    bins=bins,switch_axis=switch,\
+                    minval=minval, maxval=maxval, axis_square=True,\
+                    variable=plot_name, units=plot_units, reco_name=name2)
+
+switch = True
+plot_2D_prediction(true1_energy[mask1], reco1_energy[mask1],
+                    weights=weights1[mask1],\
+                    save=save, savefolder=save_folder_name,
+                    bins=bins, switch_axis=switch,
+                    variable=plot_name, units=plot_units, reco_name=name1)
+
+plot_2D_prediction(true2_energy[mask2], reco2_energy[mask2],
+                    weights=weights2[mask2],
+                    save=save, savefolder=save_folder_name,
+                    bins=bins,switch_axis=switch,\
+                    variable=plot_name, units=plot_units, reco_name=name2)
+
+plot_2D_prediction(true1_energy[mask1], reco1_energy[mask1],
+                    weights=weights1[mask1],\
+                    save=save, savefolder=save_folder_name,
+                    bins=bins,switch_axis=switch,\
+                    minval=minval, maxval=maxval,
+                    cut_truth=True, axis_square=True,\
+                    variable=plot_name, units=plot_units, reco_name=name1)
+
+plot_2D_prediction(true2_energy[mask2], reco2_energy[mask2],
+                    weights=weights2[mask2],
+                    save=save, savefolder=save_folder_name,
+                    bins=bins,switch_axis=switch,\
+                    minval=minval, maxval=maxval,
+                    cut_truth=True, axis_square=True,\
+                    variable=plot_name, units=plot_units, reco_name=name2)
+
+#Resolution
+plot_single_resolution(true1_energy[mask1], reco1_energy[mask1], 
+                   weights=weights1[mask1],old_reco_weights=weights2[mask2],
+                   use_old_reco = True, old_reco = reco2_energy[mask2],
+                   old_reco_truth=true2_energy[mask2],\
                    minaxis=-maxval, maxaxis=maxval, bins=bins,\
                    save=save, savefolder=save_folder_name,\
                    variable=plot_name, units=plot_units, reco_name=name2)
-plot_single_resolution(true_energy[cuts], cnn_energy[cuts], weights=true_weights,old_reco_weights=true_weights2,\
-                   use_old_reco = True, old_reco = cnn_energy2[cuts2], old_reco_truth=true_energy2[cuts2],\
-                   minaxis=-2., maxaxis=2, bins=bins,use_fraction=True,\
-                   save=save, savefolder=save_folder_name,\
-                   variable=plot_name, units=plot_units, reco_name=name2)
 
-plot_bin_slices(true_energy[cuts], cnn_energy[cuts], weights=true_weights, old_reco_weights=true_weights2,\
-                    old_reco = cnn_energy2[cuts2],old_reco_truth=true_energy2[cuts2],\
-                    use_fraction = True, bins=syst_bin, min_val=minval, max_val=maxval,\
+plot_single_resolution(true1_energy[mask1], reco1_energy[mask1],
+                    weights=weights1[mask1],old_reco_weights=weights2[mask2],\
+                    use_old_reco = True, old_reco = reco2_energy[mask2],
+                    old_reco_truth=true2_energy[mask2],\
+                    minaxis=-2., maxaxis=2, bins=bins, use_fraction=True,\
                     save=save, savefolder=save_folder_name,\
-                    variable=plot_name, units=plot_units, cnn_name=name1, reco_name=name2)
-"""
+                    variable=plot_name, units=plot_units, reco_name=name2)
+
+#Bin Slices
 plot_bin_slices(true1_energy[mask1], reco1_energy[mask1], 
                 old_reco = reco2_energy[mask2],old_reco_truth=true2_energy[mask2],
+                weights=weights1[mask1], old_reco_weights=weights2[mask2],\
+                use_fraction = True, bins=syst_bin, 
+                min_val=minval, max_val=maxval,\
+                save=save, savefolder=save_folder_name,
+                variable=plot_name, units=plot_units, 
+                cnn_name=name1, reco_name=name2)
+
+plot_bin_slices(true1_energy[mask1], reco1_energy[mask1], 
+                energy_truth=true1_energy[mask1],
+                old_reco = reco2_energy[mask2],old_reco_truth=true2_energy[mask2],
+                reco_energy_truth = true2_energy[mask2],
                 weights=weights1[mask1], old_reco_weights=weights2[mask2],\
                 use_fraction = True, bins=syst_bin, 
                 min_val=minval, max_val=maxval,\
