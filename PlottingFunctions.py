@@ -1089,7 +1089,8 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
                        variable="Energy",units="(GeV)",xlog=False,save_name=None,
                        xvariable="Energy",xunits="(GeV)",notebook=False,
                        specific_bins = None,xline=None,xline_name="DeepCore",
-                       epochs=None,reco_name="Retro",cnn_name="CNN",legend="upper center"):
+                       epochs=None,reco_name="Retro",cnn_name="CNN",
+                       legend="upper center",add_contour=False):
     """Plots different variable slices vs each other (systematic set arrays)
     Receives:
         truth= array with truth labels for this one variable
@@ -1149,9 +1150,12 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
         resolution = (nn_reco-truth)
     resolution = numpy.array(resolution)
     percentile_in_peak = 68.27
+    second_percentile = 95.45
 
     left_tail_percentile  = (100.-percentile_in_peak)/2
+    left2_tail_percentile  = (100.-second_percentile)/2
     right_tail_percentile = 100.-left_tail_percentile
+    right2_tail_percentile = 100.-left2_tail_percentile
 
     if specific_bins is None:
         variable_ranges  = numpy.linspace(min_val,max_val, num=bins+1)
@@ -1167,6 +1171,8 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
     medians  = numpy.zeros(len(variable_centers))
     err_from = numpy.zeros(len(variable_centers))
     err_to   = numpy.zeros(len(variable_centers))
+    err2_from = numpy.zeros(len(variable_centers))
+    err2_to   = numpy.zeros(len(variable_centers))
 
     if old_reco is not None:
         if use_fraction:
@@ -1177,6 +1183,8 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
         medians_reco  = numpy.zeros(len(variable_centers))
         err_from_reco = numpy.zeros(len(variable_centers))
         err_to_reco   = numpy.zeros(len(variable_centers))
+        err2_from_reco = numpy.zeros(len(variable_centers))
+        err2_to_reco   = numpy.zeros(len(variable_centers))
 
     for i in range(len(variable_ranges)-1):
         var_from = variable_ranges[i]
@@ -1205,30 +1213,42 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
 
         if weights is not None:
             lower_lim = wq.quantile(resolution[cut],weights[cut],left_tail_percentile/100.)
+            lower2_lim = wq.quantile(resolution[cut],weights[cut],left2_tail_percentile/100.)
             upper_lim = wq.quantile(resolution[cut],weights[cut], right_tail_percentile/100.)
+            upper2_lim = wq.quantile(resolution[cut],weights[cut], right2_tail_percentile/100.)
             median = wq.median(resolution[cut],weights[cut])
         else:
             lower_lim = numpy.percentile(resolution[cut], left_tail_percentile/100.)
+            lower2_lim = numpy.percentile(resolution[cut], left2_tail_percentile/100.)
             upper_lim = numpy.percentile(resolution[cut], right_tail_percentile/100.)
+            upper2_lim = numpy.percentile(resolution[cut], right2_tail_percentile/100.)
             median = numpy.percentile(resolution[cut], 0.50)
 
         medians[i] = median
         err_from[i] = lower_lim
         err_to[i] = upper_lim
+        err2_from[i] = lower2_lim
+        err2_to[i] = upper2_lim
 
         if old_reco is not None:
             if reco_weights is not None:
                 lower_lim_reco = wq.quantile(resolution_reco[cut2],reco_weights[cut2],left_tail_percentile/100.)
                 upper_lim_reco = wq.quantile(resolution_reco[cut2],reco_weights[cut2],right_tail_percentile/100.)
+                lower2_lim_reco = wq.quantile(resolution_reco[cut2],reco_weights[cut2],left2_tail_percentile/100.)
+                upper2_lim_reco = wq.quantile(resolution_reco[cut2],reco_weights[cut2],right2_tail_percentile/100.)
                 median_reco = wq.median(resolution_reco[cut2],reco_weights[cut2])
             else:
                 lower_lim_reco = numpy.percentile(resolution_reco[cut2], left_tail_percentile/100.)
                 upper_lim_reco = numpy.percentile(resolution_reco[cut2], right_tail_percentile/100.)
+                lower2_lim_reco = numpy.percentile(resolution_reco[cut2], left2_tail_percentile/100.)
+                upper2_lim_reco = numpy.percentile(resolution_reco[cut2], right2_tail_percentile/100.)
                 median_reco = numpy.percentile(resolution_reco[cut2], 0.50)
 
             medians_reco[i] = median_reco
             err_from_reco[i] = lower_lim_reco
             err_to_reco[i] = upper_lim_reco
+            err2_from_reco[i] = lower2_lim_reco
+            err2_to_reco[i] = upper2_lim_reco
 
     plt.figure(figsize=(10,7))
     plt.plot([min_val,max_val], [0,0], color='k')
@@ -1250,29 +1270,40 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
             
             plt.legend(loc=legend)
     else: #countours
+        alpha_extra=0.75
         alpha=0.5
         lwid=3
-        cmap = plt.get_cmap('Blues')
-        colors = cmap(numpy.linspace(0, 1, 2 + 2))[2:]
-        color=colors[0]
-        cmap = plt.get_cmap('Oranges')
-        rcolors = cmap(numpy.linspace(0, 1, 2 + 2))[2:]
-        rcolor=rcolors[0] 
+        #cmap = plt.get_cmap('Blues')
+        #colors = cmap(numpy.linspace(0, 1, 2 + 2))[2:]
+        #color=colors[0]
+        color=['mediumblue','cornflowerblue','lightsteelblue']
+        #cmap = plt.get_cmap('Oranges')
+        #rcolors = cmap(numpy.linspace(0, 1, 2 + 2))[2:]
+        #rcolor=rcolors[0] 
+        rcolor=['darkorange','orange','moccasin']
         ax = plt.gca()
         if old_reco is not None:
-            ax.plot(variable_centers,medians_reco, color=rcolor, linestyle='-', label="%s median"%reco_name, linewidth=lwid)
-            ax.fill_between(variable_centers,medians_reco,err_from_reco, color=rcolor, alpha=alpha)
-            ax.fill_between(variable_centers,medians_reco,err_to_reco, color=rcolor,alpha=alpha,label=reco_name + ' 68%')
-        ax.plot(variable_centers, medians,linestyle='-',label="%s median"%(cnn_name), color=color, linewidth=lwid)
-        ax.fill_between(variable_centers,medians, err_from,color=color, alpha=alpha)
-        ax.fill_between(variable_centers,medians, err_to, color=color, alpha=alpha,label=cnn_name + ' 68%')
+            if add_contour:
+                ax.fill_between(variable_centers,medians_reco,err2_from_reco, color=rcolor[2], alpha=alpha_extra,linestyle=':',linewidth=2)
+                ax.fill_between(variable_centers,medians_reco,err2_to_reco, color=rcolor[2],alpha=alpha_extra,linestyle=':',linewidth=2,label=reco_name + ' 95%')
+            ax.fill_between(variable_centers,medians_reco,err_from_reco, color=rcolor[1], alpha=alpha,linestyle='--',linewidth=2)
+            ax.fill_between(variable_centers,medians_reco,err_to_reco, color=rcolor[1],alpha=alpha,linestyle='--',linewidth=2,label=reco_name + ' 68%')
+            ax.plot(variable_centers,medians_reco, color=rcolor[0], linestyle='-', label="%s median"%reco_name, linewidth=lwid)
+
+        #Plot CNN
+        if add_contour:
+            ax.fill_between(variable_centers,medians, err2_from,color=color[2], alpha=alpha_extra,linestyle=':',linewidth=2)
+            ax.fill_between(variable_centers,medians, err2_to, color=color[2], alpha=alpha_extra,linestyle=':',linewidth=2, label=cnn_name + ' 95%')
+        ax.fill_between(variable_centers,medians, err_from,color=color[1], alpha=alpha,linestyle='--',linewidth=2)
+        ax.fill_between(variable_centers,medians, err_to, color=color[1], alpha=alpha,linestyle='--',linewidth=2,label=cnn_name + ' 68%')
+        ax.plot(variable_centers, medians,linestyle='-',label="%s median"%(cnn_name), color=color[0], linewidth=lwid)
         if xline is not None:
             if type(xline) is list:
                 for x_val in xline:
                     plt.axvline(x_val,linewidth=3,color='k',linestyle="dashed",label="%s"%xline_name)
             else:
                 plt.axvline(xline,linewidth=3,color='k',linestyle="dashed",label="%s"%xline_name)
-        plt.legend(loc=legend)
+        plt.legend(loc=legend,bbox_to_anchor=(1.3, 0.7))
     plt.xlim(min_val,max_val)
     if ylim is not None:
         plt.ylim(ylim)
