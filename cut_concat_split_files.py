@@ -135,6 +135,7 @@ if do_upgoing_cut:
 file_names = path + input_files
 event_file_names = sorted(glob.glob(file_names))
 assert event_file_names,"No files loaded, please check path."
+print("Starting on file %s"%event_file_names[0])
 
 full_features_DC = None
 full_features_IC = None

@@ -27,11 +27,6 @@ import random
 import time
 import glob
 
-from keras.optimizers import Adam
-from keras.losses import mean_squared_error
-from keras.losses import mean_absolute_percentage_error
-from keras.losses import binary_crossentropy
-
 ## Create ability to change settings from terminal ##
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input",type=str,default=None,
@@ -56,12 +51,15 @@ parser.add_argument("--charge_min", type=float, default=0.25,
                     dest="charge_min", help="minimum charge pulse to keep, remove < this")
 parser.add_argument("--gcd", default=None,
                     dest="gcd", help="path and filename of gcd")
+parser.add_argument("--newTF",default=False,action='store_true',
+                    dest="newTF",help="flag if using new version (2.7) of tensorflow")
 args = parser.parse_args()
 
 input_file = args.input_file
 output_dir = args.output_dir
 output_name = args.output_name
 gcdfile = args.gcd
+newTF = args.newTF
 
 if args.cleaned == "True" or args.cleaned == "true":
     use_cleaned_pulses = True
@@ -78,7 +76,7 @@ epoch_list = np.array(epoch_list,dtype=float)
 print(len(epoch_list))
 model_path = args.model_dir
 
-accepted_names = ["energy", "zenith", "class", "vertex", "muon", "muonL4", "nDOM"]
+accepted_names = ["energy", "zenith", "class", "vertex", "muon", "muonL4", "nDOM", "ending"]
 for var in variable_list:
         assert var in accepted_names, "Variable must be one of the accepted names, check parse arg help for variable for more info"
 
@@ -305,12 +303,19 @@ def apply_transform(features_DC, features_IC, labels=None, energy_factor=100., t
 
 
 def cnn_test(features_DC, features_IC, load_model_name, output_variables=1,DC_drop_value=0.2,IC_drop_value=0.2,connected_drop_value=0.2,model_type="energy"):
-    if model_type == "class" or model_type == "muon" or model_type == "muonL4":
-        from cnn_model_classification import make_network
+    if newTF:
+        from cnn_model_newTF import make_network
+        if model_type == "class" or model_type == "muon" or model_type == "muonL4":
+            activation = "sigmoid"
+        else:
+            activation = "linear"
+        model_DC = make_network(features_DC,features_IC, output_variables, DC_drop_value, IC_drop_value,connected_drop_value,activation=activation)
     else:
-        from cnn_model import make_network
-    
-    model_DC = make_network(features_DC,features_IC, output_variables, DC_drop_value, IC_drop_value,connected_drop_value)
+        if model_type == "class" or model_type == "muon" or model_type == "muonL4":
+            from cnn_model_classification import make_network
+        else:
+            from cnn_model import make_network
+        model_DC = make_network(features_DC,features_IC, output_variables, DC_drop_value, IC_drop_value,connected_drop_value)
     model_DC.load_weights(load_model_name)
 
     Y_test_predicted = model_DC.predict([features_DC,features_IC])
@@ -370,9 +375,9 @@ def read_files(filename,gcd_filename=None,use_cleaned_pulses=True,charge_min=0.2
             if extra_triggers > 0 or trig_time == None:
                 skipped_triggers +=1
                 skip = True
-            if clean_pulses_8_or_more == False:
-                skipped_8hits +=1
-                skip = True
+            #if clean_pulses_8_or_more == False:
+            #    skipped_8hits +=1
+            #    skip = True
             
             skip_event.append(skip)
             header_numbers = np.array( [ float(header.run_id), float(header.sub_run_id), float(header.event_id)] )
@@ -422,11 +427,13 @@ def test_write(filename_list, model_name_list,output_dir, output_name, model_fac
                     DOMs_hit_DC = np.sum(DC_flat,axis=-1)
                     DOMs_hit_IC = np.sum(IC_flat,axis=-1)
                     DOMs_hit = DOMs_hit_DC + DOMs_hit_IC
+                    np.array(DOMs_hit,dtype=int)
                     t1 = time.time()
+                    DOMs_hit = np.array(DOMs_hit, dtype=int)
                     cnn_predictions.append(DOMs_hit)
                     print("Time to calculate number DOMs hit on %i events: %f seconds"%(DC_array.shape[0],t1-t0))
                 else:
-                    if model_type_list[network] == "vertex":
+                    if model_type_list[network] == "vertex" or model_type_list[network] == "ending":
                         output_var = 3
                     else:
                         output_var = 1
@@ -455,7 +462,7 @@ def test_write(filename_list, model_name_list,output_dir, output_name, model_fac
                     print("Event ID is off")
                     continue
                 
-                #Check for multiple triggers or 8 hit flag
+                #Check for multiple triggers 
                 if skip_event[index] == True:
                     skipped_write +=1
                     index+=1
@@ -477,7 +484,7 @@ def test_write(filename_list, model_name_list,output_dir, output_name, model_fac
                     else:
                         key_name = "FLERCNN_%s"%model_type
                
-                    if model_type == "vertex":
+                    if model_type == "vertex" or model_type == "ending":
                         ending = ["_x", "_y", "_z"] 
                         for reco_i in range(prediction.shape[-1]):
                             adjusted_prediction = prediction[index][reco_i]*factor
@@ -488,9 +495,13 @@ def test_write(filename_list, model_name_list,output_dir, output_name, model_fac
                         x_origin = 46.290000915527344
                         y_origin = -34.880001068115234
                         r = np.sqrt( (x - x_origin)**2 + (y - y_origin)**2 )
-                        frame["FLERCNN_vertex_rho36"] = dataclasses.I3Double(r)
+                        if model_type == "vertex":
+                            frame["FLERCNN_vertex_rho36"] = dataclasses.I3Double(r)
+                        if model_type == "ending":
+                            frame["FLERCNN_ending_rho36"] = dataclasses.I3Double(r)
                     elif model_type == "nDOM":
-                        frame[key_name] = dataclasses.I3Double(prediction[index])
+                        print(prediction[index])
+                        frame[key_name] = icetray.I3Int(prediction[index])
                     else:
                         adjusted_prediction = prediction[index][0]*factor
                         frame[key_name] = dataclasses.I3Double(adjusted_prediction)

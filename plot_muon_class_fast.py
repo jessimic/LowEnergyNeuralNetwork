@@ -148,10 +148,10 @@ else:
     except:
         cnn_prob_mu = np.array(predict[:,6])
     
-    numu_files = 294 #97
-    nue_files = 92 #91
-    muon_files = 600 #1999
-    nutau_files = 45
+    numu_files = 1518 #294 #97
+    nue_files = 602 #92 #91
+    muon_files = 19391 #600 #1999
+    nutau_files = 334 #45
     print("Using given numbers %i numu files, %i nue files, %i muon files, %i nutau files for weighting"%(numu_files,nue_files,muon_files,nutau_files))
 
 #Seperate by PID and reweight
@@ -169,25 +169,22 @@ nutau_mask_test = (true_PID) == 16
 true_isNuTau = np.array(nutau_mask_test,dtype=bool)
 nu_mask = np.logical_or(np.logical_or(numu_mask_test, nue_mask_test), nutau_mask_test)
 true_isNu = np.array(nu_mask,dtype=bool)
+print("Nu:",sum(true_isNu))
 
 weights = raw_weights[:,8]
 if weights is not None:
     if sum(true_isNuMu) > 1:
-        #print("NuMu:",sum(true_isNuMu),sum(weights[true_isNuMu]))
         weights[true_isNuMu] = weights[true_isNuMu]/numu_files
-        #print(sum(weights[true_isNuMu]))
+        print("NuMu:",sum(true_isNuMu),sum(weights[true_isNuMu]))
     if sum(true_isNuE) > 1:
-        #print("NuE:",sum(true_isNuE),sum(weights[true_isNuE]))
         weights[true_isNuE] = weights[true_isNuE]/nue_files
-        #print(sum(weights[true_isNuE]))
+        print("NuE:",sum(true_isNuE),sum(weights[true_isNuE]))
     if sum(true_isMuon) > 1:
-        #print("Muon:",sum(true_isMuon),sum(weights[true_isMuon]))
         weights[true_isMuon] = weights[true_isMuon]/muon_files
-        #print(sum(weights[true_isMuon]))
+        print("Muon:",sum(true_isMuon),sum(weights[true_isMuon]))
     if sum(nutau_mask_test) > 1:
-        #print("NuTau:",sum(true_isNuTau),sum(weights[true_isNuTau]))
         weights[true_isNuTau] = weights[true_isNuTau]/nutau_files
-        #print(sum(weights[true_isNuTau]))
+        print("NuTau:",sum(true_isNuTau),sum(weights[true_isNuTau]))
 
 if args.no_nutau:
     print("Removing nutau events from testing sample!!!")
@@ -201,6 +198,9 @@ if args.no_nutau:
     true_isNuE = true_isNuE[not_NuTau]
 
 true_all = np.ones(len(weights),dtype=bool)
+MuNuTau = np.logical_or(true_isMuon, true_isNuTau)
+MuNuMu = np.logical_or(true_isMuon, true_isNuMu)
+MuNuE = np.logical_or(true_isMuon, true_isNuE)
 
 from PlottingFunctionsClassification import plot_classification_hist
 from PlottingFunctionsClassification import ROC
@@ -208,6 +208,27 @@ from PlottingFunctionsClassification import my_confusion_matrix
 
 plot_classification_hist(true_isNu,cnn_prob_nu,mask=true_all,
                         mask_name="No Cuts", units="",bins=50,
+                        weights=weights, log=False,save=save,
+                        save_folder_name=save_folder,
+                        name_prob1 = "Neutrino", name_prob0 = "Muon")
+
+if sum(true_isNuMu) > 0:
+    plot_classification_hist(true_isNu,cnn_prob_nu,mask=MuNuMu,
+                        mask_name="NuMu", units="",bins=50,
+                        weights=weights, log=False,save=save,
+                        save_folder_name=save_folder,
+                        name_prob1 = "Neutrino", name_prob0 = "Muon")
+
+if sum(true_isNuE) > 0:
+    plot_classification_hist(true_isNu,cnn_prob_nu,mask=MuNuE,
+                        mask_name="NuE", units="",bins=50,
+                        weights=weights, log=False,save=save,
+                        save_folder_name=save_folder,
+                        name_prob1 = "Neutrino", name_prob0 = "Muon")
+
+if sum(true_isNuTau) > 0:
+    plot_classification_hist(true_isNu,cnn_prob_nu,mask=MuNuTau,
+                        mask_name="NuTau", units="",bins=50,
                         weights=weights, log=False,save=save,
                         save_folder_name=save_folder,
                         name_prob1 = "Neutrino", name_prob0 = "Muon")
@@ -242,6 +263,20 @@ percent_save = my_confusion_matrix(true_isNu, cnn_binary_class, weights,
                     mask=None,title="CNN Muon Cut",
                     save=save,save_folder_name=save_folder)
 
+percent_save = my_confusion_matrix(true_isNu[MuNuMu],
+                    cnn_binary_class[MuNuMu], weights[MuNuMu],
+                    mask=None,title="CNN Muon Cut NuMu",
+                    save=save,save_folder_name=save_folder)
+
+percent_save = my_confusion_matrix(true_isNu[MuNuE],
+                    cnn_binary_class[MuNuE], weights[MuNuE],
+                    mask=None,title="CNN Muon Cut NuE",
+                    save=save,save_folder_name=save_folder)
+
+percent_save = my_confusion_matrix(true_isNu[MuNuTau],
+                    cnn_binary_class[MuNuTau], weights[MuNuTau],
+                    mask=None,title="CNN Muon Cut NuTau",
+                    save=save,save_folder_name=save_folder)
 
 print("AUC: %.3f"%auc)
 #save percent order: (CNN Muon, True Neutrino), (CNN Muon, True Muon), (CNN Neutrino, True Neutrino), (CNN Neutrino, True Muon)

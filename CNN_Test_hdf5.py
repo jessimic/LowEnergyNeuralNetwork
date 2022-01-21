@@ -43,7 +43,7 @@ parser.add_argument("-t","--test", default=None,
 parser.add_argument("--model_dir", type=str,default="/mnt/home/micall12/LowEnergyNeuralNetwork/output_plots/",
                         dest='model_dir',help="name of reco")
 parser.add_argument("--variable_list",nargs='+',default=[],
-                    dest="variable_list", help="names of variables that were predicted: energy, zenith, class, muon, vertex")
+                    dest="variable_list", help="names of variables that were predicted: energy, zenith, class, muon, vertex, ending")
 parser.add_argument("--epoch_list",nargs='+',default=[None,None,None,None,None],
                     dest="epoch_list", help="epochs to pull models from")
 parser.add_argument("--modelname_list",nargs='+',default=[None,None,None,None,None],
@@ -78,7 +78,7 @@ epoch_list = args.epoch_list
 modelname_list = args.modelname_list
 factor_list = np.array(args.factor_list,dtype=float)
 
-accepted_names = ["energy", "zenith", "class", "vertex", "muon", "error", "nDOM"]
+accepted_names = ["energy", "zenith", "class", "vertex", "muon", "error", "nDOM", "ending"]
 for var in variable_list:
     assert var in accepted_names, "Variable must be one of the accepted names, check parse arg help for variable for more info"
 
@@ -141,11 +141,13 @@ print(X_test_DC_use.shape,X_test_IC_use.shape,Y_test_use.shape)
 total_variables = num_variables
 if "vertex" in variable_list:
     total_variables += 2
+if "ending" in variable_list:
+    total_variables += 2
 cnn_predictions=np.zeros((Y_test_use.shape[0],total_variables))
 output_index = 0
 for network in range(num_variables):
     factor = factor_list[network]
-    if variable_list[network] == "vertex":
+    if variable_list[network] == "vertex" or variable_list[network] == "ending":
         output_var = 3
     else:
         output_var = 1

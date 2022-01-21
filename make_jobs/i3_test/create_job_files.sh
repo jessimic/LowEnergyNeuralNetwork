@@ -5,23 +5,18 @@
 #INPUTFILES="/mnt/research/IceCube/jmicallef/official_oscnext/level7/140000/oscNext_genie_level7_v02.00_pass2.140000.*.i3.zst"
 #INPUTFILES="/mnt/research/IceCube/jmicallef/official_oscnext/newGCD/1[2,4]8885/oscNext_genie_level7_v02.00_pass2.1[2,4]8885.00000?.i3.zst"
 #INPUTFILES="/mnt/research/IceCube/jmicallef/FLERCNN_i3_output/oscNext_genie_level7_v02.00_pass2.1?0000.00????_FLERCNN_class.i3.zst"
-INPUTFILES="/mnt/research/IceCube/jmicallef/official_oscnext/level7/1[2,4]0000/oscNext_genie_level7_v02.00_pass2.1[2,4]0000.*.i3.zst"
+#INPUTFILES="/mnt/research/IceCube/jmicallef/official_oscnext/level7/1[2,4]0000/oscNext_genie_level7_v02.00_pass2.1[2,4]0000.*.i3.zst"
+INPUTFILES="/mnt/scratch/micall12/oscnext_official/160000_flercnn/oscNext_genie_level6_flercnn_pass2.160000.000???.i3.zst"
 #INPUTFILES="/mnt/scratch/micall12/oscnext_official/1?0000/oscNext_*_level6_flercnn_pass2.1?0000.*.i3.zst"
 #INPUTFILES="/mnt/scratch/micall12/oscnext_official/1?0000/oscNext_*_level7_v02.00_pass2.*.zst"
 #INPUTFILES="/mnt/scratch/micall12/training_files/i3_files/oscNext_genie_level6_flercnn_pass2.1?0000.*i3.zst"
 FILEPATH=/mnt/home/micall12/LowEnergyNeuralNetwork/make_jobs/i3_test
 LOG_FOLDER=$FILEPATH/logs
-JOB_FOLDER=$FILEPATH/slurm
+JOB_FOLDER=$FILEPATH/slurm/160000_l6
 #OUTDIR=/mnt/scratch/micall12/training_files/i3_files/
-OUTDIR=/mnt/scratch/micall12/training_files/i3_files/muontest_356k/
+OUTDIR=/mnt/scratch/micall12/training_files/i3_files/
 
 #Settings for test
-VARIABLE="energy"
-MODEL_NAME=energy_FLERCNN
-MODEL_NAME2=PID_FLERCNN
-MODEL_NAME3=zenith_FLERCNN
-MODEL_NAME4=Vertex_XYZ_FLERCNN
-MODEL_NAME5="../../../../../mnt/home/micall12/LowEnergyNeuralNetwork/output_plots/MuonClassification_level6_flercnn_pass2_356843events//MuonClassification_level6_flercnn_pass2_356843events_30epochs_model"
 
 [ ! -d $LOG_FOLDER ] && mkdir $LOG_FOLDER
 [ ! -d $JOB_FOLDER ] && mkdir $JOB_FOLDER
@@ -34,11 +29,6 @@ do
     sed -e "s|@@file@@|${file}|g" \
         -e "s|@@log@@|${LOG_FOLDER}/${name}.log|g" \
         -e "s|@@outdir@@|${OUTDIR}|g" \
-        -e "s|@@model_name@@|${MODEL_NAME}|g" \
-        -e "s|@@model_name2@@|${MODEL_NAME2}|g" \
-        -e "s|@@model_name3@@|${MODEL_NAME3}|g" \
-        -e "s|@@model_name4@@|${MODEL_NAME4}|g" \
-        -e "s|@@model_name5@@|${MODEL_NAME5}|g" \
         < job_template.sb > $JOB_FOLDER/${name}.sb
     let COUNT=$COUNT+1
 done

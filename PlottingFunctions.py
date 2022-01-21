@@ -265,7 +265,7 @@ def plot_distributions_CCNC(truth_all_labels,truth,reco,save=False,savefolder=No
     if not notebook:
         plt.close()
 
-def plot_distributions(truth,reco=None,save=False,savefolder=None,old_reco=None,weights=None,variable="Energy",units="(GeV)",reco_name="Retro", minval=None, maxval=None,bins=100,cnn_name="CNN",ylog=False,xlog=False,old_reco_weights=None,title=None,xline=None,xline_label=None,flavor=None,sample=None,notebook=False):
+def plot_distributions(truth,reco=None,save=False,savefolder=None,old_reco=None,weights=None,variable="Energy",units="(GeV)",reco_name="Retro", minval=None, maxval=None,bins=100,cnn_name="CNN",ylog=False,xlog=False,old_reco_weights=None,title=None,xline=None,xline_label=None,flavor=None,sample=None,notebook=False,true_name="Truth"):
     """
     Plot testing set distribution
     Recieves:
@@ -333,9 +333,9 @@ def plot_distributions(truth,reco=None,save=False,savefolder=None,old_reco=None,
         number_bins = bins
         bins = 10**numpy.linspace(logmin, numpy.log10(maxval),number_bins)
         plt.xscale('log')
-    plt.hist(truth, bins=bins,color='g',alpha=0.5,range=[minval,maxval],weights=weights,label="Truth");
+    plt.hist(truth, bins=bins,color='g',alpha=0.5,range=[minval,maxval],weights=weights,label=true_name);
     maskT = numpy.logical_and(truth > minval, truth < maxval)
-    print("Truth Total: %i, Events in Plot: %i, Overflow: %i"%(len(truth),sum(maskT),len(truth)-sum(maskT)))
+    print("%s Total: %i, Events in Plot: %i, Overflow: %i"%(true_name,len(truth),sum(maskT),len(truth)-sum(maskT)))
     if weights is not None:
         print("WEIGHTED Truth Total: %.2f, Events in Plot: %.2f, Overflow: %.2f"%(sum(weights)*weights_factor,sum(weights[maskT])*weights_factor,(sum(weights)-sum(weights[maskT]))*weights_factor))
         plt.ylabel("weighted event count")
@@ -518,7 +518,7 @@ def plot_2D_prediction(truth, nn_reco, \
 
     reco_name = reco_name.replace(" ","")
     variable = variable.replace(" ","")
-    variable_type = variable_type.replace(" ","")
+    variable_type = str(variable_type).replace(" ","")
     nocut_name = ""
     if weights is not None:
         nocut_name="Weighted"
@@ -1090,7 +1090,8 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
                        xvariable="Energy",xunits="(GeV)",notebook=False,
                        specific_bins = None,xline=None,xline_name="DeepCore",
                        epochs=None,reco_name="Retro",cnn_name="CNN",
-                       legend="upper center",add_contour=False):
+                       legend="upper center",add_contour=False,
+                       print_bins=False,variable_type="True"):
     """Plots different variable slices vs each other (systematic set arrays)
     Receives:
         truth= array with truth labels for this one variable
@@ -1186,6 +1187,8 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
         err2_from_reco = numpy.zeros(len(variable_centers))
         err2_to_reco   = numpy.zeros(len(variable_centers))
 
+    evt_per_bin = []
+    evt_per_bin2 = []
     for i in range(len(variable_ranges)-1):
         var_from = variable_ranges[i]
         var_to   = variable_ranges[i+1]
@@ -1206,9 +1209,13 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
                 x_axis_array2 = energy_truth2
                 
         cut = (x_axis_array >= var_from) & (x_axis_array < var_to)
+        if print_bins:
+            evt_per_bin.append(sum(cut))
         #print("Events in ", var_from, " to ", var_to, sum(cut))
         if old_reco is not None:
             cut2 = (x_axis_array2 >= var_from) & (x_axis_array2 < var_to)
+            if print_bins:
+                evt_per_bin2.append(sum(cut2))
             #print("Events in ", var_from, " to ", var_to, sum(cut2))
 
         if weights is not None:
@@ -1280,7 +1287,7 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
         #cmap = plt.get_cmap('Oranges')
         #rcolors = cmap(numpy.linspace(0, 1, 2 + 2))[2:]
         #rcolor=rcolors[0] 
-        rcolor=['darkorange','orange','moccasin']
+        rcolor=['darkorange','darkorange','moccasin']
         ax = plt.gca()
         if old_reco is not None:
             if add_contour:
@@ -1294,8 +1301,8 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
         if add_contour:
             ax.fill_between(variable_centers,medians, err2_from,color=color[2], alpha=alpha_extra,linestyle=':',linewidth=2)
             ax.fill_between(variable_centers,medians, err2_to, color=color[2], alpha=alpha_extra,linestyle=':',linewidth=2, label=cnn_name + ' 95%')
-        ax.fill_between(variable_centers,medians, err_from,color=color[1], alpha=alpha,linestyle='--',linewidth=2)
-        ax.fill_between(variable_centers,medians, err_to, color=color[1], alpha=alpha,linestyle='--',linewidth=2,label=cnn_name + ' 68%')
+        ax.fill_between(variable_centers,medians, err_from,color=color[1], alpha=0.3,linestyle='--',linewidth=2)
+        ax.fill_between(variable_centers,medians, err_to, color=color[1], alpha=0.3,linestyle='--',linewidth=2,label=cnn_name + ' 68%')
         ax.plot(variable_centers, medians,linestyle='-',label="%s median"%(cnn_name), color=color[0], linewidth=lwid)
         if xline is not None:
             if type(xline) is list:
@@ -1312,13 +1319,18 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
     elif energy_truth is not None:
         plt.xlabel("%s %s"%(xvariable,units),fontsize=20)
     else:
-        plt.xlabel("True %s %s"%(variable,units),fontsize=20)
+        plt.xlabel("%s %s %s"%(variable_type,variable,units),fontsize=20)
     if use_fraction:
         plt.ylabel(r'Fractional Resolution: $\frac{reconstruction - truth}{truth}$',fontsize=20)
     else:
          plt.ylabel("Resolution: \n reconstruction - truth %s"%units,fontsize=20)
     if xlog:
         plt.xscale('log')
+
+    if print_bins:
+        print(evt_per_bin)
+        if old_reco is not None:
+            print(evt_per_bin2)
 
     #if epochs:
     #    title += " at %i Epochs"%epochs

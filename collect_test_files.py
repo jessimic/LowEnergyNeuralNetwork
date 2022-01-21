@@ -139,6 +139,7 @@ for a_file in file_names:
             Y_test_IC_full = X_test_IC
             reco_test_full = reco_test
             weights_test_full = weights_test
+
     else:
         f = h5py.File(a_file, 'r')
         Y_test = f['Y_test'][:]
