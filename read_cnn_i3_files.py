@@ -142,9 +142,8 @@ def read_i3_files(filenames_list, variable_list,save_cnn_input=False,sim_type=No
                     total_daughter_energy += particle.energy
                     em_equiv_daughter_energy += particle.energy*EM_equivalent_scale
                 daughter_energy = frame["I3MCTree"][1].energy
-                daughter_id = frame["I3MCTree"][1].type
 
-                output_labels.append( np.array([ float(nu_energy), float(nu_zenith), float(nu_azimuth), float(nu_time), float(nu_x), float(nu_y), float(nu_z), float(track_length), float(isTrack), float(neutrino_type), float(particle_type), float(isCC), float(nu_zenith), float(total_daughter_energy), float(em_equiv_daughter_energy), float(daughter_energy), str(daughter_id) ]) )
+                output_labels.append( np.array([ float(nu_energy), float(nu_zenith), float(nu_azimuth), float(nu_time), float(nu_x), float(nu_y), float(nu_z), float(track_length), float(isTrack), float(neutrino_type), float(particle_type), float(isCC), float(nu_zenith), float(total_daughter_energy), float(em_equiv_daughter_energy), float(daughter_energy) ]) )
 
                 #Retro Reco
                 try:
@@ -264,7 +263,7 @@ def read_i3_files(filenames_list, variable_list,save_cnn_input=False,sim_type=No
             print("Progress Percent: %i"%(count/max_files*100))
 
     if output_cnn is None:
-        output_cnn.append(np.nan)
+        output_cnn.append(0)
         print("DID NOT SAVE ANY CNN VALUES!!")
     output_cnn=np.asarray(output_cnn,dtype=float)
     output_labels=np.asarray(output_labels)
