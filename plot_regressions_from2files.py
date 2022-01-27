@@ -50,24 +50,24 @@ cut1['emin'] = 5
 cut1['emax'] = 100
 cut1['mu'] = 0.01
 cut1['nDOM'] = 7
-numu_files1 = 391
-nue_files1 = 91
-muon_files1 = 1
-nutau_files1 = 187
+numu_files1 = 1518 #391
+nue_files1 = 602 #91
+muon_files1 = 19391 #1
+nutau_files1 = 334 #187
 
 cut2 = {}
-cut2['r'] = 165 #300
-cut2['zmin'] = -495 #-500
-cut2['zmax'] = -225 #-200
+cut2['r'] = 300
+cut2['zmin'] = -500
+cut2['zmax'] = -200
 cut2['coszen'] = 0.3
 cut2['emin'] = 5
-cut2['emax'] = 100 #300
+cut2['emax'] = 300
 cut2['mu'] = 0.01
 cut2['nDOM'] = 7
-numu_files2 = 391
-nue_files2 = 91
-muon_files2 = 1
-nutau_files2 = 187
+numu_files2 = 1518 #391
+nue_files2 = 602 #91
+muon_files2 = 19991 #1
+nutau_files2 = 334 #187
 
 #IMPORT FILE 1
 if i3:
@@ -130,6 +130,7 @@ else:
 true1 = {}
 true1['energy'] = np.array(truth1[:,0])
 true1['em_equiv_energy'] = np.array(truth1[:,14])
+true1['total_daughter_energy'] = np.array(truth1[:,13])
 true1['x'] = np.array(truth1[:,4])
 true1['y'] = np.array(truth1[:,5])
 true1['z'] = np.array(truth1[:,6])
@@ -151,6 +152,10 @@ true1['x_end'] = true1['x'] + true1['track_length']*n_x
 true1['y_end'] = true1['y'] + true1['track_length']*n_y
 true1['z_end'] = true1['z'] + true1['track_length']*n_z
 true1['r_end'] = np.sqrt( (true1['x_end'] - x1_origin)**2 + (true1['y_end'] - y1_origin)**2 )
+try:
+    true1['daughter_energy'] =  np.array(truth1[:,15])
+except:
+    true1['daughter_energy'] = None
 
 #Reconstructed values (CNN)
 reco1 = {}
@@ -216,7 +221,29 @@ if weights1 is not None:
         weights1[true1['isMuon']] = weights1[true1['isMuon']]/muon_files1
     if sum(nutau_mask_test1) > 1:
         weights1[true1['isNuTau']] = weights1[true1['isNuTau']]/nutau_files1
+    true1['run_id'] = np.array(raw_weights1[:,0],dtype=int)
+    true1['subrun_id'] = np.array(raw_weights1[:,1],dtype=int)
+    true1['event_id'] = np.array(raw_weights1[:,2],dtype=int)
+    together1 = [str(i) + str(j) + str(k) for i, j, k in zip(true1['run_id'], true1['subrun_id'], true1['event_id'])]
+    true1['full_ID'] = np.array(together1,dtype=int )
 weights_squared1 = weights1*weights1
+
+#Deposited Energy
+if true1['daughter_energy'] is not None:
+    true1['deposited_energy'] = true1['energy']
+    
+    CC_not_tau = np.logical_and(np.logical_or(true1['isNuMu'], true1['isNuE']), true1['isCC'])
+    CC_tau = np.logical_and(true1['isCC'], true1['isNuTau'])
+    true1['isNC'] = np.logical_not(true1['isCC'])
+
+    #NC
+    true1['deposited_energy'][true1['isNC']] = true1['energy'][true1['isNC']] - true1['daughter_energy'][true1['isNC']]
+    #Tau CC
+    true1['deposited_energy'][CC_tau] = true1['energy'][CC_tau] - (true1['daughter_energy'][CC_tau]*0.5)
+    #NuMu CC and NuE CC
+    true1['deposited_energy'][CC_not_tau] = true1['total_daughter_energy'][CC_not_tau]
+else:
+    true1['deposited_energy'] = None
 
 #Additional info
 more_info1 = {}
@@ -230,19 +257,18 @@ if info1 is not None:
     more_info1['n_top15'] = info1[:,6]
     more_info1['n_outer'] = info1[:,7]
     more_info1['prob_nu2'] = info1[:,8]
-    more_info1['hits8'] = info1[:,9]
+    more_info1['total_hits'] = info1[:,9]
 
 #INFO masks
 if info1 is not None:
-    mask1['Hits8'] = more_info1['hits8'] == 1
+    mask1['Hits8'] = more_info1['total_hits'] >= 8
     mask1['oscNext_Nu'] = more_info1['prob_nu'] > 0.4
     mask1['Noise'] = more_info1['noise_class'] > 0.95
     mask1['nhit'] = more_info1['nhit_doms'] > 2.5
     mask1['ntop']= more_info1['n_top15'] < 2.5
     mask1['nouter'] = more_info1['n_outer'] < 7.5
-    mask1['Hits'] = np.logical_and(np.logical_and(mask1['nhit'], mask1['ntop']), mask1['nouter'])
-    mask1['Class'] = np.logical_and(mask1['oscNext_Nu'],mask1['Noise'])
-    mask1['MC'] = np.logical_and(mask1['Hits'],mask1['Class'])
+    mask1['CoinHits'] = np.logical_and(np.logical_and(mask1['nhit'], mask1['ntop']), mask1['nouter'])
+    mask1['MC'] = np.logical_and(np.logical_and(mask1['CoinHits'],mask1['Noise']),mask1['DOM'])
 
     #Combined Masks
     mask1['Analysis'] = np.logical_and(mask1['MC'], mask1['Reco'])
@@ -270,6 +296,7 @@ if input_file2 is not None:
     true2 = {}
     true2['energy'] = np.array(truth2[:,0])
     true2['em_equiv_energy'] = np.array(truth2[:,14])
+    true2['total_daughter_energy'] = np.array(truth2[:,13])
     true2['x'] = np.array(truth2[:,4])
     true2['y'] = np.array(truth2[:,5])
     true2['z'] = np.array(truth2[:,6])
@@ -281,6 +308,10 @@ if input_file2 is not None:
     true2['PID'] = truth2[:,9]
     true2['zenith'] = np.array(truth2[:,12])
     true2['coszenith'] = np.cos(np.array(truth2[:,12]))
+    try:
+        true2['daughter_energy'] =  np.array(truth2[:,15])
+    except:
+        true2['daughter_energy'] = None
 
     reco2 = {}
     mask2 = {}
@@ -338,10 +369,33 @@ if input_file2 is not None:
         if sum(true2['isNuE']) > 1:
             weights2[true2['isNuE']] = weights2[true2['isNuE']]/nue_files2
         if sum(true2['isMuon']) > 1:
-            weights2[true2['isMuon']] = weights2[true['isMuon']]/muon_files2
+            weights2[true2['isMuon']] = weights2[true2['isMuon']]/muon_files2
         if sum(nutau_mask_test1) > 1:
             weights2[true2['isNuTau']] = weights2[true2['isNuTau']]/nutau_files2
+        true2['run_id'] = np.array(raw_weights2[:,0],dtype=int)
+        true2['subrun_id'] = np.array(raw_weights2[:,1],dtype=int)
+        true2['event_id'] = np.array(raw_weights2[:,2],dtype=int)
+        together2 = [str(i) + str(j) + str(k) for i, j, k in zip(true2['run_id'], true2['subrun_id'], true2['event_id'])]
+        true2['full_ID'] = np.array(together2,dtype=int )
+
     weights_squared2 = weights2*weights2
+   
+   #Deposited Energy
+    if true2['daughter_energy'] is not None:
+        true2['deposited_energy'] = true2['energy']
+        
+        CC_not_tau = np.logical_and(np.logical_or(true2['isNuMu'], true2['isNuE']), true2['isCC'])
+        CC_tau = np.logical_and(true2['isCC'], true2['isNuTau'])
+        true2['isNC'] = np.logical_not(true2['isCC'])
+
+        #NC
+        true2['deposited_energy'][true2['isNC']] = true2['energy'][true2['isNC']] - true2['daughter_energy'][true2['isNC']]
+        #Tau CC
+        true2['deposited_energy'][CC_tau] = true2['energy'][CC_tau] - (true2['daughter_energy'][CC_tau]*0.5)
+        #NuMu CC and NuE CC
+        true2['deposited_energy'][CC_not_tau] = true2['total_daughter_energy'][CC_not_tau]
+    else:
+        true2['deposited_energy'] = None
 
 #Additional info
     more_info2 = {}
@@ -355,22 +409,30 @@ if input_file2 is not None:
         more_info2['n_top15'] = info2[:,6]
         more_info2['n_outer'] = info2[:,7]
         more_info2['prob_nu2'] = info2[:,8]
-        more_info2['hits8'] = info2[:,9]
+        more_info2['total_hits'] = info2[:,9]
 
     #INFO masks
     if info2 is not None:
-        mask2['Hits8'] = more_info2['hits8'] == 1
+        mask2['Hits8'] = more_info2['total_hits'] >= 8
+        print("Hits8 failure cuts:", sum(mask2['Hits8']/len(mask2['Hits8'])))
         mask2['oscNext_Nu'] = more_info2['prob_nu'] > 0.4
         mask2['Noise'] = more_info2['noise_class'] > 0.95
         mask2['nhit'] = more_info2['nhit_doms'] > 2.5
         mask2['ntop'] = more_info2['n_top15'] < 2.5
         mask2['nouter'] = more_info2['n_outer'] < 7.5
-        mask2['Hits'] = np.logical_and(np.logical_and(mask2['nhit'], mask2['ntop']), mask2['nouter'])
-        mask2['Class'] = np.logical_and(mask2['oscNext_Nu'],mask2['Noise'])
-        mask2['MC'] = np.logical_and(mask2['Hits'],mask2['Class'])
+        mask2['CoinHits'] = np.logical_and(np.logical_and(mask2['nhit'], mask2['ntop']), mask2['nouter'])
         if not compare_cnn:
             mask2['ProbMu'] = mask2['oscNext_Nu']
             mask2['Time'] = reco2['time'] < 14500
+            mask2['NotNAN'] = np.logical_not(reco2['nan'])
+            mask2['RetroIterations'] = reco2['iterations'] < 10000
+            mask2['RetroPass'] = np.logical_and(mask2['RetroIterations'], mask2['NotNAN'])
+            print("Retro failure cuts:", sum(mask2['RetroPass']/len(mask2['RetroPass'])))
+            mask2['Class'] = np.logical_and(mask2['oscNext_Nu'],mask2['Noise'])
+            mask2['MC'] = np.logical_and(np.logical_and(mask2['CoinHits'],mask2['Class']), mask2['RetroPass'])
+        else:
+            mask2['Class'] = mask2['Noise']
+            mask2['MC'] = np.logical_and(np.logical_and(mask2['CoinHits'],mask2['Class']),mask2['DOM'])
 
     #RECO2 MASKS
     mask2['Energy'] = np.logical_and(reco2['energy'] > cut2['emin'], reco2['energy'] < cut2['emax'])
@@ -402,37 +464,6 @@ save=True
 if save ==True:
     print("Saving to %s"%save_folder_name)
 save_base_name = save_folder_name
-path=save_folder_name
-
-variable_names = ['energy', 'coszenith', 'z', 'r', 'x_end', 'y_end', 'z_end', 'r_end', 'x', 'y']
-############## CHANGE THESE LINES ##############
-variable_index = 0 #chose variable from list above
-plot_confusion = False
-cut_or = False
-energy_type = "True" #"EM Equiv" #or True
-##################################################
-
-if flavor == "All":
-    flavor_key = flavor
-else:
-    flavor_key = "is%s"%flavor
-if sample =="CC" or sample == "NC":
-    select = "is%s"%sample
-else:
-    select = sample
-
-var_type="True" #labeling purposes
-if energy_type is "EM Equiv":
-    use_em = 'em_equiv_'
-    if variable_index == 0:
-        var_type="EM Equiv"
-else:
-    use_em = ''
-print("using flavor %s and sample %s and energy type %s"%(flavor, sample,var_type))
-
-check1 = np.logical_and(np.logical_and(true1[flavor_key],true1[select]), mask1['Reco'])
-check1_add = np.logical_and(check1, mask1['DOM'])
-print(cut1['nDOM'],sum(weights1[check1_add])/sum(weights1[check1]))
 
 var_names = ["Energy", "Cosine Zenith", "Z Position", "Radius", "X End", "Y End", "Z End", "R End", "X Position", "Y Postition"]
 units = ["(GeV)", "", "(m)", "(m)", "(m)", "(m)", "(m)", "(m)", "(m)", ]
@@ -449,285 +480,381 @@ cut_maxs = [cut1['emax'], cut1['coszen'], cut1['zmax'], cut1['r'], None, None, c
 keynames = ['Energy', 'Zenith', 'Z', 'R', 'All', 'All', 'All', 'All', 'All', 'All', 'All']
 masknames = ['RecoNoEn', 'RecoNoZenith', 'RecoNoZ', 'RecoNoR', 'Reco', 'Reco', 'Reco', 'Reco', 'Reco', 'Reco']
 
-
-variable_name = variable_names[variable_index]
-minval = minvals[variable_index]
-maxval = maxvals[variable_index]
-bins = binss[variable_index]
-binned_frac = binned_fracs[variable_index]
-syst_bin = syst_bins[variable_index]
-plot_name = var_names[variable_index]
-plot_units = units[variable_index]
-res_range = res_ranges[variable_index]
-frac_res_range = frac_res_ranges[variable_index]
-cut_min = cut_mins[variable_index]
-cut_max = cut_maxs[variable_index]
-keyname = keynames[variable_index]
-maskname = masknames[variable_index]
-
-a_mask1 = np.logical_and(np.logical_and(np.logical_and(true1[flavor_key],true1[select]), mask1[maskname]), mask1['DOM'])
-variable_mask1 = np.logical_and(a_mask1,mask1[keyname])
-a_mask1 = variable_mask1
-if input_file2 is not None:
-    if compare_cnn:
-        a_mask2 = np.logical_and(np.logical_and(np.logical_and(true2[flavor_key],true2[select]), mask2[maskname]), mask2['DOM'])
-    else:
-        a_mask2 = np.logical_and(np.logical_and(true2[flavor_key],true2[select]), mask2[maskname])
-    variable_mask2 = np.logical_and(a_mask2,mask2[keyname])
-    a_mask2 = variable_mask2
-
 name1 = "CNN"
 name2 = "Retro"
 logmax = 10**1.5
 bins_log = 10**np.linspace(0,1.5,100)
 
-true1_value = true1[use_em + variable_name][a_mask1]
-reco1_value = reco1[variable_name][a_mask1]
-true1_value_res = true1[use_em + variable_name][variable_mask1]
-reco1_value_res = reco1[variable_name][variable_mask1]
-weights1_value = weights1[a_mask1]
-weights1_value_res = weights1[variable_mask1]
-true1_energy_res = true1[use_em + 'energy'][variable_mask1]
-if cut_min is not None:
-    if cut_max is not None:
-        if cut_or:
-            true1_binary = np.logical_or(true1[variable_name][a_mask1] > cut_min, true1[variable_name][a_mask1] < cut_max)
-            reco1_binary = np.logical_or(reco1[variable_name][a_mask1] > cut_min, reco1[variable_name][a_mask1] < cut_max)
-            print(variable_name, "Checking > ", cut_min, " OR < ", cut_max)
-        else:
-            true1_binary = np.logical_and(true1[variable_name][a_mask1] > cut_min, true1[variable_name][a_mask1] < cut_max)
-            reco1_binary = np.logical_and(reco1[variable_name][a_mask1] > cut_min, reco1[variable_name][a_mask1] < cut_max)
-            print(variable_name, "Checking > ", cut_min, " AND < ", cut_max)
-    else:
-        true1_binary = true1[variable_name][a_mask1] > cut_min
-        reco1_binary = reco1[variable_name][a_mask1] > cut_min
-        print(variable_name, "Checking > ", cut_min)
-else:
-    true1_binary = true1[variable_name][a_mask1] < cut_max
-    reco1_binary = reco1[variable_name][a_mask1] < cut_max
-    print(variable_name, "Checking < ", cut_max)
+variable_names = ['energy', 'coszenith', 'z', 'r', 'x_end', 'y_end', 'z_end', 'r_end', 'x', 'y']
+############## CHANGE THESE LINES ##############
+variable_index = 0 #chose variable from list above
+cut_or = False #use for ending cuts, want below min OR above max
+energy_type = "Deposited" #"EM Equiv" or Deposited or True
 
-print(true1_binary[:10],reco1_binary[:10])
-print(sum(weights1_value_res)/sum(weights1[true1['isCC']]))
-print(true1_value[:10], reco1_value[:10])
+print_rates = False
+make_distributions = False
+make_2d_hist = False
+make_2d_hist_vs_reco = False
+make_resolution = False
+make_bin_slice = True
+make_bin_slice_vs_reco = False
+make_confusion = False
+##################################################
 
+all_remaining1 = mask1['Analysis']
 if input_file2 is not None:
-    true2_value = true2[use_em + variable_name][a_mask2]
-    reco2_value = reco2[variable_name][a_mask2]
-    true2_value_res = true2[use_em + variable_name][variable_mask2]
-    reco2_value_res = reco2[variable_name][variable_mask2]
-    weights2_value = weights2[a_mask2]
-    weights2_value_res = weights2[variable_mask2]
-    true2_energy_res = true2[use_em + 'energy'][variable_mask2]
+    if compare_cnn:
+        all_remaining2 = np.logical_and(mask2['Analysis'])
+    else:
+        all_remaining2 = np.logical_and(mask2['Analysis'], mask2['RetroPass'])
+
+flavors = ["NuMu", "NuE", "NuTau", "Nu", "Muon", "Nu", "All"]
+selects = ["CC", "CC", "CC", "NC", "All", "All", "All"]
+
+if print_rates:
+    print("Flavor", "Type", "Num events (after)", "Rate (after)", "Fraction Of Sample")
+    for check_set in range(0,7):
+        
+        flavor = flavors[check_set]
+        sample = selects[check_set]
+        if flavor == "All":
+            flavor_key = flavor
+        else:
+            flavor_key = "is%s"%flavor
+        if sample =="CC" or sample == "NC":
+            select = "is%s"%sample
+        else:
+            select = sample
+        
+        sample_mask1 = np.logical_and(true1[flavor_key],true1[select])
+        final1 = np.logical_and(sample_mask1, mask1['Analysis'])
+        print("%s\t %s\t %i\t %.3e\t %.3f"%(flavor, sample, sum(final1), sum(weights1[final1]), sum(weights1[final1])/sum(weights1[mask1['Analysis']])))
+        
+        if input_file2 is not None:
+            sample_mask2 = np.logical_and(true2[flavor_key],true2[select])
+            final2 = np.logical_and(sample_mask2, mask2['Analysis'])
+            print("%s\t %s\t %i\t %.3e\t %.3f"%(flavor, sample, sum(final2), sum(weights2[final2]), sum(weights2[final2])/sum(weights2[mask2['Analysis']])))
+            
+            #Find shared events
+            shared_events = len(set(true1['full_ID'][final1]) & set(true2['full_ID'][final2]))
+            unique_set1 = len(true1['full_ID'][final1]) - shared_events
+            unique_set2 = len(true2['full_ID'][final2]) - shared_events
+            print("%s\t %s\t %i\t %i\t %i\t %.3f\t %.3f"%(flavor, sample, shared_events, unique_set1, unique_set2, unique_set1/(shared_events+unique_set1),  unique_set1/(shared_events+unique_set2)))
+        
+for check_set in range(0,5):
+    
+    flavor = flavors[check_set]
+    sample = selects[check_set]
+    if flavor == "All":
+        flavor_key = flavor
+    else:
+        flavor_key = "is%s"%flavor
+    if sample =="CC" or sample == "NC":
+        select = "is%s"%sample
+    else:
+        select = sample
+    
+    var_type="True" #labeling purposes
+    if energy_type is "EM Equiv":
+        use_em = 'em_equiv_'
+        if variable_index == 0:
+            var_type="EM Equiv"
+    if energy_type is "Deposited":
+        use_em = 'deposited_'
+        if variable_index == 0:
+            var_type="Deposited"
+    else:
+        use_em = ''
+    print("Plotting %s %s against %s energy"%(flavor, sample,var_type))
+
+    save_folder_name = save_base_name + "/%s%s_%s%s/"%(use_em,variable_names[variable_index],flavor,sample)
+    if os.path.isdir(save_folder_name) != True:
+        os.mkdir(save_folder_name)
+
+    variable_name = variable_names[variable_index]
+    minval = minvals[variable_index]
+    maxval = maxvals[variable_index]
+    bins = binss[variable_index]
+    binned_frac = binned_fracs[variable_index]
+    syst_bin = syst_bins[variable_index]
+    plot_name = var_names[variable_index]
+    plot_units = units[variable_index]
+    res_range = res_ranges[variable_index]
+    frac_res_range = frac_res_ranges[variable_index]
+    cut_min = cut_mins[variable_index]
+    cut_max = cut_maxs[variable_index]
+    keyname = keynames[variable_index]
+    maskname = masknames[variable_index]
+
+    sample_mask1 = np.logical_and(true1[flavor_key],true1[select])
+    full_mask1 = np.logical_and(sample_mask1, mask1['Analysis'])
+    minus_var_mask1 = np.logical_and(np.logical_and(sample_mask1, mask1['MC']), mask1[maskname])
+    if input_file2 is not None:
+        sample_mask2 = np.logical_and(true2[flavor_key],true2[select])
+        full_mask2 = np.logical_and(sample_mask2, mask2['Analysis'])
+        minus_var_mask2 = np.logical_and(np.logical_and(sample_mask2, mask2['MC']), mask2[maskname])
+
+
+    true1_value = true1[use_em + variable_name][minus_var_mask1]
+    reco1_value = reco1[variable_name][minus_var_mask1]
+    weights1_value = weights1[minus_var_mask1]
+    true1_value_fullAnalysis = true1[use_em + variable_name][full_mask1]
+    reco1_value_fullAnalysis = reco1[variable_name][full_mask1]
+    weights1_value_fullAnalysis = weights1[full_mask1]
+    true1_energy_fullAnalysis = true1[use_em + 'energy'][full_mask1]
     if cut_min is not None:
         if cut_max is not None:
-            true2_binary = np.logical_and(true2[variable_name][a_mask2] > cut_min, true2[variable_name][a_mask2] < cut_max)
-            reco2_binary = np.logical_and(reco2[variable_name][a_mask2] > cut_min, reco2[variable_name][a_mask2] < cut_max)
-            print(variable_name, "Checking > ", cut_min, " AND < ", cut_max)
+            if cut_or:
+                true1_binary = np.logical_or(true1[variable_name][minus_var_mask1] > cut_min, true1[variable_name][minus_var_mask1] < cut_max)
+                reco1_binary = np.logical_or(reco1[variable_name][minus_var_mask1] > cut_min, reco1[variable_name][minus_var_mask1] < cut_max)
+                print(variable_name, "Checking > ", cut_min, " OR < ", cut_max)
+            else:
+                true1_binary = np.logical_and(true1[variable_name][minus_var_mask1] > cut_min, true1[variable_name][minus_var_mask1] < cut_max)
+                reco1_binary = np.logical_and(reco1[variable_name][minus_var_mask1] > cut_min, reco1[variable_name][minus_var_mask1] < cut_max)
+                print(variable_name, "Checking > ", cut_min, " AND < ", cut_max)
         else:
-            true2_binary = true2[variable_name][a_mask2] > cut_min
-            reco2_binary = reco2[variable_name][a_mask2] > cut_min
+            true1_binary = true1[variable_name][minus_var_mask1] > cut_min
+            reco1_binary = reco1[variable_name][minus_var_mask1] > cut_min
             print(variable_name, "Checking > ", cut_min)
     else:
-        true2_binary = true2[variable_name][a_mask2] < cut_max
-        reco2_binary = reco2[variable_name][a_mask2] < cut_max
+        true1_binary = true1[variable_name][minus_var_mask1] < cut_max
+        reco1_binary = reco1[variable_name][minus_var_mask1] < cut_max
         print(variable_name, "Checking < ", cut_max)
-    print(sum(weights2_value_res)/sum(weights2[true2['isCC']]))
-    print(true2_value[:10], reco2_value[:10])
-else:
-    true2_value = None 
-    reco2_value = None
-    true2_value_res = None
-    reco2_value_res = None
-    weights2_value = None
-    weights2_value_res = None
-    true2_energy = None
 
-"""
-plt.figure(figsize=(10,7))
-plt.hist(true1_value, color="green",label="true",
-         bins=bins_log,range=[minval,logmax],
-         weights=weights1_value,alpha=0.5)
-plt.hist(reco1_value, color="blue",label="CNN",
-         bins=bins_log,range=[minval,logmax],
-         weights=weights1_value,alpha=0.5)
-plt.xscale('log')
-plt.title("Energy Distribution Weighted for %s events"%len(true1_value),fontsize=25)
-plt.xlabel("Energy (GeV)",fontsize=20)
-plt.xticks(fontsize=15)
-plt.yticks(fontsize=15)
-plt.axvline(5,linewidth=3,linestyle="--",color='k',label="Cut at 5 GeV")
-plt.legend(loc='upper left',fontsize=15)
-plt.savefig("%s/%sLogEnergyDist_ZoomInLE.png"%(path,name1.replace(" ","")))
+    print(true1_binary[:10],reco1_binary[:10])
+    print(sum(weights1_value_fullAnalysis)/sum(weights1[true1['isCC']]))
+    print(true1_value[:10], reco1_value[:10])
 
-plt.figure(figsize=(10,7))
-plt.hist(true2_value, color="green",label="true",
-         bins=bins_log,range=[minval,logmax],
-         weights=weights2_value,alpha=0.5)
-plt.hist(reco2_value, color="blue",label="CNN",
-         bins=bins_log,range=[minval,logmax],
-         weights=weights2_value,alpha=0.5)
-plt.xscale('log')
-plt.title("Energy Distribution Weighted for %s events"%len(true2_value),fontsize=25)
-plt.xlabel("Energy (GeV)",fontsize=20)
-plt.xticks(fontsize=15)
-plt.yticks(fontsize=15)
-plt.axvline(5,linewidth=3,linestyle="--",color='k',label="Cut at 5 GeV")
-plt.legend(loc='upper left',fontsize=15)
-plt.savefig("%s/%sLogEnergyDist_ZoomInLE.png"%(path,name2.replace(" ","")))
-"""
-plot_distributions(true1_value, reco1_value,
-                    weights=weights1_value,
-                    save=save, savefolder=save_folder_name,
-                    cnn_name = name1, variable=plot_name, units= plot_units,
-                    minval=minval,maxval=maxval,bins=bins,true_name=energy_type)
-
-if input_file2 is not None:
-    plot_distributions(true2_value, old_reco=reco2_value,
-                    weights=weights2_value,
-                    save=save, savefolder=save_folder_name,
-                    reco_name = name2, variable=plot_name, units= plot_units,
-                    minval=minval,maxval=maxval,bins=bins,true_name=energy_type)
-
-switch = False
-plot_2D_prediction(true1_value, reco1_value,
-                    weights=weights1_value,\
-                    save=save, savefolder=save_folder_name,
-                    bins=bins, switch_axis=switch,
-                    variable=plot_name, units=plot_units, reco_name=name1,
-                    flavor=flavor,sample=sample,variable_type=energy_type)
-
-
-plot_2D_prediction(true1_value, reco1_value,
-                    weights=weights1_value,\
-                    save=save, savefolder=save_folder_name,
-                    bins=bins,switch_axis=switch,\
-                    minval=minval, maxval=maxval, axis_square=True,\
-                    variable=plot_name, units=plot_units, reco_name=name1,
-                    flavor=flavor,sample=sample,variable_type=energy_type)
-
-if input_file2 is not None:
-    plot_2D_prediction(true2_value, reco2_value,
-                    weights=weights2_value,
-                    save=save, savefolder=save_folder_name,
-                    bins=bins,switch_axis=switch,\
-                    variable=plot_name, units=plot_units, reco_name=name2,
-                    flavor=flavor,sample=sample,variable_type=energy_type)
-
-    plot_2D_prediction(true2_value, reco2_value,
-                    weights=weights2_value,
-                    save=save, savefolder=save_folder_name,
-                    bins=bins,switch_axis=switch,\
-                    minval=minval, maxval=maxval, axis_square=True,\
-                    variable=plot_name, units=plot_units, reco_name=name2,
-                    flavor=flavor,sample=sample,variable_type=energy_type)
-"""
-switch = True
-plot_2D_prediction(true1_value, reco1_value,
-                    weights=weights1_value,\
-                    save=save, savefolder=save_folder_name,
-                    bins=bins, switch_axis=switch,
-                    variable=plot_name, units=plot_units, reco_name=name1)
-
-
-plot_2D_prediction(true1_value, reco1_value,
-                    weights=weights1_value,\
-                    save=save, savefolder=save_folder_name,
-                    bins=bins,switch_axis=switch,\
-                    minval=minval, maxval=maxval,
-                    cut_truth=True, axis_square=True,\
-                    variable=plot_name, units=plot_units, reco_name=name1)
-
-if input_file2 is not None:
-    plot_2D_prediction(true2_value, reco2_value,
-                    weights=weights2_value,
-                    save=save, savefolder=save_folder_name,
-                    bins=bins,switch_axis=switch,\
-                    variable=plot_name, units=plot_units, reco_name=name2)
-    
-    plot_2D_prediction(true2_value, reco2_value,
-                    weights=weights2_value,
-                    save=save, savefolder=save_folder_name,
-                    bins=bins,switch_axis=switch,\
-                    minval=minval, maxval=maxval,
-                    cut_truth=True, axis_square=True,\
-                    variable=plot_name, units=plot_units, reco_name=name2)
-"""
-#Resolution
-if input_file2 is None:
-    use_old_reco = False
-else:
-    use_old_reco = True
-plot_single_resolution(true1_value_res, reco1_value_res, 
-                   weights=weights1_value_res,old_reco_weights=weights2_value_res,
-                   use_old_reco = use_old_reco, old_reco = reco2_value_res,
-                   old_reco_truth=true2_value_res,\
-                   minaxis=-res_range, maxaxis=res_range, bins=bins,\
-                   save=save, savefolder=save_folder_name,\
-                   variable=plot_name, units=plot_units, reco_name=name1,
-                   flavor=flavor,sample=sample)
-
-plot_single_resolution(true1_value_res, reco1_value_res,
-                    weights=weights1_value_res,
-                    old_reco_weights=weights2_value_res,\
-                    use_old_reco = use_old_reco, old_reco = reco2_value_res,
-                    old_reco_truth=true2_value_res,\
-                    minaxis=-frac_res_range, maxaxis=frac_res_range, 
-                    bins=bins, use_fraction=True,\
-                    save=save, savefolder=save_folder_name,\
-                    variable=plot_name, units=plot_units, reco_name=name1,
-                    flavor=flavor,sample=sample)
-
-#Bin Slices
-plot_bin_slices(true1_value_res, reco1_value_res, 
-                old_reco = reco2_value_res,old_reco_truth=true2_value_res,
-                weights=weights1_value_res, old_reco_weights=weights2_value_res,\
-                use_fraction = binned_frac, bins=syst_bin, 
-                min_val=minval, max_val=maxval,\
-                save=save, savefolder=save_folder_name,
-                variable=plot_name, units=plot_units, 
-                cnn_name=name1, reco_name=name2,variable_type=var_type,
-                add_contour=True, flavor=flavor,sample=sample)
-
-if variable_name is not 'energy':
-    plot_bin_slices(true1_value_res, reco1_value_res, 
-                energy_truth=true1_energy_res,
-                old_reco = reco2_value_res, old_reco_truth=true2_value_res,
-                reco_energy_truth = true2_energy_res,
-                weights=weights1_value_res, old_reco_weights=weights2_value_res,\
-                use_fraction = binned_frac, bins=syst_bin,
-                min_val=minvals[0], max_val=maxvals[0],\
-                save=save, savefolder=save_folder_name,
-                variable=plot_name, units=plot_units, 
-                cnn_name=name1, reco_name=name2,
-                energy_type=energy_type,
-                flavor=flavor,sample=sample)
-
-plot_bin_slices(true1_value, reco1_value, 
-                old_reco = reco2_value,old_reco_truth=true2_value,
-                weights=weights1_value, old_reco_weights=weights2_value,\
-                use_fraction = binned_frac, bins=syst_bin, 
-                min_val=minval, max_val=maxval,\
-                save=save, savefolder=save_folder_name,
-                variable=plot_name, units=plot_units, 
-                cnn_name=name1, reco_name=name2,variable_type=var_type,
-                vs_predict=True,flavor=flavor,sample=sample)
-
-if plot_confusion:
-    from PlottingFunctionsClassification import my_confusion_matrix
-
-    percent_save = my_confusion_matrix(true1_binary, reco1_binary, weights1_value,
-                    mask=None,title="%s %s Cut"%(name1,plot_name),
-                    label0="Outside Cut",label1="Inside Cut",
-                    save=save,save_folder_name=save_folder_name)
-    print("Reco1 Positive, True Positive: %.2f"%percent_save[2])
-    print("Reco1 Negative, True Negative: %.2f"%percent_save[1])
-    
     if input_file2 is not None:
-        percent_save2 = my_confusion_matrix(true2_binary, reco2_binary,
-                    weights2_value,ylabel="Retro Prediction",
-                    label0="Outside Cut",label1="Inside Cut",
-                    mask=None,title="%s %s Cut"%(name2,plot_name),
-                    save=save,save_folder_name=save_folder_name)
-        print("Reco2 Positive, True Positive: %.2f"%percent_save2[2])
-        print("Reco2 Negative, True Negative: %.2f"%percent_save2[1])
+        true2_value = true2[use_em + variable_name][minus_var_mask2]
+        reco2_value = reco2[variable_name][minus_var_mask2]
+        true2_value_fullAnalysis = true2[use_em + variable_name][full_mask2]
+        reco2_value_fullAnalysis = reco2[variable_name][full_mask2]
+        weights2_value = weights2[minus_var_mask2]
+        weights2_value_fullAnalysis = weights2[full_mask2]
+        true2_energy_fullAnalysis = true2[use_em + 'energy'][full_mask2]
+        if cut_min is not None:
+            if cut_max is not None:
+                true2_binary = np.logical_and(true2[variable_name][minus_var_mask2] > cut_min, true2[variable_name][minus_var_mask2] < cut_max)
+                reco2_binary = np.logical_and(reco2[variable_name][minus_var_mask2] > cut_min, reco2[variable_name][minus_var_mask2] < cut_max)
+                print(variable_name, "Checking > ", cut_min, " AND < ", cut_max)
+            else:
+                true2_binary = true2[variable_name][minus_var_mask2] > cut_min
+                reco2_binary = reco2[variable_name][minus_var_mask2] > cut_min
+                print(variable_name, "Checking > ", cut_min)
+        else:
+            true2_binary = true2[variable_name][minus_var_mask2] < cut_max
+            reco2_binary = reco2[variable_name][minus_var_mask2] < cut_max
+            print(variable_name, "Checking < ", cut_max)
+        print(sum(weights2_value_fullAnalysis)/sum(weights2[true2['isCC']]))
+        print(true2_value[:10], reco2_value[:10])
+    else:
+        true2_value = None 
+        reco2_value = None
+        true2_value_fullAnalysis = None
+        reco2_value_fullAnalysis = None
+        weights2_value = None
+        weights2_value_fullAnalysis = None
+        true2_energy = None
+
+    """
+    plt.figure(figsize=(10,7))
+    plt.hist(true1_value, color="green",label="true",
+             bins=bins_log,range=[minval,logmax],
+             weights=weights1_value,alpha=0.5)
+    plt.hist(reco1_value, color="blue",label="CNN",
+             bins=bins_log,range=[minval,logmax],
+             weights=weights1_value,alpha=0.5)
+    plt.xscale('log')
+    plt.title("Energy Distribution Weighted for %s events"%len(true1_value),fontsize=25)
+    plt.xlabel("Energy (GeV)",fontsize=20)
+    plt.xticks(fontsize=15)
+    plt.yticks(fontsize=15)
+    plt.axvline(5,linewidth=3,linestyle="--",color='k',label="Cut at 5 GeV")
+    plt.legend(loc='upper left',fontsize=15)
+    plt.savefig("%s/%sLogEnergyDist_ZoomInLE.png"%(save_folder_name,name1.replace(" ","")))
+
+    plt.figure(figsize=(10,7))
+    plt.hist(true2_value, color="green",label="true",
+             bins=bins_log,range=[minval,logmax],
+             weights=weights2_value,alpha=0.5)
+    plt.hist(reco2_value, color="blue",label="CNN",
+             bins=bins_log,range=[minval,logmax],
+             weights=weights2_value,alpha=0.5)
+    plt.xscale('log')
+    plt.title("Energy Distribution Weighted for %s events"%len(true2_value),fontsize=25)
+    plt.xlabel("Energy (GeV)",fontsize=20)
+    plt.xticks(fontsize=15)
+    plt.yticks(fontsize=15)
+    plt.axvline(5,linewidth=3,linestyle="--",color='k',label="Cut at 5 GeV")
+    plt.legend(loc='upper left',fontsize=15)
+    plt.savefig("%s/%sLogEnergyDist_ZoomInLE.png"%(save_folder_name,name2.replace(" ","")))
+    """
+
+    if make_distributions:
+        plot_distributions(true1_value, reco1_value,
+                        weights=weights1_value,
+                        save=save, savefolder=save_folder_name,
+                        cnn_name = name1, variable=plot_name, units= plot_units,
+                        minval=minval,maxval=maxval,bins=bins,true_name=energy_type)
+
+        if input_file2 is not None:
+            plot_distributions(true2_value, old_reco=reco2_value,
+                        weights=weights2_value,
+                        save=save, savefolder=save_folder_name,
+                        reco_name = name2, variable=plot_name, units= plot_units,
+                        minval=minval,maxval=maxval,bins=bins,true_name=energy_type)
+
+    if make_2d_hist:
+        switch = False
+        plot_2D_prediction(true1_value, reco1_value,
+                        weights=weights1_value,\
+                        save=save, savefolder=save_folder_name,
+                        bins=bins, switch_axis=switch,
+                        variable=plot_name, units=plot_units, reco_name=name1,
+                        flavor=flavor,sample=sample,variable_type=energy_type)
+
+
+        plot_2D_prediction(true1_value, reco1_value,
+                        weights=weights1_value,\
+                        save=save, savefolder=save_folder_name,
+                        bins=bins,switch_axis=switch,\
+                        minval=minval, maxval=maxval, axis_square=True,\
+                        variable=plot_name, units=plot_units, reco_name=name1,
+                        flavor=flavor,sample=sample,variable_type=energy_type)
+
+        if input_file2 is not None:
+            plot_2D_prediction(true2_value, reco2_value,
+                        weights=weights2_value,
+                        save=save, savefolder=save_folder_name,
+                        bins=bins,switch_axis=switch,\
+                        variable=plot_name, units=plot_units, reco_name=name2,
+                        flavor=flavor,sample=sample,variable_type=energy_type)
+
+            plot_2D_prediction(true2_value, reco2_value,
+                        weights=weights2_value,
+                        save=save, savefolder=save_folder_name,
+                        bins=bins,switch_axis=switch,\
+                        minval=minval, maxval=maxval, axis_square=True,\
+                        variable=plot_name, units=plot_units, reco_name=name2,
+                        flavor=flavor,sample=sample,variable_type=energy_type)
+
+    if make_2d_hist_vs_reco:
+        switch = True
+        plot_2D_prediction(true1_value, reco1_value,
+                        weights=weights1_value,\
+                        save=save, savefolder=save_folder_name,
+                        bins=bins, switch_axis=switch,
+                        variable=plot_name, units=plot_units, reco_name=name1)
+
+
+        plot_2D_prediction(true1_value, reco1_value,
+                        weights=weights1_value,\
+                        save=save, savefolder=save_folder_name,
+                        bins=bins,switch_axis=switch,\
+                        minval=minval, maxval=maxval,
+                        cut_truth=True, axis_square=True,\
+                        variable=plot_name, units=plot_units, reco_name=name1)
+
+        if input_file2 is not None:
+            plot_2D_prediction(true2_value, reco2_value,
+                        weights=weights2_value,
+                        save=save, savefolder=save_folder_name,
+                        bins=bins,switch_axis=switch,\
+                        variable=plot_name, units=plot_units, reco_name=name2)
+        
+            plot_2D_prediction(true2_value, reco2_value,
+                        weights=weights2_value,
+                        save=save, savefolder=save_folder_name,
+                        bins=bins,switch_axis=switch,\
+                        minval=minval, maxval=maxval,
+                        cut_truth=True, axis_square=True,\
+                        variable=plot_name, units=plot_units, reco_name=name2)
+    
+    if make_resolution:
+        #Resolution
+        if input_file2 is None:
+            use_old_reco = False
+        else:
+            use_old_reco = True
+        plot_single_resolution(true1_value_fullAnalysis, reco1_value_fullAnalysis, 
+                       weights=weights1_value_fullAnalysis,
+                       old_reco_weights=weights2_value_fullAnalysis,
+                       use_old_reco = use_old_reco,
+                       old_reco = reco2_value_fullAnalysis,
+                       old_reco_truth=true2_value_fullAnalysis,\
+                       minaxis=-res_range, maxaxis=res_range, bins=bins,\
+                       save=save, savefolder=save_folder_name,\
+                       variable=plot_name, units=plot_units, reco_name=name1,
+                       flavor=flavor,sample=sample)
+
+        plot_single_resolution(true1_value_fullAnalysis, reco1_value_fullAnalysis,
+                        weights=weights1_value_fullAnalysis,
+                        old_reco_weights=weights2_value_fullAnalysis,\
+                        use_old_reco = use_old_reco,
+                        old_reco = reco2_value_fullAnalysis,
+                        old_reco_truth=true2_value_fullAnalysis,\
+                        minaxis=-frac_res_range, maxaxis=frac_res_range, 
+                        bins=bins, use_fraction=True,\
+                        save=save, savefolder=save_folder_name,\
+                        variable=plot_name, units=plot_units, reco_name=name1,
+                        flavor=flavor,sample=sample)
+
+    if make_bin_slice:
+        #Bin Slices
+        plot_bin_slices(true1_value, reco1_value, 
+                    old_reco = reco2_value,
+                    old_reco_truth=true2_value,
+                    weights=weights1_value,
+                    old_reco_weights=weights2_value,\
+                    use_fraction = binned_frac, bins=syst_bin, 
+                    min_val=minval, max_val=maxval,\
+                    save=save, savefolder=save_folder_name,
+                    variable=plot_name, units=plot_units, 
+                    cnn_name=name1, reco_name=name2,variable_type=var_type,
+                    flavor=flavor,sample=sample,legend="upper right") #add_contour=True
+
+        plot_bin_slices(true1_value_fullAnalysis, reco1_value_fullAnalysis, 
+                    energy_truth=true1_energy_fullAnalysis,
+                    old_reco = reco2_value_fullAnalysis,
+                    old_reco_truth=true2_value_fullAnalysis,
+                    reco_energy_truth = true2_energy_fullAnalysis,
+                    weights=weights1_value_fullAnalysis,
+                    old_reco_weights=weights2_value_fullAnalysis,\
+                    use_fraction = binned_frac, bins=syst_bin,
+                    min_val=minvals[0], max_val=maxvals[0],\
+                    save=save, savefolder=save_folder_name,
+                    variable=plot_name, units=plot_units, 
+                    cnn_name=name1, reco_name=name2,
+                    variable_type=energy_type,
+                    flavor=flavor,sample=sample,legend="upper right")
+
+    if make_bin_slice_vs_reco:
+        plot_bin_slices(true1_value, reco1_value, 
+                    old_reco = reco2_value,old_reco_truth=true2_value,
+                    weights=weights1_value, old_reco_weights=weights2_value,\
+                    use_fraction = binned_frac, bins=syst_bin, 
+                    min_val=minval, max_val=maxval,\
+                    save=save, savefolder=save_folder_name,
+                    variable=plot_name, units=plot_units, 
+                    cnn_name=name1, reco_name=name2,variable_type=var_type,
+                    vs_predict=True,flavor=flavor,sample=sample)
+
+    if make_confusion:
+        from PlottingFunctionsClassification import my_confusion_matrix
+
+        percent_save = my_confusion_matrix(true1_binary, reco1_binary, weights1_value,
+                        mask=None,title="%s %s Cut"%(name1,plot_name),
+                        label0="Outside Cut",label1="Inside Cut",
+                        save=save,save_folder_name=save_folder_name)
+        print("Reco1 Positive, True Positive: %.2f"%percent_save[2])
+        print("Reco1 Negative, True Negative: %.2f"%percent_save[1])
+        
+        if input_file2 is not None:
+            percent_save2 = my_confusion_matrix(true2_binary, reco2_binary,
+                        weights2_value,ylabel="Retro Prediction",
+                        label0="Outside Cut",label1="Inside Cut",
+                        mask=None,title="%s %s Cut"%(name2,plot_name),
+                        save=save,save_folder_name=save_folder_name)
+            print("Reco2 Positive, True Positive: %.2f"%percent_save2[2])
+            print("Reco2 Negative, True Negative: %.2f"%percent_save2[1])

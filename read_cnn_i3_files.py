@@ -245,7 +245,7 @@ def read_i3_files(filenames_list, variable_list,save_cnn_input=False,sim_type=No
                     nDOMs_CNN = frame['FLERCNN_nDOM'].value
                 except:
                     nDOMs_CNN = 0
-                output_info.append( np.array([ float(coin_muon), float(prob_nu), float(true_ndoms), fit_success, float( noise_class), float(nhit_doms), float(n_top15), float(n_outer), float(prob_nu2), clean_pulses_8_or_more, float(HLC_vertex.x), float(HLC_vertex.y), float(HLC_vertex.z), int(nDOMs_CNN) ]))
+                output_info.append( np.array([ float(coin_muon), float(prob_nu), float(true_ndoms), fit_success, float( noise_class), float(nhit_doms), float(n_top15), float(n_outer), float(prob_nu2), count_cleaned_pulses, float(HLC_vertex.x), float(HLC_vertex.y), float(HLC_vertex.z), int(nDOMs_CNN) ]))
 
                 #Weights
                 if sim_type == "data":

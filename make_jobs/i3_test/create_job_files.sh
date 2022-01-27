@@ -6,13 +6,13 @@
 #INPUTFILES="/mnt/research/IceCube/jmicallef/official_oscnext/newGCD/1[2,4]8885/oscNext_genie_level7_v02.00_pass2.1[2,4]8885.00000?.i3.zst"
 #INPUTFILES="/mnt/research/IceCube/jmicallef/FLERCNN_i3_output/oscNext_genie_level7_v02.00_pass2.1?0000.00????_FLERCNN_class.i3.zst"
 #INPUTFILES="/mnt/research/IceCube/jmicallef/official_oscnext/level7/1[2,4]0000/oscNext_genie_level7_v02.00_pass2.1[2,4]0000.*.i3.zst"
-INPUTFILES="/mnt/scratch/micall12/oscnext_official/160000_flercnn/oscNext_genie_level6_flercnn_pass2.160000.000???.i3.zst"
+INPUTFILES="/mnt/scratch/micall12/oscnext_official/140004/oscNext_genie_level6_flercnn_pass2.140004.00????.i3.zst"
 #INPUTFILES="/mnt/scratch/micall12/oscnext_official/1?0000/oscNext_*_level6_flercnn_pass2.1?0000.*.i3.zst"
 #INPUTFILES="/mnt/scratch/micall12/oscnext_official/1?0000/oscNext_*_level7_v02.00_pass2.*.zst"
 #INPUTFILES="/mnt/scratch/micall12/training_files/i3_files/oscNext_genie_level6_flercnn_pass2.1?0000.*i3.zst"
 FILEPATH=/mnt/home/micall12/LowEnergyNeuralNetwork/make_jobs/i3_test
 LOG_FOLDER=$FILEPATH/logs
-JOB_FOLDER=$FILEPATH/slurm/160000_l6
+JOB_FOLDER=$FILEPATH/slurm/140004_l6
 #OUTDIR=/mnt/scratch/micall12/training_files/i3_files/
 OUTDIR=/mnt/scratch/micall12/training_files/i3_files/
 
@@ -29,7 +29,7 @@ do
     sed -e "s|@@file@@|${file}|g" \
         -e "s|@@log@@|${LOG_FOLDER}/${name}.log|g" \
         -e "s|@@outdir@@|${OUTDIR}|g" \
-        < job_template.sb > $JOB_FOLDER/${name}.sb
+        < job_template_cvmfs.sb > $JOB_FOLDER/${name}.sb
     let COUNT=$COUNT+1
 done
 echo $COUNT

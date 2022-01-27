@@ -35,6 +35,10 @@ font = {'family' : 'normal',
 
 matplotlib.rc('font', **font)
 
+#colorscale [dark blue, light blue, gray, yellow, orange, red]
+colorscale = ['#4575b4', '#91bfdb', '#999999', '#fee090', '#fc8d59', '#d73027']
+color_green = '#4daf4a'
+
 def get_RMS(resolution,weights=None):
     if weights is not None:
         import wquantiles as wq
@@ -247,8 +251,8 @@ def plot_distributions_CCNC(truth_all_labels,truth,reco,save=False,savefolder=No
 
     plt.figure(figsize=(10,7))
     plt.title("True Energy Distribution",fontsize=25)
-    plt.hist(truth[CC_mask], bins=100,color='b',alpha=0.5,label="CC");
-    plt.hist(truth[NC_mask], bins=100,color='g',alpha=0.5,label="NC");
+    plt.hist(truth[CC_mask], bins=100,color=colorscale[0],alpha=0.5,label="CC");
+    plt.hist(truth[NC_mask], bins=100,color=color_green,alpha=0.5,label="NC");
     plt.xlabel("Energy (GeV)",fontsize=20)
     plt.legend(fontsize=10)
     if save:
@@ -256,8 +260,8 @@ def plot_distributions_CCNC(truth_all_labels,truth,reco,save=False,savefolder=No
 
     plt.figure(figsize=(10,7))
     plt.title("NN Energy Distribution",fontsize=25)
-    plt.hist(reco[CC_mask], bins=100,color='b', alpha=0.5, label="CC");
-    plt.hist(reco[NC_mask], bins=100,color='g', alpha=0.5, label="NC");
+    plt.hist(reco[CC_mask], bins=100,color=colorscale[0], alpha=0.5, label="CC");
+    plt.hist(reco[NC_mask], bins=100,color=color_green, alpha=0.5, label="NC");
     plt.xlabel("Energy (GeV)",fontsize=20)
     plt.legend(fontsize=10)
     if save:
@@ -333,7 +337,7 @@ def plot_distributions(truth,reco=None,save=False,savefolder=None,old_reco=None,
         number_bins = bins
         bins = 10**numpy.linspace(logmin, numpy.log10(maxval),number_bins)
         plt.xscale('log')
-    plt.hist(truth, bins=bins,color='g',alpha=0.5,range=[minval,maxval],weights=weights,label=true_name);
+    plt.hist(truth, bins=bins,color=color_green,alpha=0.5,range=[minval,maxval],weights=weights,label=true_name);
     maskT = numpy.logical_and(truth > minval, truth < maxval)
     print("%s Total: %i, Events in Plot: %i, Overflow: %i"%(true_name,len(truth),sum(maskT),len(truth)-sum(maskT)))
     if weights is not None:
@@ -344,14 +348,14 @@ def plot_distributions(truth,reco=None,save=False,savefolder=None,old_reco=None,
     outname += "T"
     
     if reco is not None:
-        plt.hist(reco, bins=bins,color='b', alpha=0.5,range=[minval,maxval],weights=weights,label=cnn_name);
+        plt.hist(reco, bins=bins,color=colorscale[0], alpha=0.5,range=[minval,maxval],weights=weights,label=cnn_name);
         outname += "R"
         maskR = numpy.logical_and(reco > minval, reco < maxval)
         print("Reco Total: %i, Events in Plot: %i, Overflow: %i"%(len(reco),sum(maskR),len(reco)-sum(maskR)))
         if weights is not None:
             print("WEIGHTED Reco Total: %.2f, Events in Plot: %.2f, Overflow: %.2f"%(sum(weights)*weights_factor,sum(weights[maskR])*weights_factor,(sum(weights)-sum(weights[maskR]))*weights_factor))
     if old_reco is not None:
-        plt.hist(old_reco, bins=bins,color='orange', alpha=0.5,range=[minval,maxval],weights=old_reco_weights,label=reco_name);
+        plt.hist(old_reco, bins=bins,color=colorscale[-1], alpha=0.5,range=[minval,maxval],weights=old_reco_weights,label=reco_name);
         outname += "OR"
         maskOR = numpy.logical_and(old_reco > minval, old_reco < maxval)
         print("Old Reco Total: %i, Events in Plot: %i, Overflow: %i"%(len(old_reco),sum(maskOR),len(old_reco)-sum(maskOR)))
@@ -1283,11 +1287,11 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
         #cmap = plt.get_cmap('Blues')
         #colors = cmap(numpy.linspace(0, 1, 2 + 2))[2:]
         #color=colors[0]
-        color=['mediumblue','cornflowerblue','lightsteelblue']
+        color= colorscale #['mediumblue','cornflowerblue','lightsteelblue']
         #cmap = plt.get_cmap('Oranges')
         #rcolors = cmap(numpy.linspace(0, 1, 2 + 2))[2:]
         #rcolor=rcolors[0] 
-        rcolor=['darkorange','darkorange','moccasin']
+        rcolor= [colorscale[-1], colorscale[-2], colorscale[-3]] #['darkorange','darkorange','moccasin']
         ax = plt.gca()
         if old_reco is not None:
             if add_contour:
@@ -1301,8 +1305,8 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
         if add_contour:
             ax.fill_between(variable_centers,medians, err2_from,color=color[2], alpha=alpha_extra,linestyle=':',linewidth=2)
             ax.fill_between(variable_centers,medians, err2_to, color=color[2], alpha=alpha_extra,linestyle=':',linewidth=2, label=cnn_name + ' 95%')
-        ax.fill_between(variable_centers,medians, err_from,color=color[1], alpha=0.3,linestyle='--',linewidth=2)
-        ax.fill_between(variable_centers,medians, err_to, color=color[1], alpha=0.3,linestyle='--',linewidth=2,label=cnn_name + ' 68%')
+        ax.fill_between(variable_centers,medians, err_from,color=color[1], alpha=alpha,linestyle='--',linewidth=2)
+        ax.fill_between(variable_centers,medians, err_to, color=color[1], alpha=alpha,linestyle='--',linewidth=2,label=cnn_name + ' 68%')
         ax.plot(variable_centers, medians,linestyle='-',label="%s median"%(cnn_name), color=color[0], linewidth=lwid)
         if xline is not None:
             if type(xline) is list:
@@ -1310,7 +1314,10 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
                     plt.axvline(x_val,linewidth=3,color='k',linestyle="dashed",label="%s"%xline_name)
             else:
                 plt.axvline(xline,linewidth=3,color='k',linestyle="dashed",label="%s"%xline_name)
-        plt.legend(loc=legend,bbox_to_anchor=(1.3, 0.7))
+        if legend == "outside":
+            plt.legend(loc="upper center",bbox_to_anchor=(1.3, 0.7))
+        else:
+            plt.legend(loc=legend)
     plt.xlim(min_val,max_val)
     if ylim is not None:
         plt.ylim(ylim)

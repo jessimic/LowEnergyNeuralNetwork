@@ -1,0 +1,18 @@
+#!/bin/bash --login
+
+########### SBATCH Lines for Resource Request ##########
+
+#SBATCH --time=00:19:00             # limit of wall clock time - how long the job will run (same as -t)
+#SBATCH --nodes=1                 # number of different nodes - could be an exact number or a range of nodes (same as -N)
+#SBATCH --mem=4G            # memory required per allocated CPU (or core) - amount of memory (in bytes)
+#SBATCH --gres=gpu:1
+#SBATCH --job-name i3_test      # you can give your job a name for easier identification (same as -J)
+#SBATCH --output @@log@@
+
+########### Command Lines to Run ##################
+
+#OUTDIR=/mnt/research/IceCube/jmicallef/FLERCNN_i3_output/
+
+singularity exec -B /cvmfs/icecube.opensciencegrid.org:/cvmfs/icecube.opensciencegrid.org -B /mnt/scratch/micall12:/mnt/scratch/micall12 --nv /cvmfs/icecube.opensciencegrid.org/users/jmicallef/FLERCNN_evaluate/icetray_stable-tensorflow.sif sh -c '/usr/local/icetray/env-shell.sh python /cvmfs/icecube.opensciencegrid.org/users/jmicallef/FLERCNN_evaluate/CNN_Test_i3.py -i @@file@@ -o  @@outdir@@ --model_dir /cvmfs/icecube.opensciencegrid.org/users/jmicallef/FLERCNN_evaluate/ --modelname_list energy_FLERCNN PID_FLERCNN zenith_FLERCNN Vertex_XYZ_FLERCNN  muon_FLERCNN nDOM --variable_list energy class zenith vertex muon nDOM --factor_list 100 1 1 1 1 1 --cleaned True'
+
+exit $?
