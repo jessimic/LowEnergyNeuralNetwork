@@ -1,0 +1,10 @@
+VARS ALL_NODES INFILE_DIR="/data/ana/LE/oscNext/pass2/genie/level3/149999/"
+
+CONFIG dagman.config
+
+JOB file1 job_single_file.sub
+VARS file1 FILENAME="oscNext_genie_level3_v02.00_pass2.149999.000001.i3.zst"
+
+JOB file2 job_single_file.sub
+VARS file2 FILENAME="oscNext_genie_level3_v02.00_pass2.149999.000002.i3.zst"
+

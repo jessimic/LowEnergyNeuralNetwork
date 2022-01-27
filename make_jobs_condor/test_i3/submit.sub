@@ -1,0 +1,20 @@
+Log = /scratch/jmicallef/FLERCNN_i3_predict/FLERCNN_$(FLV)$(SYST)_$(INDEX).log
+Output = /scratch/jmicallef/FLERCNN_i3_predict/FLERCNN_$(FLV)$(SYST)_$(INDEX).out
+Error = /scratch/jmicallef/FLERCNN_i3_predict/FLERCNN_$(FLV)$(SYST)_$(INDEX).error
+
+Universe  = vanilla
+Request_gpus = 1
+Request_memory = 20GB
+Request_disk = 250MB
++OriginalTime=1200
+getenv = true
++TransferOutput = ""
+
+use_x509userproxy = true
+Requirements = (OpSysMajorVer =?= 7)
+
+Executable = job_template.sh
+Arguments = $(FILE) $(FLV) $(SYST)
+
+
+Queue

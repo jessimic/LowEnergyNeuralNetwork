@@ -1,0 +1,16 @@
+Log = /scratch/jmicallef/FLERECNN/create_hdf5/create_hdf5_for_$(FILENAME).log
+Output = /scratch/jmicallef/FLERCNN/create_hdf5/create_hdf5_for_$(FILENAME).out
+Error = /scratch/jmicallef/FLERCNN/create_hdf5/create_hdf5_for_$(FILENAME).error
+
+Universe  = vanilla
+Request_cpus = 1
+Request_memory = 0.5GB
+Request_disk = 0.5GB
+getenv = true
+Requirements = HAS_CVMFS_icecube_opensciencegrid_org && (OpSysMajorVer =?= 7)
+
+Executable = job_template_single_file.sh
+Arguments = $(INFILE_DIR) $(FILENAME) 
+
+
+Queue
