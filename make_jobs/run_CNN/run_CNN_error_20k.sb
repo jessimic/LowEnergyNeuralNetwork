@@ -17,21 +17,22 @@ NUMVAR=1
 LR_EPOCH=200
 LR_DROP=0.5
 LR=0.001
+DOMS=7
 OUTNAME="energy_numu_level6_cleanedpulses_IC19_E1to500_20000evtperbin_ERROR_LRe-3DROPe-.5EPOCHS${LR_EPOCH}"
 
 START=0
 END=600
-STEP=12
+STEP=7
 for ((EPOCH=$START;EPOCH<=$END;EPOCH+=$STEP));
-do
-    MODELNAME="$OUTDIR/output_plots/${OUTNAME}/${OUTNAME}_${EPOCH}epochs_model.hdf5"
+
+    MODELNAME="$OUTDIR/output_plots/${OUTNAME}/current_model_while_running.hdf5"
     
     case $EPOCH in
     0)
-        singularity exec -B /mnt/home/micall12:/mnt/home/micall12 -B /mnt/research/IceCube:/mnt/research/IceCube --nv /mnt/research/IceCube/Software/icetray_stable-tensorflow.sif python ${OUTDIR}/CNN_Training.py --input_files $INPUT --path $INDIR --output_dir $OUTDIR --name $OUTNAME -e $STEP --start $EPOCH --variables $NUMVAR --first_variable energy --lr $LR --lr_epoch $LR_EPOCH --lr_drop $LR_DROP --error
+        singularity exec -B /mnt/home/micall12:/mnt/home/micall12 -B /mnt/research/IceCube:/mnt/research/IceCube --nv /mnt/research/IceCube/Software/icetray_stable-tensorflow.sif python ${OUTDIR}/CNN_Training.py --input_files $INPUT --path $INDIR --output_dir $OUTDIR --name $OUTNAME -e $STEP --start $EPOCH --variables $NUMVAR --first_variable energy --lr $LR --lr_epoch $LR_EPOCH --lr_drop $LR_DROP --error --cut_nDOM --nDOM ${DOMS}
     ;;
     *)
-        singularity exec -B /mnt/home/micall12:/mnt/home/micall12 -B /mnt/research/IceCube:/mnt/research/IceCube --nv /mnt/research/IceCube/Software/icetray_stable-tensorflow.sif python ${OUTDIR}/CNN_Training.py --input_files $INPUT --path $INDIR --output_dir $OUTDIR --name $OUTNAME -e $STEP --start $EPOCH --variables $NUMVAR --model $MODELNAME --first_variable energy --lr $LR --lr_epoch $LR_EPOCH --lr_drop $LR_DROP --error
+        singularity exec -B /mnt/home/micall12:/mnt/home/micall12 -B /mnt/research/IceCube:/mnt/research/IceCube --nv /mnt/research/IceCube/Software/icetray_stable-tensorflow.sif python ${OUTDIR}/CNN_Training.py --input_files $INPUT --path $INDIR --output_dir $OUTDIR --name $OUTNAME -e $STEP --start $EPOCH --variables $NUMVAR --model $MODELNAME --first_variable energy --lr $LR --lr_epoch $LR_EPOCH --lr_drop $LR_DROP --error --cut_nDOM --nDOM ${DOMS}
     ;;
     esac
 done

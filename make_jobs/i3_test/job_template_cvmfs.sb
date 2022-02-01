@@ -13,6 +13,6 @@
 
 #OUTDIR=/mnt/research/IceCube/jmicallef/FLERCNN_i3_output/
 
-singularity exec -B /cvmfs/icecube.opensciencegrid.org:/cvmfs/icecube.opensciencegrid.org -B /mnt/scratch/micall12:/mnt/scratch/micall12 --nv /cvmfs/icecube.opensciencegrid.org/users/jmicallef/FLERCNN_evaluate/icetray_stable-tensorflow.sif sh -c '/usr/local/icetray/env-shell.sh python /cvmfs/icecube.opensciencegrid.org/users/jmicallef/FLERCNN_evaluate/CNN_Test_i3.py -i @@file@@ -o  @@outdir@@ --model_dir /cvmfs/icecube.opensciencegrid.org/users/jmicallef/FLERCNN_evaluate/ --modelname_list energy_FLERCNN PID_FLERCNN zenith_FLERCNN Vertex_XYZ_FLERCNN  muon_FLERCNN nDOM --variable_list energy class zenith vertex muon nDOM --factor_list 100 1 1 1 1 1 --cleaned True'
+singularity exec -B /cvmfs/icecube.opensciencegrid.org:/cvmfs/icecube.opensciencegrid.org -B /mnt/scratch/micall12:/mnt/scratch/micall12 --nv /cvmfs/icecube.opensciencegrid.org/users/jmicallef/FLERCNN_evaluate/icetray_stable-tensorflow.sif sh -c '/usr/local/icetray/env-shell.sh python /cvmfs/icecube.opensciencegrid.org/users/jmicallef/FLERCNN_evaluate/CNN_Test_i3.py -i @@file@@ -o  @@outdir@@ --name @@outfile@@ --model_dir /cvmfs/icecube.opensciencegrid.org/users/jmicallef/FLERCNN_evaluate/ --modelname_list energy_FLERCNN PID_FLERCNN zenith_FLERCNN Vertex_XYZ_FLERCNN  muon_FLERCNN nDOM --variable_list energy class zenith vertex muon nDOM --factor_list 100 1 1 1 1 1 --cleaned True'
 
 exit $?
