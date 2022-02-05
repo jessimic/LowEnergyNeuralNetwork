@@ -81,6 +81,8 @@ factor_list = np.array(args.factor_list,dtype=float)
 accepted_names = ["energy", "zenith", "class", "vertex", "muon", "error", "nDOM", "ending"]
 for var in variable_list:
     assert var in accepted_names, "Variable must be one of the accepted names, check parse arg help for variable for more info"
+if "error" in variable_list:
+    assert len(variable_list) < 3, "Only supports error on single variable at the moment"
 
 model_name_list = []
 num_variables = len(variable_list)
@@ -143,6 +145,8 @@ if "vertex" in variable_list:
     total_variables += 2
 if "ending" in variable_list:
     total_variables += 2
+if "error" in variable_list:
+    total_variables += 1
 cnn_predictions=np.zeros((Y_test_use.shape[0],total_variables))
 output_index = 0
 for network in range(num_variables):
@@ -151,8 +155,8 @@ for network in range(num_variables):
         output_var = 3
     else:
         output_var = 1
-    #if "error" in variable_list[network]:
-    #    output_var = output_var*2
+    if "error" in variable_list[network]:
+        output_var = output_var*2
 
     if variable_list[network] == "nDOM":
         t0 = time.time() 
@@ -174,6 +178,11 @@ for network in range(num_variables):
             factor = int(factor)
             if output_var == 1:
                 cnn_predictions[:,output_index] = cnn_predict[:,0]*factor
+                output_index += 1
+            if output_var == 2: #case for error on ONE variable
+                cnn_predictions[:,output_index] = cnn_predict[:,0]*factor
+                output_index += 1
+                cnn_predictions[:,output_index] = cnn_predict[:,1]
                 output_index += 1
             if output_var == 3:
                 for i in range(0,3):
