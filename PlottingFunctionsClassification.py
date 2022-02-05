@@ -9,6 +9,10 @@ from sklearn.metrics import precision_recall_curve
 import numpy as np
 import os
 
+#colorscale [dark blue, light blue, gray, yellow, orange, red]
+colorscale = ['#4575b4', '#91bfdb', '#999999', '#fee090', '#fc8d59', '#d73027']
+color_green = '#4daf4a'
+
 def find_thresholds(truth,prediction,contamination=0.1):
     
     #Find 10% contamination track
@@ -34,7 +38,7 @@ def find_percision(truth,prediction,contamination=0.1):
     return [precision[index_track], recall[index_track], threshold_track], [p_casc[index_casc], r_casc[index_casc], t_casc[index_casc]]
 
 
-def plot_classification_hist(truth,prediction,reco=None,reco_mask=None,reco_truth=None,reco_weights=None,mask=None,mask_name="", reco_name="CNN",units="",bins=50,log=False,save=True,save_folder_name=None,weights=None,contamination=0.1,normed=False,savename=None,name_prob1="Track",name_prob0="Cascade",notebook=False,ymax=None):
+def plot_classification_hist(truth,prediction,reco=None,reco_mask=None,reco_truth=None,reco_weights=None,mask=None,mask_name="", reco_name="CNN",units="",bins=50,log=False,save=True,save_folder_name=None,weights=None,contamination=0.1,normed=False,savename=None,name_prob1="Track",name_prob0="Cascade",notebook=False,ymax=None,xmin=None,xmax=None):
 
     if mask is not None:
         print("Masking, using %f of input"%(sum(mask)/len(truth)))
@@ -64,6 +68,12 @@ def plot_classification_hist(truth,prediction,reco=None,reco_mask=None,reco_trut
     mask1 = truth == 1
     mask0 = truth == 0
     
+    if xmin is None:
+        xmin = 0
+        if xmin > 0.9:
+            matplotlib.rc('xtick', labelsize=10)
+    if xmax is None:
+        xmax = 1.
 
     fig,ax = plt.subplots(figsize=(10,7))
     name = "%s"%reco_name
@@ -85,16 +95,22 @@ def plot_classification_hist(truth,prediction,reco=None,reco_mask=None,reco_trut
         ax.set_yscale("log")
 
     if reco is not None:
-        ax.hist(reco[reco_mask1], bins=bins,color='g',linestyle=":",alpha=1,range=[0.,1.],weights=reco_weights1,label="True Retro %s"%name_prob1,density=normed);
-        ax.hist(reco[reco_mask0], bins=bins,color='b',linestyle=":",alpha=1,range=[0.,1.],weights=reco_weights0,label="True Retro %s"%name_prob0,density=normed);
+        ax.hist(reco[reco_mask1], bins=bins,color=colorscale[-1],linestyle=":",alpha=1,
+                range=[xmin,xmax],weights=reco_weights1,
+                label="True Retro %s"%name_prob1); #,density=normed);
+        ax.hist(reco[reco_mask0], bins=bins,color=colorscale[0],linestyle=":",alpha=1,
+                range=[xmin,xmax],weights=reco_weights0,
+                label="True Retro %s"%name_prob0); #,density=normed);
         label1 = "True CNN %s"%name_prob1
         label0 = "True CNN %s"%name_prob0
     else:
         label1 = "True %s"%name_prob1
         label0 = "True %s"%name_prob0
     print(sum(mask0),sum(mask1),len(mask1))
-    ax.hist(prediction[mask1], bins=bins,color='g',alpha=0.5,range=[0.,1.],weights=weights1,label=label1,density=normed);
-    ax.hist(prediction[mask0], bins=bins,color='b',alpha=0.5,range=[0.,1.],weights=weights0,label=label0,density=normed);
+    ax.hist(prediction[mask1], bins=bins, color=colorscale[-1], alpha=0.7,
+            range=[xmin,xmax], weights=weights1, label=label1); #,density=normed);
+    ax.hist(prediction[mask0], bins=bins, color=colorscale[0], alpha=0.7,
+            range=[xmin,xmax], weights=weights0, label=label0); #,density=normed);
 
     if ymax is not None:
         ax.set_ylim(0,ymax)
@@ -124,7 +140,7 @@ def plot_classification_hist(truth,prediction,reco=None,reco_mask=None,reco_trut
     if log:
         end+= "log"
     if save:
-        plt.savefig("%s%s%s.png"%(save_folder_name,name,end))
+        plt.savefig("%s%s%s.png"%(save_folder_name,name,end),bbox_inches='tight')
     if not notebook:
         plt.close()
 

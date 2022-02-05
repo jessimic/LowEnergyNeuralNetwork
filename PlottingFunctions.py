@@ -1091,7 +1091,7 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
                        save=False,savefolder=None,vs_predict=False,\
                        flavor="NuMu", sample="CC",style="contours",\
                        variable="Energy",units="(GeV)",xlog=False,save_name=None,
-                       xvariable="Energy",xunits="(GeV)",notebook=False,
+                       xvariable="Energy",xunits=None,notebook=False,
                        specific_bins = None,xline=None,xline_name="DeepCore",
                        epochs=None,reco_name="Retro",cnn_name="CNN",
                        legend="upper center",add_contour=False,
@@ -1321,12 +1321,14 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
     plt.xlim(min_val,max_val)
     if ylim is not None:
         plt.ylim(ylim)
+    if xunits is None:
+        xunits = units
     if vs_predict:
-        plt.xlabel("Reconstructed %s %s"%(variable,units),fontsize=20)
+        plt.xlabel("Reconstructed %s %s"%(variable,xunits),fontsize=20)
     elif energy_truth is not None:
-        plt.xlabel("%s %s"%(xvariable,units),fontsize=20)
+        plt.xlabel("%s %s"%(xvariable,xunits),fontsize=20)
     else:
-        plt.xlabel("%s %s %s"%(variable_type,variable,units),fontsize=20)
+        plt.xlabel("%s %s %s"%(variable_type,variable,xunits),fontsize=20)
     if use_fraction:
         plt.ylabel(r'Fractional Resolution: $\frac{reconstruction - truth}{truth}$',fontsize=20)
     else:

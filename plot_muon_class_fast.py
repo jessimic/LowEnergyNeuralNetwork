@@ -42,6 +42,7 @@ parser.add_argument("--save_output",default=False,action='store_true',
                     dest="save_output",help="flag if saving i3 file output together into to hdf5")
 parser.add_argument("--given_threshold",default=None,
                     dest="given_threshold",help="Define cut value (0-1) to apply cut for confusion matrix, if not use, finds closest to true neutrino at 80%")
+parser.add_argument("--split_flavor",default=False,action='store_true',                    dest="split_flavor",help="flag to plot all flavors separately")
 args = parser.parse_args()
 
 filename = args.input_file
@@ -68,6 +69,7 @@ given_threshold = args.given_threshold
 if given_threshold:
     given_threshold = float(given_threshold)
 
+split_flavor = args.split_flavor
 
 save = True
 save_folder = outdir
@@ -208,29 +210,44 @@ from PlottingFunctionsClassification import my_confusion_matrix
 
 plot_classification_hist(true_isNu,cnn_prob_nu,mask=true_all,
                         mask_name="No Cuts", units="",bins=50,
-                        weights=weights, log=False,save=save,
+                        weights=weights, log=True,save=save,
                         save_folder_name=save_folder,
                         name_prob1 = "Neutrino", name_prob0 = "Muon")
 
-if sum(true_isNuMu) > 0:
-    plot_classification_hist(true_isNu,cnn_prob_nu,mask=MuNuMu,
-                        mask_name="NuMu", units="",bins=50,
-                        weights=weights, log=False,save=save,
+plot_classification_hist(true_isNu,cnn_prob_nu,mask=true_all,
+                        mask_name="No Cuts", units="",bins=50,
+                        weights=weights, log=True,save=save,
                         save_folder_name=save_folder,
+                        savename="CNNMuon_Near1",xmin=0.98,xmax=1.,
                         name_prob1 = "Neutrino", name_prob0 = "Muon")
 
-if sum(true_isNuE) > 0:
-    plot_classification_hist(true_isNu,cnn_prob_nu,mask=MuNuE,
-                        mask_name="NuE", units="",bins=50,
-                        weights=weights, log=False,save=save,
-                        save_folder_name=save_folder,
-                        name_prob1 = "Neutrino", name_prob0 = "Muon")
+if split_flavor:
+    if sum(true_isNuMu) > 0:
+        plot_classification_hist(true_isNu,cnn_prob_nu,mask=MuNuMu,
+                            mask_name="NuMu", units="",bins=50,
+                            weights=weights, log=False,save=save,
+                            save_folder_name=save_folder,
+                            name_prob1 = "Neutrino", name_prob0 = "Muon")
 
-if sum(true_isNuTau) > 0:
-    plot_classification_hist(true_isNu,cnn_prob_nu,mask=MuNuTau,
-                        mask_name="NuTau", units="",bins=50,
-                        weights=weights, log=False,save=save,
-                        save_folder_name=save_folder,
+        plot_classification_hist(true_isNu,cnn_prob_nu,mask=MuNuMu,
+                            mask_name="NuMu", units="",bins=50,
+                            weights=weights, log=False,save=save,
+                            save_folder_name=save_folder,
+                            savename="CNNMuon_Near1",xmin=0.98,xmax=1.,
+                            name_prob1 = "Neutrino", name_prob0 = "Muon")
+
+    if sum(true_isNuE) > 0:
+        plot_classification_hist(true_isNu,cnn_prob_nu,mask=MuNuE,
+                            mask_name="NuE", units="",bins=50,
+                            weights=weights, log=False,save=save,
+                            save_folder_name=save_folder,
+                            name_prob1 = "Neutrino", name_prob0 = "Muon")
+
+    if sum(true_isNuTau) > 0:
+        plot_classification_hist(true_isNu,cnn_prob_nu,mask=MuNuTau,
+                            mask_name="NuTau", units="",bins=50,
+                            weights=weights, log=False,save=save,
+                            save_folder_name=save_folder,
                         name_prob1 = "Neutrino", name_prob0 = "Muon")
 
 threshold1, threshold0, auc = ROC(true_isNu,cnn_prob_nu,
@@ -239,20 +256,27 @@ threshold1, threshold0, auc = ROC(true_isNu,cnn_prob_nu,
                                 variable="Probability Neutrino")
 #Confusion Matrix
 total = sum(weights[true_isNuMu])
+total_mu = sum(weights[true_isMuon])
 if given_threshold is None:
-    try_cuts = np.arange(0.01,1.00,0.01)
+    #try_cuts = np.arange(0.01,1.00,0.01)
+    try_cuts = np.arange(0.001,0.02,0.001)
     fraction_numu = []
+    fraction_muon = []
     for mu_cut in try_cuts:
         cut_attempt = cnn_prob_mu <= mu_cut
         cut_mask = np.logical_and(true_isNuMu, cut_attempt)
+        cut_mask_mu = np.logical_and(true_isMuon, cut_attempt)
         fraction_numu.append(sum(weights[cut_mask])/total)
+        fraction_muon.append(sum(weights[cut_mask_mu])/total_mu)
 #Find closest to 80.61% to match L6 Teseting
     eighty_array = np.ones(len(fraction_numu),dtype=float)*0.8061
     nearest_to_80 = abs(fraction_numu - eighty_array)
     best_index = nearest_to_80.argmin()
     best_mu_cut = try_cuts[best_index]
-#print(fraction_num)
-#print(nearest_to_80)
+    print(try_cuts)
+    print(fraction_numu)
+    print(fraction_muon)
+    #print(nearest_to_80)
     print("best index %i, cut value %f"%(best_index,best_mu_cut))
 else:
     best_mu_cut = given_threshold
@@ -263,17 +287,18 @@ percent_save = my_confusion_matrix(true_isNu, cnn_binary_class, weights,
                     mask=None,title="CNN Muon Cut",
                     save=save,save_folder_name=save_folder)
 
-percent_save = my_confusion_matrix(true_isNu[MuNuMu],
+if split_flavor:
+    percent_save = my_confusion_matrix(true_isNu[MuNuMu],
                     cnn_binary_class[MuNuMu], weights[MuNuMu],
                     mask=None,title="CNN Muon Cut NuMu",
                     save=save,save_folder_name=save_folder)
 
-percent_save = my_confusion_matrix(true_isNu[MuNuE],
+    percent_save = my_confusion_matrix(true_isNu[MuNuE],
                     cnn_binary_class[MuNuE], weights[MuNuE],
                     mask=None,title="CNN Muon Cut NuE",
                     save=save,save_folder_name=save_folder)
 
-percent_save = my_confusion_matrix(true_isNu[MuNuTau],
+    percent_save = my_confusion_matrix(true_isNu[MuNuTau],
                     cnn_binary_class[MuNuTau], weights[MuNuTau],
                     mask=None,title="CNN Muon Cut NuTau",
                     save=save,save_folder_name=save_folder)

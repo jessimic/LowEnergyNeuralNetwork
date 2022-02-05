@@ -231,7 +231,7 @@ weights_squared1 = weights1*weights1
 
 #Deposited Energy
 if true1['daughter_energy'] is not None:
-    true1['deposited_energy'] = true1['energy']
+    true1['deposited_energy'] = np.zeros(len(true1['energy']))
     
     CC_not_tau = np.logical_and(np.logical_or(true1['isNuMu'], true1['isNuE']), true1['isCC'])
     CC_tau = np.logical_and(true1['isCC'], true1['isNuTau'])
@@ -245,6 +245,10 @@ if true1['daughter_energy'] is not None:
     true1['deposited_energy'][CC_not_tau] = true1['total_daughter_energy'][CC_not_tau]
 else:
     true1['deposited_energy'] = None
+
+print(true1['deposited_energy'][true1['isNC']][:10])
+print(true1['energy'][true1['isNC']][:10])
+
 
 #Additional info
 more_info1 = {}
@@ -385,7 +389,7 @@ if input_file2 is not None:
    
    #Deposited Energy
     if true2['daughter_energy'] is not None:
-        true2['deposited_energy'] = true2['energy']
+        true2['deposited_energy'] = np.zeros(len(true2['energy']))
         
         CC_not_tau = np.logical_and(np.logical_or(true2['isNuMu'], true2['isNuE']), true2['isCC'])
         CC_tau = np.logical_and(true2['isCC'], true2['isNuTau'])
@@ -484,14 +488,24 @@ cut_maxs = [cut1['emax'], cut1['coszen'], cut1['zmax'], cut1['r'], None, None, c
 keynames = ['Energy', 'Zenith', 'Z', 'R', 'All', 'All', 'All', 'All', 'All', 'All', 'All']
 masknames = ['RecoNoEn', 'RecoNoZenith', 'RecoNoZ', 'RecoNoR', 'Reco', 'Reco', 'Reco', 'Reco', 'Reco', 'Reco']
 
+check_depo = true1['energy'] - true1['deposited_energy']
+check_depo2 = true2['energy'] - true2['deposited_energy']
+near_zero = check_depo < 1e-3
+near_zero2 = check_depo2 < 1e-3
+print("Check deposited different than true 1: %i"%sum(near_zero))
+print("Check deposited different than true 2: %i"%sum(near_zero2))
+
 name1 = "CNN"
 name2 = "Likelihood"
 logmax = 10**1.5
 bins_log = 10**np.linspace(0,1.5,100)
 
 variable_names = ['energy', 'coszenith', 'z', 'r', 'x_end', 'y_end', 'z_end', 'r_end', 'x', 'y']
+flavors = ["NuMu", "NuE", "NuTau", "Nu", "Muon", "Nu", "All", "Nu", "Nu"]
+selects = ["CC", "CC", "CC", "NC", "All", "All", "All", "Track", "Cascade"]
 ############## CHANGE THESE LINES ##############
-variable_index_list = [1,2,3] #chose variable from list above
+variable_index_list = [1,2,3] #[0] #[1,2,3] #chose variable from list above
+check_index_list = [-2, -1] #[0,1,2,3] #corresponds to flavor/select index
 cut_or = False #use for ending cuts, want below min OR above max
 energy_type = "True" #"EM Equiv" or Deposited or True
 
@@ -500,11 +514,11 @@ make_distributions = False
 make_2d_hist = False
 make_2d_hist_vs_reco = False
 make_resolution = False
-make_bin_slice = False
+make_bin_slice = True
 make_bin_slice_vs_reco = False
 make_confusion = False
-make_PID = True
-make_muon = True
+make_PID = False
+make_muon = False
 ##################################################
 
 all_remaining1 = mask1['Analysis']
@@ -514,8 +528,6 @@ if input_file2 is not None:
     else:
         all_remaining2 = np.logical_and(mask2['Analysis'], mask2['RetroPass'])
 
-flavors = ["NuMu", "NuE", "NuTau", "Nu", "Muon", "Nu", "All", "Nu", "Nu"]
-selects = ["CC", "CC", "CC", "NC", "All", "All", "All", "Track", "Cascade"]
 
 sample_mask1 = true1['isNu']
 check1 = np.logical_and(sample_mask1, mask1['AnalysisNoDOM'])
@@ -578,7 +590,7 @@ if make_PID:
                     save=save,save_folder_name=save_folder_name)
 
 for variable_index in variable_index_list:
-    for check_set in range(7,9):
+    for check_set in check_index_list:
         
         flavor = flavors[check_set]
         sample = selects[check_set]
@@ -607,6 +619,7 @@ for variable_index in variable_index_list:
         save_folder_name = save_base_name + "/%s%s_%s%s/"%(use_em,variable_names[variable_index],flavor,sample)
         if os.path.isdir(save_folder_name) != True:
             os.mkdir(save_folder_name)
+        print("saving to %s"%save_folder_name)
 
         variable_name = variable_names[variable_index]
         minval = minvals[variable_index]
@@ -631,7 +644,7 @@ for variable_index in variable_index_list:
             full_mask2 = np.logical_and(sample_mask2, mask2['Analysis'])
             minus_var_mask2 = np.logical_and(np.logical_and(sample_mask2, mask2['MC']), mask2[maskname])
 
-
+        print("using %s"%(use_em + variable_name))
         true1_value = true1[use_em + variable_name][minus_var_mask1]
         reco1_value = reco1[variable_name][minus_var_mask1]
         weights1_value = weights1[minus_var_mask1]
@@ -729,18 +742,24 @@ for variable_index in variable_index_list:
         """
 
         if make_distributions:
-            plot_distributions(true1_value, reco1_value,
-                            weights=weights1_value,
+            plot_distributions(true1_value_fullAnalysis,
+                            reco1_value_fullAnalysis,
+                            weights=weights1_value_fullAnalysis,
                             save=save, savefolder=save_folder_name,
-                            cnn_name = name1, variable=plot_name, units= plot_units,
-                            minval=minval,maxval=maxval,bins=bins,true_name=energy_type)
+                            cnn_name = name1, variable=plot_name,
+                            units= plot_units,
+                            minval=minval,maxval=maxval,
+                            bins=bins,true_name=energy_type)
 
             if input_file2 is not None:
-                plot_distributions(true2_value, old_reco=reco2_value,
-                            weights=weights2_value,
+                plot_distributions(true2_value_fullAnalysis,
+                            old_reco=reco2_value_fullAnalysis,
+                            weights=weights2_value_fullAnalysis,
                             save=save, savefolder=save_folder_name,
-                            reco_name = name2, variable=plot_name, units= plot_units,
-                            minval=minval,maxval=maxval,bins=bins,true_name=energy_type)
+                            reco_name = name2, variable=plot_name, 
+                            units= plot_units,
+                            minval=minval,maxval=maxval,
+                            bins=bins,true_name=energy_type)
 
         if make_2d_hist:
             switch = False
@@ -843,9 +862,10 @@ for variable_index in variable_index_list:
                         old_reco = reco2_value,
                         old_reco_truth=true2_value,
                         weights=weights1_value,
-                        old_reco_weights=weights2_value,\
+                        old_reco_weights=weights2_value,
                         use_fraction = binned_frac, bins=syst_bin, 
-                        min_val=minval, max_val=maxval,\
+                        min_val=minval, max_val=maxval,
+                        #ylim=[-0.6,1.3],
                         save=save, savefolder=save_folder_name,
                         variable=plot_name, units=plot_units, 
                         cnn_name=name1, reco_name=name2,variable_type=var_type,

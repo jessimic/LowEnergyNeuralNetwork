@@ -9,8 +9,10 @@
 #SBATCH --output /mnt/home/micall12/LowEnergyNeuralNetwork/make_jobs/run_CNN/CNN_energy_error.out
 
 ########## Command Lines to Run ##########
-INPUT="oscNext_genie_level6.5_v02.00_pass2.140000.00h_to_04h.cleanedpulses_transformed_IC19.no_cuts.test_only.hdf5"
-INDIR="/mnt/research/IceCube/jmicallef/official_oscnext/level6.5/140000/"
+#INPUT="oscNext_genie_level6.5_v02.00_pass2.140000.00h_to_04h.cleanedpulses_transformed_IC19.no_cuts.test_only.hdf5"
+#INDIR="/mnt/research/IceCube/jmicallef/official_oscnext/level6.5/140000/"
+INPUT=" oscNext_genie_level6_flercnn_pass2.140000.00-03h.cleanedpulses_transformed_IC19.no_cuts.test_only.hdf5"
+INDIR="/mnt/research/IceCube/jmicallef/DNN_files/testing/"
 OUTDIR="/mnt/home/micall12/LowEnergyNeuralNetwork/"
 OUTNAME="energy_numu_level6_cleanedpulses_IC19_E1to500_20000evtperbin_ERROR_LRe-3DROPe-.5EPOCHS200"
 EPOCH=96
