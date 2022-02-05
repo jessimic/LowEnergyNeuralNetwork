@@ -13,8 +13,8 @@
 #INDIR="/mnt/research/IceCube/jmicallef/official_oscnext/level6.5/140000/"
 INPUT=" oscNext_genie_level6_flercnn_pass2.140000.00-03h.cleanedpulses_transformed_IC19.no_cuts.test_only.hdf5"
 INDIR="/mnt/research/IceCube/jmicallef/DNN_files/testing/"
-OUTDIR="/mnt/home/micall12/LowEnergyNeuralNetwork/"
-OUTNAME="energy_numu_level6_cleanedpulses_IC19_E1to500_20000evtperbin_ERROR_LRe-3DROPe-.5EPOCHS200"
+OUTDIR="/mnt/home/micall12/LowEnergyNeuralNetwork/output_plots/energy_numu_level6_cleanedpulses_IC19_E1to500_20000evtperbin_ERROR_LRe-3DROPe-.5EPOCHS200/"
 EPOCH=96
+OUTNAME=prediction_values_${EPOCH}epochs
 
-singularity exec -B /mnt/home/micall12:/mnt/home/micall12 -B /mnt/research/IceCube:/mnt/research/IceCube --nv /mnt/research/IceCube/Software/icetray_stable-tensorflow.sif python ${OUTDIR}/CNN_Test_hdf5.py --input_file $INPUT --path $INDIR --output_dir $OUTDIR --name $OUTNAME -e $EPOCH --first_variable energy --efactor 100 --no_plots --error
+singularity exec -B /mnt/home/micall12:/mnt/home/micall12 -B /mnt/research/IceCube:/mnt/research/IceCube --nv /mnt/research/IceCube/Software/icetray_stable-tensorflow.sif python ${OUTDIR}/CNN_Test_hdf5.py --input_file $INPUT --path $INDIR -o $OUTDIR --name $OUTNAME --epoch_list $EPOCH --variable_list energy error --factor_list 100 
