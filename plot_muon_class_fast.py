@@ -43,6 +43,8 @@ parser.add_argument("--save_output",default=False,action='store_true',
 parser.add_argument("--given_threshold",default=None,
                     dest="given_threshold",help="Define cut value (0-1) to apply cut for confusion matrix, if not use, finds closest to true neutrino at 80%")
 parser.add_argument("--split_flavor",default=False,action='store_true',                    dest="split_flavor",help="flag to plot all flavors separately")
+parser.add_argument("--muon_index", default=None,
+                    dest="muon_index", help="index in hdf5 where muon classifier output is stored")
 args = parser.parse_args()
 
 filename = args.input_file
@@ -70,6 +72,9 @@ if given_threshold:
     given_threshold = float(given_threshold)
 
 split_flavor = args.split_flavor
+muon_index = args.muon_index
+if muon_index is not None:
+    muon_index = int(muon_index)
 
 save = True
 save_folder = outdir
@@ -81,6 +86,14 @@ numu_files = args.numu
 nue_files = args.nue
 nutau_files = args.nutau
 muon_files = args.muon
+if numu_files is not None:
+    numu_files = int(numu_files)
+if nue_files is not None:
+    nue_files = int(nue_files)
+if nutau_files is not None:
+    nutau_files = int(nutau_files)
+if muon_files is not None:
+    muon_files = int(muon_files)
 
 if i3:
     #Find (and edit) number of files
@@ -122,10 +135,12 @@ if i3:
 
 
     from read_cnn_i3_files import read_i3_files
-    variable_list = ["energy", "prob_track", "zenith", "vertex_x", "vertex_y", "vertex_z", "prob_muon", "prob_muon_v2"] 
+    variable_list = ["energy", "prob_track", "zenith", "vertex_x", "vertex_y", "vertex_z", "prob_muon", "nDOM"] 
     predict, truth, old_reco, info, raw_weights, input_features_DC, input_features_IC= read_i3_files(full_path,variable_list)
 
-    cnn_prob_mu = predict[:,7]
+    cnn_prob_mu = predict[:,6]
+    cnn_energy = predict[:,0]
+    true_energy = np.array(truth[:,0])
 
 
 else:
@@ -144,16 +159,24 @@ else:
         raw_weights = None
     f.close()
     del f
-
+    
+    true_energy = np.array(truth[:,0])
+    if muon_index is None:
+        muon_index = 6
     try:
         cnn_prob_mu = np.array(predict[:,:,0][-1])
     except:
-        cnn_prob_mu = np.array(predict[:,6])
-    
-    numu_files = 1518 #294 #97
-    nue_files = 602 #92 #91
-    muon_files = 19391 #600 #1999
-    nutau_files = 334 #45
+        cnn_energy = np.array(predict[:,0])
+        cnn_prob_mu = np.array(predict[:,muon_index])
+
+    if numu_files is None:
+        numu_files = 1518 #294 #97
+    if nue_files is None:
+        nue_files = 602 #92 #91
+    if muon_files is None:
+        muon_files = 19391 #600 #1999
+    if nutau_files is None:
+        nutau_files = 334 #45
     print("Using given numbers %i numu files, %i nue files, %i muon files, %i nutau files for weighting"%(numu_files,nue_files,muon_files,nutau_files))
 
 #Seperate by PID and reweight
@@ -302,6 +325,27 @@ if split_flavor:
                     cnn_binary_class[MuNuTau], weights[MuNuTau],
                     mask=None,title="CNN Muon Cut NuTau",
                     save=save,save_folder_name=save_folder)
+
+plot_efficiency = True
+if plot_efficiency:
+    energy_array = np.arange(5, 101, 1)
+    efficiency_array = np.zeros(len(energy_array)-1)
+    for energy_index in range(0,len(energy_array)-1):
+        emin = energy_array[energy_index]
+        emax = energy_array[energy_index+1]
+        ecut = np.logical_and(cnn_energy > emin, cnn_energy < emax)
+        true_positive = np.logical_and(true_isNu[ecut], cnn_binary_class[ecut])
+        true_negative = np.logical_and(true_isMuon[ecut], np.logical_not(cnn_binary_class[ecut]))
+        total = (sum(true_positive) + sum(true_negative))/len(cnn_binary_class)
+        efficiency_array[energy_index] = total
+
+plt.figure(figsize=(10,10))
+plt.title("Muon Efficiency",fontsize=25)
+plt.bar(energy_array[:-1],efficiency_array,width=1)
+plt.xlabel("Energy")
+plt.ylabel("Efficiency")
+plt.savefig("%s/EfficiencyMuon.png"%save_folder)
+
 
 print("AUC: %.3f"%auc)
 #save percent order: (CNN Muon, True Neutrino), (CNN Muon, True Muon), (CNN Neutrino, True Neutrino), (CNN Neutrino, True Muon)

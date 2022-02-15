@@ -500,7 +500,7 @@ def test_write(filename_list, model_name_list,output_dir, output_name, model_fac
                         if model_type == "ending":
                             frame["FLERCNN_ending_rho36"] = dataclasses.I3Double(r)
                     elif model_type == "nDOM":
-                        frame[key_name] = icetray.I3Int(prediction[index])
+                        frame[key_name] = icetray.I3Int(int(prediction[index]))
                     else:
                         adjusted_prediction = prediction[index][0]*factor
                         frame[key_name] = dataclasses.I3Double(adjusted_prediction)

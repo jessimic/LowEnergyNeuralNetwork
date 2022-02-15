@@ -18,11 +18,11 @@ SYST_SET=0000
 #INPUTFILES="/mnt/research/IceCube/jmicallef/official_oscnext/level6/140000/oscNext_genie_level6.5_v02.00_pass2.140000.00????.i3.bz2"
 #INPUTFILES="/mnt/research/IceCube/jmicallef/official_oscnext/level7/140000/oscNext_genie_level7_v02.00_pass2.1?0000.00????.i3.*"
 #INPUTFILES="/mnt/scratch/micall12/oscnext_official/160000/oscNext_genie_level7_v02.00_pass2.160000.000*.i3*"
-#INPUTFILES="/mnt/scratch/micall12/oscnext_official/130000/oscNext_muongun_level6_flercnn_pass2.130000.0*.i3*"
-INPUTFILES="/mnt/scratch/micall12/oscnext_official/140000/oscNext_genie_level6_flercnn_pass2.140000.001[2,3,4]??.i3*"
+INPUTFILES="/mnt/scratch/micall12/oscnext_official/130000/oscNext_muongun_level6_flercnn_pass2.130000.0*.i3*"
+#INPUTFILES="/mnt/scratch/micall12/oscnext_official/1?0000/oscNext_genie_level6_flercnn_pass2.140000.0009??.i3*"
 FILEPATH=/mnt/scratch/micall12/training_files
-LOG_FOLDER=$FILEPATH/job_logs/120000_3Feb22
-outdir=single_file/140000
+LOG_FOLDER=$FILEPATH/job_logs/130000_14Feb22
+outdir=single_file/130000
 
 [ ! -d $LOG_FOLDER ] && mkdir $LOG_FOLDER
 [ ! -d $LOG_FOLDER/slurm ] && mkdir $LOG_FOLDER/slurm
@@ -37,7 +37,7 @@ do
         -e "s|@@log@@|${LOG_FOLDER}/$name.log|g" \
         -e "s|@@name@@|${name}|g" \
         -e "s|@@folder@@|${outdir}|g" \
-        < job_i3.sb > $LOG_FOLDER/slurm/${name}.sb
+        < job_muons.sb > $LOG_FOLDER/slurm/${name}.sb
     let COUNT=$COUNT+1
 done
 echo $COUNT

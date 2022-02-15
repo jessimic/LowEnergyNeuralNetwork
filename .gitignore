@@ -1,7 +1,7 @@
 #What files to ingore
 
-#singularity image is large
-*sif
+#singularity image is large, only store one
+flercnn_basic-libs.sif
 
 VariableChecks/*
 subset_L_16_16_tanh_weightsFalse/*
