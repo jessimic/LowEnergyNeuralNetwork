@@ -1,0 +1,6 @@
+Using file /mnt/home/micall12/LowEnergyNeuralNetwork/output_plots//MuonClassification_level4_7millevents_130000_10k-11k_nDOM4/compare_muon_epochs_180_to_300.hdf5
+Saving to /mnt/home/micall12/LowEnergyNeuralNetwork/output_plots/MuonClassification_level4_7millevents_130000_10k-11k_nDOM4///testsample_300epochs/
+Traceback (most recent call last):
+  File "/mnt/home/micall12/LowEnergyNeuralNetwork/plot_muon_class_fast.py", line 171, in <module>
+    cnn_prob_mu = np.array(predict[:,muon_index])
+IndexError: index 19 is out of bounds for axis 1 with size 19

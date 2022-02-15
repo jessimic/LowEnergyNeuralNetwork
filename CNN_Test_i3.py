@@ -40,7 +40,7 @@ parser.add_argument("--model_dir",type=str,default='/mnt/home/micall12/LowEnergy
 parser.add_argument("--modelname_list",nargs='+',default=[],
                     dest="modelname_list", help="name of output folder where model is located")
 parser.add_argument("--variable_list",nargs='+',default=[],
-                    dest="variable_list", help="names of variables to predict, from energy, zenith, class, muon, muonL4, vertex, nDOMs")
+                    dest="variable_list", help="names of variables to predict, from energy, zenith, class, muon, muonL4, muonV3, vertex, nDOMs")
 parser.add_argument("-e","--epochs_list",nargs='+',default=[],
                     dest="epochs_list", help="epoch numbers for models to use")
 parser.add_argument("-f","--factor_list", nargs='+', default=[100.,1,1,1,1,1,1,1],
@@ -76,7 +76,7 @@ epoch_list = np.array(epoch_list,dtype=float)
 print(len(epoch_list))
 model_path = args.model_dir
 
-accepted_names = ["energy", "zenith", "class", "vertex", "muon", "muonL4", "nDOM", "ending"]
+accepted_names = ["energy", "zenith", "class", "vertex", "muon", "muonL4", "muonV3", "nDOM", "ending"]
 for var in variable_list:
         assert var in accepted_names, "Variable must be one of the accepted names, check parse arg help for variable for more info"
 
@@ -92,7 +92,7 @@ for variable_index in range(num_variables):
             if epoch_list[variable_index] is None:
                 model_name = args.model_dir + "/" + modelname_list[variable_index] + ".hdf5"
             else:
-                model_name = "%s/%s/%s_%sepochs_model.hdf5"%(args.model_dir,modelname_list[variable_index], modelname_list[variable_index],epoch_list[variable_index])
+                model_name = "%s/%s/%s_%iepochs_model.hdf5"%(args.model_dir,modelname_list[variable_index], modelname_list[variable_index],epoch_list[variable_index])
     model_name_list.append(model_name)
     print("Predicting: %s,\nOutput transformation scale factor: %.2f.,\nUsing model: %s"%(variable_list[variable_index], scale_factor_list[variable_index], model_name))
 
@@ -305,13 +305,13 @@ def apply_transform(features_DC, features_IC, labels=None, energy_factor=100., t
 def cnn_test(features_DC, features_IC, load_model_name, output_variables=1,DC_drop_value=0.2,IC_drop_value=0.2,connected_drop_value=0.2,model_type="energy"):
     if newTF:
         from cnn_model_newTF import make_network
-        if model_type == "class" or model_type == "muon" or model_type == "muonL4":
+        if model_type == "class" or model_type == "muon" or model_type == "muonL4" or model_type == "muonV3":
             activation = "sigmoid"
         else:
             activation = "linear"
         model_DC = make_network(features_DC,features_IC, output_variables, DC_drop_value, IC_drop_value,connected_drop_value,activation=activation)
     else:
-        if model_type == "class" or model_type == "muon" or model_type == "muonL4":
+        if model_type == "class" or model_type == "muon" or model_type == "muonL4" or model_type == "muonV3":
             from cnn_model_classification import make_network
         else:
             from cnn_model import make_network
@@ -481,6 +481,8 @@ def test_write(filename_list, model_name_list,output_dir, output_name, model_fac
                         key_name = "FLERCNN_prob_muon"
                     elif model_type == "muonL4":
                         key_name = "FLERCNN_prob_muon_v2"
+                    elif model_type == "muonV3":
+                        key_name = "FLERCNN_prob_muon_v3"
                     else:
                         key_name = "FLERCNN_%s"%model_type
                

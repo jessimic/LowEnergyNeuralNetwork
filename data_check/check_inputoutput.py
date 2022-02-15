@@ -42,6 +42,8 @@ parser.add_argument("-c", "--cuts",type=str, default="CC",
                     dest="cuts", help="Type of events to keep (all, cascade, track, CC, NC, etc.)")
 parser.add_argument("--do_cuts", default=False,action='store_true',
                         dest='do_cuts',help="Apply cuts! Don't ignore energy and event cut")
+parser.add_argument("--nDOM_cut", type=int, default=0,
+                        dest='nDOM_cut',help="Apply nDOM cut >= given number")
 parser.add_argument("--transformed",default=False,action='store_true',
                     dest="transformed", help="add flag if labels truth input is already transformed")
 parser.add_argument("--no_input",default=True,action='store_false',
@@ -67,6 +69,7 @@ energy_max = args.emax
 track_max = args.tmax
 cut_name = args.cuts
 do_cuts = args.do_cuts
+nDOM_cut = args.nDOM_cut
 
 # Here in case you want only one (input can take a few min)
 do_output = args.no_output
@@ -90,7 +93,7 @@ except:
         X_test_DC = f['features_DC'][:]
         X_test_IC = f['features_IC'][:]
     except:
-        print("No input features in file")
+        print("No test input features in file")
         X_test_DC = np.array([np.nan])
         X_test_IC = np.array([np.nan]) 
 
@@ -162,9 +165,12 @@ if Y_train is None: #Test only file
     X_DC = X_test_DC
     X_IC = X_test_IC
 else:
-    Y_labels = np.concatenate((Y_test,Y_train,Y_validate))
-    X_DC = np.concatenate((X_test_DC,X_train_DC,X_validate_DC))
-    X_IC = np.concatenate((X_test_IC,X_train_IC,X_validate_IC))
+    #Y_labels = np.concatenate((Y_test,Y_train,Y_validate))
+    #X_DC = np.concatenate((X_test_DC,X_train_DC,X_validate_DC))
+    #X_IC = np.concatenate((X_test_IC,X_train_IC,X_validate_IC))
+    Y_labels = np.concatenate((Y_train,Y_validate))
+    X_DC = np.concatenate((X_train_DC,X_validate_DC))
+    X_IC = np.concatenate((X_train_IC,X_validate_IC))
 print(Y_labels.shape,X_DC.shape,X_IC.shape)
 print(len(output_factors))
 
@@ -184,7 +190,21 @@ if do_cuts:
     X_IC = X_IC[all_cuts]
     if reco_labels is not None:
         reco_labels = reco_labels[all_cuts]
+if nDOM_cut > 0:
+    charge_DC = X_DC[:,:,:,0] > 0
+    charge_IC = X_IC[:,:,:,0] > 0
+    DC_flat = np.reshape(charge_DC,[X_DC.shape[0],480])
+    IC_flat = np.reshape(charge_IC,[X_IC.shape[0],1140])
+    DOMs_hit_DC = np.sum(DC_flat,axis=-1)
+    DOMs_hit_IC = np.sum(IC_flat,axis=-1)
+    DOMs_hit = DOMs_hit_DC + DOMs_hit_IC
+    check_min_nDOM = DOMs_hit >= nDOM_cut
+    Y_labels = Y_labels[check_min_nDOM]
+    X_DC = X_DC[check_min_nDOM]
+    X_IC = X_IC[check_min_nDOM]
+    print("Cut %i training events due to nDOM >= %i, %i events remaining"%(len(check_min_nDOM)-sum(check_min_nDOM),nDOM_cut, sum(check_min_nDOM)))
 
+print("Number of events: %i"%Y_labels.shape[0])
 
 def plot_output(Y_values,outdir,filenumber=None,names=output_names,transform=output_factors,weights=None):
     if file_was_transformed:

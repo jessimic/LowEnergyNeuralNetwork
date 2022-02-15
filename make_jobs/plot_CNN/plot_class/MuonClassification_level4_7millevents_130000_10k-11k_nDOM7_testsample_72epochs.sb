@@ -1,0 +1,17 @@
+#!/bin/bash --login
+
+########### SBATCH Lines for Resource Request ##########
+
+#SBATCH --time=00:29:00             # limit of wall clock time - how long the job will run (same as -t)
+#SBATCH --nodes=1                 # number of different nodes - could be an exact number or a range of nodes (same as -N)
+#SBATCH --mem=5G            # memory required per allocated CPU (or core) - amount of memory (in bytes)
+#SBATCH --job-name plot_muon_class      # you can give your job a name for easier identification (same as -J)
+#SBATCH --output job_logs/MuonClassification_level4_7millevents_130000_10k-11k_nDOM7_testsample_72epochs.log
+
+########### Command Lines to Run ##################
+
+source ~/setup_anaconda.sh
+
+python ~/LowEnergyNeuralNetwork/plot_muon_class_fast.py -i compare_muon_epochs_60_to_168.hdf5 -m MuonClassification_level4_7millevents_130000_10k-11k_nDOM7 -o /mnt/home/micall12/LowEnergyNeuralNetwork/output_plots/MuonClassification_level4_7millevents_130000_10k-11k_nDOM7/ --savename testsample_72epochs --muon_index 9 --numu 97 --nue 91 --muon 1999 --given_threshold 0.02
+
+exit $?

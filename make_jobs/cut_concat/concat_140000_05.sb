@@ -9,4 +9,4 @@
 #SBATCH --output job_logs/oscNext_genie_level6_flercnn_pass2.140000.05h.cleanedpulses_transformed_IC19.out
 ########### Command Lines to Run ##########
 
-python /mnt/home/micall12/LowEnergyNeuralNetwork/cut_concat_split_files.py -i oscNext_genie_level6_flercnn_pass2.140000.0005??.i3.zst_cleanedpulses_transformed_IC19.hdf5 -d /mnt/scratch/micall12/training_files/single_file/140000/ -o /mnt/scratch/micall12/training_files/batch_file/140000/ -n oscNext_genie_level6_flercnn_pass2.140000.05h.cleanedpulses_transformed_IC19 --no_cuts
+python /mnt/home/micall12/LowEnergyNeuralNetwork/cut_concat_split_files.py -i oscNext_genie_level6_flercnn_pass2.140000.0005??.i3.zst_cleanedpulses_transformed_IC19.hdf5 -d /mnt/scratch/micall12/training_files/single_file/140000/ -o /mnt/scratch/micall12/training_files/batch_file/140000/ -n oscNext_genie_level6_flercnn_pass2.140000.05h.cleanedpulses_transformed_IC19 --no_cuts --no_cut8hits

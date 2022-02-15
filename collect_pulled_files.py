@@ -56,7 +56,7 @@ for a_file in file_names:
         reco_test_full = reco_test
         weights_test_full = weights_test
         info_test_full = info_test
-        print("Created new array with %i events"%Y_test_full.shape[0])
+        print("Created new array with %i events from %s"%(Y_test.shape[0],a_file))
     else:
         Y_test_full = numpy.concatenate((Y_test_full, Y_test))
         predict_full = numpy.concatenate((predict_full, predict))
@@ -67,7 +67,7 @@ for a_file in file_names:
         if info_test_full is not None:
             info_test_full = numpy.concatenate((info_test_full, info_test))
     
-        print("Added %i events"%Y_test_full.shape[0])
+        print("Added %i events from file %s"%(Y_test.shape[0],a_file))
     
 print("Saving output file: %s"%output_file)
 f = h5py.File(output_file, "w")

@@ -4,9 +4,9 @@
 
 #SBATCH --time=03:59:00             # limit of wall clock time - how long the job will run (same as -t)
 #SBATCH --nodes=1                 # number of different nodes - could be an exact number or a range of nodes (same as -N)
-#SBATCH --mem-per-cpu=450G            # memory required per allocated CPU (or core) - amount of memory (in bytes)
+#SBATCH --mem-per-cpu=900G            # memory required per allocated CPU (or core) - amount of memory (in bytes)
 #SBATCH --job-name cut_concat_events    # you can give your job a name for easier identification (same as -J)
-#SBATCH --output job_logs/oscNext_level6_flercnn_pass2.12_14_13.level4Muons.MORE.cleanedpulses_transformed_IC19_TEST.out
+#SBATCH --output job_logs/oscNext_level6_flercnn_pass2.12_14_13.level4Muons.5mill.cleanedpulses_transformed_IC19.testonly.out
 ########### Command Lines to Run ##########
 
-python /mnt/home/micall12/LowEnergyNeuralNetwork/cut_concat_split_files.py -i oscNext_*cleanedpulses_transformed_IC19*.no_cuts.hdf5 -d /mnt/scratch/micall12/training_files/batch_file/temp/ -o /mnt/scratch/micall12/training_files/batch_file/ -n oscNext_level6_flercnn_pass2.120000_02h-03h_140000_11h-15h_130000_10k.cleanedpulses_transformed_IC19_nocut8hit.testonly --no_cuts --shuffle --no_cut8hits --test_only
+python /mnt/home/micall12/LowEnergyNeuralNetwork/cut_concat_split_files.py -i oscNext_*cleanedpulses_transformed_IC19*.no_cuts.hdf5 -d /mnt/scratch/micall12/training_files/batch_file/temp/ -o /mnt/scratch/micall12/training_files/batch_file/ -n oscNext_level6_flercnn_pass2.120000_02h-06h_140000_06h-15h_130000_10k-11k.cleanedpulses_transformed_IC19_nocut8hit.testonly --no_cuts --no_cut8hits --test_only

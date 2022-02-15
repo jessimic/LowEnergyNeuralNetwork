@@ -1,0 +1,3 @@
+QStandardPaths: XDG_RUNTIME_DIR points to non-existing path '/run/user/663146', please create it with 0700 permissions.
+qt.qpa.screen: QXcbConnection: Could not connect to display localhost:30.0
+Could not connect to any X display.

@@ -206,6 +206,8 @@ def SplitTrainTest(features_DC,features_IC,labels,reco=None,weights=None,use_old
     Y_train_raw = Y_train_raw.astype("float32")
     if weights is not None:
         weights_train_raw = weights_train.astype("float32")
+    else:
+        weights_train_raw = None
     if use_old_reco:
         reco_train_raw = reco_train.astype("float32")
     else:
@@ -217,6 +219,8 @@ def SplitTrainTest(features_DC,features_IC,labels,reco=None,weights=None,use_old
     Y_test_raw = Y_test_raw.astype("float32")
     if weights is not None:
         weights_test_raw = weights_test.astype("float32")
+    else:
+        weights_test_raw = None
     if use_old_reco:
         reco_test_raw = reco_test.astype("float32")
     else:
@@ -229,6 +233,8 @@ def SplitTrainTest(features_DC,features_IC,labels,reco=None,weights=None,use_old
         Y_validate_raw = Y_validate_raw.astype("float32")
         if weights is not None:
             weights_validate_raw = weights_validate.astype("float32")
+        else:
+            weights_validate_raw = None
         if use_old_reco:
             reco_validate_raw = reco_validate.astype("float32")
         else:

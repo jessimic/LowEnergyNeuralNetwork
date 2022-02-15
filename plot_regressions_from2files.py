@@ -25,6 +25,8 @@ parser.add_argument("-f", "--flavor",type=str,default="All",
                     dest="flavor", help="flavor particle to cut on (NuMu, NuE, NuTau, Muon, All)")
 parser.add_argument("-s", "--sample",type=str,default="All",
                     dest="sample", help="neutrino interaction to look at (CC, NC, All)")
+parser.add_argument("--mu_cut",type=float,default=0.01,
+                    dest="mu_cut", help="muon cut, default at 0.01")
 args = parser.parse_args()
 
 input_file = args.input_file
@@ -42,17 +44,17 @@ sample = args.sample
 
 #CUT values
 cut1 = {}
-cut1['r'] = 165
+cut1['r'] = 200 #165
 cut1['zmin'] = -495
 cut1['zmax'] = -225
 cut1['coszen'] = 0.3
 cut1['emin'] = 5
 cut1['emax'] = 100
-cut1['mu'] = 0.01
+cut1['mu'] = args.mu_cut
 cut1['nDOM'] = 7
 numu_files1 = 1518 #391
 nue_files1 = 602 #91
-muon_files1 = 19391 #1
+muon_files1 = 17992 #19391 #1
 nutau_files1 = 334 #187
 
 cut2 = {}
@@ -62,7 +64,7 @@ cut2['zmax'] = -200
 cut2['coszen'] = 0.3
 cut2['emin'] = 5
 cut2['emax'] = 300
-cut2['mu'] = 0.01
+cut2['mu'] = args.mu_cut
 cut2['nDOM'] = 7
 numu_files2 = 1518 #391
 nue_files2 = 602 #91
@@ -168,7 +170,7 @@ reco1['x'] = np.array(predict1[:,3])
 reco1['y'] = np.array(predict1[:,4])
 reco1['z'] = np.array(predict1[:,5])
 reco1['r'] = np.sqrt( (reco1['x'] - x1_origin)**2 + (reco1['y'] - y1_origin)**2 )
-reco1['prob_mu'] = np.array(predict1[:,6])
+reco1['prob_mu'] = np.array(predict1[:,9]) #np.array(predict1[:,6])
 reco1['nDOMs'] = np.array(predict1[:,7])
 try:
     reco1['x_end'] = np.array(predict1[:,8])
@@ -195,6 +197,8 @@ mask1['RecoNoEn'] = np.logical_and(mask1['ProbMu'], np.logical_and(mask1['Zenith
 mask1['RecoNoZenith'] = np.logical_and(mask1['ProbMu'], np.logical_and(mask1['Energy'], mask1['Vertex']))
 mask1['RecoNoZ'] = np.logical_and(mask1['ProbMu'], np.logical_and(mask1['Zenith'], np.logical_and(mask1['Energy'], mask1['R'])))
 mask1['RecoNoR'] = np.logical_and(mask1['ProbMu'], np.logical_and(mask1['Zenith'], np.logical_and(mask1['Energy'], mask1['Z'])))
+mask1['RecoNoMu'] = np.logical_and(mask1['Zenith'], np.logical_and(mask1['Energy'], mask1['Vertex']))
+mask1['RecoNoMuNoR'] = np.logical_and(mask1['Zenith'], np.logical_and(mask1['Energy'], mask1['Z']))
 mask1['All'] = true1['energy'] > 0
 true1['All'] = true1['energy'] > 0
 
@@ -267,10 +271,10 @@ if info1 is not None:
 #INFO masks
 if info1 is not None:
     mask1['Hits8'] = more_info1['total_hits'] >= 8
-    mask1['oscNext_Nu'] = more_info1['prob_nu'] > 0.4
+    mask1['oscNext_Nu'] = more_info1['prob_nu'] > 0.8 #CHANGED FROM 0.4
     mask1['Noise'] = more_info1['noise_class'] > 0.95
     mask1['nhit'] = more_info1['nhit_doms'] > 2.5
-    mask1['ntop']= more_info1['n_top15'] < 2.5
+    mask1['ntop']= more_info1['n_top15'] < 0.5
     mask1['nouter'] = more_info1['n_outer'] < 7.5
     mask1['CoinHits'] = np.logical_and(np.logical_and(mask1['nhit'], mask1['ntop']), mask1['nouter'])
     mask1['MC'] = np.logical_and(np.logical_and(mask1['CoinHits'],mask1['Noise']),mask1['DOM'])
@@ -353,8 +357,8 @@ if input_file2 is not None:
         reco2['iterations'] = np.array(old_reco2[:,14])
         reco2['nan'] = np.isnan(reco2['energy'])
         
-    mask1['Reco'] = np.logical_and(mask1['ProbMu'], np.logical_and(mask1['Zenith'], np.logical_and(mask1['Energy'], mask1['Vertex'])))
-    mask1['RecoNoEn'] = np.logical_and(mask1['ProbMu'], np.logical_and(mask1['Zenith'], mask1['Vertex']))
+    #mask1['Reco'] = np.logical_and(mask1['ProbMu'], np.logical_and(mask1['Zenith'], np.logical_and(mask1['Energy'], mask1['Vertex'])))
+    #mask1['RecoNoEn'] = np.logical_and(mask1['ProbMu'], np.logical_and(mask1['Zenith'], mask1['Vertex']))
 
     #PID identification
     muon_mask_test2 = (true2['PID']) == 13
@@ -421,11 +425,11 @@ if input_file2 is not None:
     #INFO masks
     if info2 is not None:
         mask2['Hits8'] = more_info2['total_hits'] >= 8
-        print("Hits8 failure cuts:", sum(mask2['Hits8']/len(mask2['Hits8'])))
-        mask2['oscNext_Nu'] = more_info2['prob_nu'] > 0.4
+        print("Hits8 failure cuts:", sum(mask2['Hits8'])/len(mask2['Hits8']))
+        mask2['oscNext_Nu'] = more_info2['prob_nu'] > 0.8 #CHANGED FROM 0.4
         mask2['Noise'] = more_info2['noise_class'] > 0.95
         mask2['nhit'] = more_info2['nhit_doms'] > 2.5
-        mask2['ntop'] = more_info2['n_top15'] < 2.5
+        mask2['ntop'] = more_info2['n_top15'] < 0.5
         mask2['nouter'] = more_info2['n_outer'] < 7.5
         mask2['CoinHits'] = np.logical_and(np.logical_and(mask2['nhit'], mask2['ntop']), mask2['nouter'])
         if not compare_cnn:
@@ -436,7 +440,7 @@ if input_file2 is not None:
             mask2['RetroPass'] = np.logical_and(np.logical_and(mask2['Hits8'],mask2['RetroIterations']), mask2['NotNAN'])
             print("Retro failure cuts:", sum(mask2['RetroPass']/len(mask2['RetroPass'])))
             mask2['Class'] = np.logical_and(mask2['oscNext_Nu'],mask2['Noise'])
-            mask2['MC'] = np.logical_and(np.logical_and(mask2['CoinHits'],mask2['Class']), mask2['RetroPass'])
+            mask2['MC'] = np.logical_and(np.logical_and(np.logical_and(mask2['CoinHits'],mask2['Class']), mask2['RetroPass']),mask2['Time'])
         else:
             mask2['Class'] = mask2['Noise']
             mask2['MC'] = np.logical_and(np.logical_and(mask2['CoinHits'],mask2['Class']),mask2['DOM'])
@@ -504,16 +508,17 @@ variable_names = ['energy', 'coszenith', 'z', 'r', 'x_end', 'y_end', 'z_end', 'r
 flavors = ["NuMu", "NuE", "NuTau", "Nu", "Muon", "Nu", "All", "Nu", "Nu"]
 selects = ["CC", "CC", "CC", "NC", "All", "All", "All", "Track", "Cascade"]
 ############## CHANGE THESE LINES ##############
-variable_index_list = [1,2,3] #[0] #[1,2,3] #chose variable from list above
-check_index_list = [-2, -1] #[0,1,2,3] #corresponds to flavor/select index
+variable_index_list = [1,2,3] #chose variable from list above
+check_index_list = [-2, -1] #corresponds to flavor/select index
 cut_or = False #use for ending cuts, want below min OR above max
 energy_type = "True" #"EM Equiv" or Deposited or True
 
+plot_find_rate = False
 print_rates = False
-make_distributions = False
-make_2d_hist = False
+make_distributions = True
+make_2d_hist = True
 make_2d_hist_vs_reco = False
-make_resolution = False
+make_resolution = True
 make_bin_slice = True
 make_bin_slice_vs_reco = False
 make_confusion = False
@@ -524,15 +529,93 @@ make_muon = False
 all_remaining1 = mask1['Analysis']
 if input_file2 is not None:
     if compare_cnn:
-        all_remaining2 = np.logical_and(mask2['Analysis'])
+        all_remaining2 = mask2['Analysis']
     else:
         all_remaining2 = np.logical_and(mask2['Analysis'], mask2['RetroPass'])
 
 
-sample_mask1 = true1['isNu']
-check1 = np.logical_and(sample_mask1, mask1['AnalysisNoDOM'])
-final1 = np.logical_and(sample_mask1, mask1['Analysis'])
-print("NU CUT NDOM", sum(weights1[final1])/sum(weights1[check1]))
+#sample_mask1 = true1['isNu']
+#check1 = np.logical_and(sample_mask1, mask1['AnalysisNoDOM'])
+#final1 = np.logical_and(sample_mask1, mask1['Analysis'])
+#print("NU CUT NDOM", sum(weights1[final1])/sum(weights1[check1]))
+"""
+check_cuts = np.arange(0.0001,0.001,0.0001)
+for i in check_cuts:
+    check1 = np.logical_and(true1['isMuon'], np.logical_and(mask1['MC'],mask1['RecoNoMu']))
+    check_prob1 = reco1['prob_mu'] <= i
+    check_total = np.logical_and(check1,check_prob1)
+    numu_check = np.logical_and(np.logical_and(np.logical_and(true1['isNuMu'], np.logical_and(mask1['MC'],mask1['RecoNoMu'])),check_prob1),true1['isCC'])
+    print("Cut: %.4f, Muon Rate: %.3e, NuMu Rate: %.3e"%(i, sum(weights1[check_total]), sum(weights1[numu_check])))
+"""
+def return_rates(true_PID,prediction,weights,threshold):
+
+    predictionNu = prediction < threshold
+    predictionMu = prediction >= threshold
+
+    save_weights = weights[predictionNu]
+    true_PID = true_PID[predictionNu]
+
+    muon_mask = true_PID == 13
+    true_isMuon = np.array(muon_mask,dtype=bool)
+    nue_mask = true_PID == 12
+    true_isNuE = np.array(nue_mask,dtype=bool)
+    numu_mask = true_PID == 14
+    true_isNuMu = np.array(numu_mask,dtype=bool)
+    nutau_mask = true_PID == 16
+    true_isNuTau = np.array(nutau_mask,dtype=bool)
+
+
+    muon_rate = sum(save_weights[true_isMuon])
+    nue_rate = sum(save_weights[true_isNuE])
+    numu_rate = sum(save_weights[true_isNuMu])
+    nutau_rate = sum(save_weights[true_isNuTau])
+
+    return muon_rate, nue_rate, numu_rate, nutau_rate
+
+if plot_find_rate:
+    mask_noR_noMu = np.logical_and(mask1['MC'],mask1['RecoNoMuNoR'])
+    cut_values = np.arange(0.0005,0.05,0.0005)
+    target_muon_rate = 0.000004
+    r36_cuts = np.arange(90,200,5)
+    mu_threshold = []
+    nu_rates_save = []
+    numu_rates_save = []
+    mu_rates_save = []
+    for r36_check in r36_cuts:
+        r36_mask = reco1['r'] < r36_check
+        muon_rates = []
+        numu_rates = []
+        nu_rates = []
+        difference_to_target = []
+        
+        for muon_cut in cut_values:
+            check_mask_here = np.logical_and(mask_noR_noMu,r36_mask)
+            muon_rate, nue_rate, numu_rate, nutau_rate = return_rates(true1['PID'][check_mask_here], reco1['prob_mu'][check_mask_here], weights1[check_mask_here], muon_cut)
+            muon_rates.append(muon_rate)
+            nu_rates.append(nue_rate + numu_rate + nutau_rate)
+            numu_rates.append(numu_rate)
+            difference_to_target.append(np.abs(muon_rate - target_muon_rate))
+
+        closest_target_index = difference_to_target.index(min(difference_to_target))
+        mu_threshold.append(cut_values[closest_target_index])
+        nu_rates_save.append(nu_rates[closest_target_index])
+        numu_rates_save.append(numu_rates[closest_target_index])
+        mu_rates_save.append(muon_rates[closest_target_index])
+
+    print(r36_cuts)
+    print(mu_threshold)
+    print(mu_rates_save)
+    plt.figure(figsize=(10,7))
+    plt.title("Neutrino Rate vs. R36 Cut (const Mu rate = .004mHz)",fontsize=25)
+    plt.plot(r36_cuts,nu_rates_save,color='g',label=r'$\nu$ Energy [3, 100]')
+    plt.plot(r36_cuts,numu_rates_save,color='g',linestyle="dashed",label=r'$\nu_\mu$ Energy [3, 100]')
+    plt.axhline(0.000704,color='k',label=r'oscNext $\nu$ rate')
+    plt.axhline(0.000435,color='k',linestyle="dashed",label=r'oscNext $\nu$ CC rate')
+    plt.xlabel("R36 cut values (< X m)",fontsize=20)
+    plt.ylabel("Remaining Neutrino Rate (Hz)",fontsize=20)
+    plt.legend(fontsize=20)
+    plt.savefig("%sNuVsR36Rates.png"%(save_folder_name),bbox_inches='tight')
+    plt.close()
 
 if print_rates:
     print("Flavor", "Type", "Num events (after)", "Rate (after)", "Fraction Of Sample")
@@ -562,7 +645,8 @@ if print_rates:
             shared_events = len(set(true1['full_ID'][final1]) & set(true2['full_ID'][final2]))
             unique_set1 = len(true1['full_ID'][final1]) - shared_events
             unique_set2 = len(true2['full_ID'][final2]) - shared_events
-            print("%s\t %s\t %i\t %i\t %i\t %.3f\t %.3f"%(flavor, sample, shared_events, unique_set1, unique_set2, unique_set1/(shared_events+unique_set1),  unique_set1/(shared_events+unique_set2)))
+            print("%s\t %s\t %i\t %i\t %i\t %.3f\t %.3f"%(flavor, sample, shared_events, unique_set1, unique_set2, unique_set1/(shared_events+unique_set1),  unique_set2/(shared_events+unique_set2)))
+
 
 if make_muon:
 #NEED BINARY PROBMU

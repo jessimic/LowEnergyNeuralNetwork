@@ -347,10 +347,26 @@ def my_confusion_matrix(binary_truth, binary_class, weights, mask=None, color="B
     true_zero = binary_truth == 0
     mask_true_one = np.logical_and(true_one,mask)
     mask_true_zero = np.logical_and(true_zero,mask)
+    cnn_one = binary_class == 1
+    cnn_zero = binary_class == 0
+    mask_cnn_one = np.logical_and(cnn_one,mask)
+    mask_cnn_zero = np.logical_and(cnn_zero,mask)
+    TP = np.logical_and(cnn_one,true_one)
+    TP_error = np.sqrt(sum(TP))
+    TN = np.logical_and(cnn_zero,true_zero)
+    TN_error = np.sqrt(sum(TN))
+    FP = np.logical_and(cnn_one,true_zero)
+    FP_error = np.sqrt(sum(FP))
+    FN = np.logical_and(cnn_zero,true_one)
+    FN_error = np.sqrt(sum(FN))
+    #print("Number true positive: $i +/- $.1f, true negative: $i +/- $.1f, false positive: $i +/- $.1f, false negative: $i +/- $.1f"%(sum(TP),TP_error,sum(TN),TN_error,sum(FP),FP_error,sum(FN),FN_error))
+    print("True postive, true negative, false positive, false negative")
+    print(sum(TP),TP_error,sum(TN),TN_error,sum(FP),FP_error,sum(FN),FN_error)
  
     transposed_hist_squared = np.transpose(hist_squared)
     
     save_percent = []
+    save_percent_error = []
     for i in range(len(ybins)-1):
         for j in range(len(xbins)-1):
             c="k"
@@ -361,8 +377,10 @@ def my_confusion_matrix(binary_truth, binary_class, weights, mask=None, color="B
             events = hist.T[i,j]
             error = np.sqrt(transposed_hist_squared[i,j])
             percent = (float(events)/float(total))*100
+            percent_error = float(error)/float(events)
             save_percent.append(percent)
-            s = "%.2e"%(events) + r'$\pm$' + "%.2e\n %.2f"%(error,percent) + '% of truth'
+            save_percent_error.append(percent_error)
+            s = "%.2e"%(events) + r'$\pm$' + "%.2e"%error + "\n %.2f"%percent + r'% $\pm$' + "%.2f"%(percent_error) + '% \nof truth'
             if events > maxval/2.:
                 c="w"
             ax.text(xbins[j]+0.25,ybins[i]+0.25,"%s"%s, 
@@ -376,7 +394,7 @@ def my_confusion_matrix(binary_truth, binary_class, weights, mask=None, color="B
         plt.close()
 
     # Order = (x=0,y=0), (x=1, y=0), (x=0, y=1), (x=1, y=1)
-    return save_percent
+    return save_percent, save_percent_error
 
 def plot_osc_hist_given_hist(hist_here,label_factor=1,title="Counts",
                             label_factor_title=None,pid="CNN Track",

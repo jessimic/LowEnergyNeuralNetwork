@@ -157,6 +157,17 @@ for a_file in file_names:
         del f
         Y_test_full, X_test_DC_full, X_test_IC_full, reco_test_full, weights_test_full = append_to_test(Y_test, X_test_DC, X_test_IC, reco_test, weights_test, Y_test_use=Y_test_full, X_test_DC_use=X_test_DC_full, X_test_IC_use=X_test_IC_full, reco_test_use=reco_test_full,weights_test_use=weights_test_full)
 
+true_PID = Y_test_full[:,9]
+NuE = true_PID == 12
+NuMu = true_PID == 14
+cut = NuE
+Y_test_full = Y_test_full[cut]
+X_test_DC_full = X_test_DC_full[cut]
+X_test_IC_full = X_test_IC_full[cut]
+weights_test_full = weights_test_full[cut]
+
+print("Cutting events and only saving %i"%sum(cut))
+
 print("Saving output file: %s"%output_file)
 f = h5py.File(output_file, "w")
 f.create_dataset("Y_test", data=Y_test_full)

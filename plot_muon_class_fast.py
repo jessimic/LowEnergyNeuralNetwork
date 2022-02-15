@@ -163,11 +163,12 @@ else:
     true_energy = np.array(truth[:,0])
     if muon_index is None:
         muon_index = 6
-    try:
-        cnn_prob_mu = np.array(predict[:,:,0][-1])
-    except:
-        cnn_energy = np.array(predict[:,0])
-        cnn_prob_mu = np.array(predict[:,muon_index])
+    #try:
+    #    cnn_prob_mu = np.array(predict[:,:,0][-1])
+    #except:
+    cnn_energy = np.array(predict[:,0])
+    cnn_prob_track = np.array(predict[:,1])
+    cnn_prob_mu = np.array(predict[:,muon_index])
 
     if numu_files is None:
         numu_files = 1518 #294 #97
@@ -183,6 +184,8 @@ else:
 cnn_prob_nu = 1-cnn_prob_mu
 
 true_PID = truth[:,9]
+true_isTrack = truth[:,8]
+true_isTrack = true_isTrack == 1
 
 muon_mask_test = (true_PID) == 13
 true_isMuon = np.array(muon_mask_test,dtype=bool)
@@ -195,6 +198,10 @@ true_isNuTau = np.array(nutau_mask_test,dtype=bool)
 nu_mask = np.logical_or(np.logical_or(numu_mask_test, nue_mask_test), nutau_mask_test)
 true_isNu = np.array(nu_mask,dtype=bool)
 print("Nu:",sum(true_isNu))
+
+assert sum(true_isTrack[true_isMuon]) ==0, "Muon saved as tracks"
+assert sum(true_isTrack[true_isNuE]) ==0, "NuE saved as tracks"
+assert sum(true_isTrack[true_isNuTau]) ==0, "NuTau saved as tracks"
 
 weights = raw_weights[:,8]
 if weights is not None:
@@ -231,6 +238,9 @@ from PlottingFunctionsClassification import plot_classification_hist
 from PlottingFunctionsClassification import ROC
 from PlottingFunctionsClassification import my_confusion_matrix
 
+zoom_min = 0.97
+zoom_max = 1.0
+
 plot_classification_hist(true_isNu,cnn_prob_nu,mask=true_all,
                         mask_name="No Cuts", units="",bins=50,
                         weights=weights, log=True,save=save,
@@ -241,8 +251,14 @@ plot_classification_hist(true_isNu,cnn_prob_nu,mask=true_all,
                         mask_name="No Cuts", units="",bins=50,
                         weights=weights, log=True,save=save,
                         save_folder_name=save_folder,
-                        savename="CNNMuon_Near1",xmin=0.98,xmax=1.,
+                        savename="CNNMuon_Near1",xmin=zoom_min,xmax=zoom_max,
                         name_prob1 = "Neutrino", name_prob0 = "Muon")
+
+plot_classification_hist(true_isTrack,cnn_prob_track,mask=true_isNu,
+                        mask_name="Neutrino", units="",bins=50,
+                        weights=weights, log=True,save=save,
+                        save_folder_name=save_folder,
+                        name_prob1 = "Track", name_prob0 = "Cascade")
 
 if split_flavor:
     if sum(true_isNuMu) > 0:
@@ -256,7 +272,7 @@ if split_flavor:
                             mask_name="NuMu", units="",bins=50,
                             weights=weights, log=False,save=save,
                             save_folder_name=save_folder,
-                            savename="CNNMuon_Near1",xmin=0.98,xmax=1.,
+                            savename="CNNMuon_Near1",xmin=zoom_min,xmax=zoom_max,
                             name_prob1 = "Neutrino", name_prob0 = "Muon")
 
     if sum(true_isNuE) > 0:
@@ -277,12 +293,18 @@ threshold1, threshold0, auc = ROC(true_isNu,cnn_prob_nu,
                                 mask=None,mask_name="No Cuts",
                                 save=save,save_folder_name=save_folder,
                                 variable="Probability Neutrino")
+
+threshold1_pid, threshold0_pid, auc_pid = ROC(true_isTrack,cnn_prob_track,
+                                mask=true_isNu,mask_name="Neutrino",
+                                save=save,save_folder_name=save_folder,
+                                variable="Probability Track")
 #Confusion Matrix
 total = sum(weights[true_isNuMu])
 total_mu = sum(weights[true_isMuon])
 if given_threshold is None:
     #try_cuts = np.arange(0.01,1.00,0.01)
-    try_cuts = np.arange(0.001,0.02,0.001)
+    try_cuts = np.arange(0.001,0.10,0.001)
+    #try_cuts = np.arange(0.161,0.180,0.001)
     fraction_numu = []
     fraction_muon = []
     for mu_cut in try_cuts:
@@ -305,52 +327,101 @@ else:
     best_mu_cut = given_threshold
     print("given cut value %f"%(best_mu_cut))
 
-cnn_binary_class = cnn_prob_mu <= best_mu_cut
-percent_save = my_confusion_matrix(true_isNu, cnn_binary_class, weights,
+cnn_binary_mu = cnn_prob_mu <= best_mu_cut
+percent_save,percent_error = my_confusion_matrix(true_isNu, cnn_binary_mu, 
+                    weights,
                     mask=None,title="CNN Muon Cut",
                     save=save,save_folder_name=save_folder)
 
+
+print("Muon AUC: %.3f"%auc)
+print("PID AUC: %.3f"%auc_pid)
+#save percent order: (CNN Muon, True Neutrino), (CNN Muon, True Muon), (CNN Neutrino, True Neutrino), (CNN Neutrino, True Muon)
+print("CNN Neutrino, True Neutrino: %.2f +/- %.2f"%(percent_save[2],percent_error[2]))
+print("CNN Muon, True Muon: %.2f +/- %.2f"%(percent_save[1],percent_error[1]))
+
 if split_flavor:
-    percent_save = my_confusion_matrix(true_isNu[MuNuMu],
-                    cnn_binary_class[MuNuMu], weights[MuNuMu],
+    if sum(true_isNuMu) > 0:
+        percent_save,percent_error = my_confusion_matrix(true_isNu[MuNuMu],
+                    cnn_binary_mu[MuNuMu], weights[MuNuMu],
                     mask=None,title="CNN Muon Cut NuMu",
                     save=save,save_folder_name=save_folder)
+        print("CNN Neutrino, True Muon Neutrino: %.2f +/- %.2f"%(percent_save[2],percent_error[2]))
 
-    percent_save = my_confusion_matrix(true_isNu[MuNuE],
-                    cnn_binary_class[MuNuE], weights[MuNuE],
+    if sum(true_isNuE) > 0:
+        percent_save,percent_error = my_confusion_matrix(true_isNu[MuNuE],
+                    cnn_binary_mu[MuNuE], weights[MuNuE],
                     mask=None,title="CNN Muon Cut NuE",
                     save=save,save_folder_name=save_folder)
+        print("CNN Neutrino, True Electron Neutrino: %.2f +/- %.2f"%(percent_save[2],percent_error[2]))
 
-    percent_save = my_confusion_matrix(true_isNu[MuNuTau],
-                    cnn_binary_class[MuNuTau], weights[MuNuTau],
+    if sum(true_isNuTau) > 0:
+        percent_save,percent_error = my_confusion_matrix(true_isNu[MuNuTau],
+                    cnn_binary_mu[MuNuTau], weights[MuNuTau],
                     mask=None,title="CNN Muon Cut NuTau",
                     save=save,save_folder_name=save_folder)
+        print("CNN Neutrino, True Tau Neutrino: %.2f +/- %.2f"%(percent_save[2],percent_error[2]))
+
+cnn_binary_pid = cnn_prob_track >= 0.7
 
 plot_efficiency = True
 if plot_efficiency:
     energy_array = np.arange(5, 101, 1)
-    efficiency_array = np.zeros(len(energy_array)-1)
+    efficiency_mu_array = np.zeros(len(energy_array)-1)
+    true_positive_mu_array = np.zeros(len(energy_array)-1)
+    true_negative_mu_array = np.zeros(len(energy_array)-1)
+    efficiency_pid_array = np.zeros(len(energy_array)-1)
+    true_positive_pid_array = np.zeros(len(energy_array)-1)
+    true_negative_pid_array = np.zeros(len(energy_array)-1)
     for energy_index in range(0,len(energy_array)-1):
         emin = energy_array[energy_index]
         emax = energy_array[energy_index+1]
         ecut = np.logical_and(cnn_energy > emin, cnn_energy < emax)
-        true_positive = np.logical_and(true_isNu[ecut], cnn_binary_class[ecut])
-        true_negative = np.logical_and(true_isMuon[ecut], np.logical_not(cnn_binary_class[ecut]))
-        total = (sum(true_positive) + sum(true_negative))/len(cnn_binary_class)
-        efficiency_array[energy_index] = total
+
+        weights_here = weights[ecut]
+        true_positive_mu = np.logical_and(true_isNu[ecut], cnn_binary_mu[ecut])
+        positive_mu = true_isNu[ecut]
+        true_negative_mu = np.logical_and(true_isMuon[ecut], np.logical_not(cnn_binary_mu[ecut]))
+        negative_mu = true_isMuon[ecut]
+        true_positive_mu_array[energy_index] = sum(weights_here[true_positive_mu])/sum(weights_here[positive_mu])
+        true_negative_mu_array[energy_index] = sum(weights_here[true_negative_mu])/sum(weights_here[negative_mu])
+        total_mu = (sum(weights_here[true_positive_mu]) + sum(weights_here[true_negative_mu]))/sum(weights_here)
+        efficiency_mu_array[energy_index] = total_mu
+        
+        all_cut = np.logical_and(ecut, true_isNu)
+        weights_here = weights[all_cut]
+        true_positive_pid = np.logical_and(true_isTrack[all_cut], cnn_binary_pid[all_cut])
+        positive_pid = true_isTrack[all_cut]
+        true_negative_pid = np.logical_and(np.logical_not(true_isTrack[all_cut]), np.logical_not(cnn_binary_pid[all_cut]))
+        negative_pid = np.logical_not(true_isTrack[all_cut])
+        true_positive_pid_array[energy_index] = sum(weights_here[true_positive_pid])/sum(weights_here[positive_pid])
+        true_negative_pid_array[energy_index] = sum(weights_here[true_negative_pid])/sum(weights_here[negative_pid])
+        total_pid = (sum(weights_here[true_positive_pid]) + sum(weights_here[true_negative_pid]))/sum(weights_here)
+        efficiency_pid_array[energy_index] = total_pid
 
 plt.figure(figsize=(10,10))
 plt.title("Muon Efficiency",fontsize=25)
-plt.bar(energy_array[:-1],efficiency_array,width=1)
-plt.xlabel("Energy")
-plt.ylabel("Efficiency")
+x = list(itertools.chain(*zip(energy_array[:-1],energy_array[1:])))
+true_pos_mu_plot = list(itertools.chain(*zip(true_positive_mu_array,true_positive_mu_array)))
+true_neg_mu_plot = list(itertools.chain(*zip(true_negative_mu_array,true_negative_mu_array)))
+plt.plot(x,true_pos_mu_plot,'b-',linewidth=2,label="True Neutrino")
+plt.plot(x,true_neg_mu_plot,'r-',linewidth=2,label="True Muon")
+plt.xlabel("Reconstructed Energy (GeV)", fontsize=20)
+plt.ylabel("Fraction Correctly Classified",fontsize=20)
+plt.legend(fontsize=20)
 plt.savefig("%s/EfficiencyMuon.png"%save_folder)
 
+plt.figure(figsize=(10,10))
+plt.title("Track Efficiency on Neutrinos",fontsize=25)
+#plt.bar(energy_array[:-1],efficiency_array,width=1)
+#plt.plot(energy_array[:-1],efficiency_pid_array,'b.-',markersize=10,linewidth=2)
+plt.plot(energy_array[:-1],true_positive_pid_array,'b.-',markersize=10,linewidth=2,label="True Track")
+plt.plot(energy_array[:-1],true_negative_pid_array,'r.-',markersize=10,linewidth=2,label="True Cascade")
+plt.xlabel("Reconstructed Energy (GeV)", fontsize=20)
+plt.ylabel("Fraction Correctly Classified",fontsize=20)
+plt.legend(fontsize=20)
+plt.savefig("%s/EfficiencyTrack.png"%save_folder)
 
-print("AUC: %.3f"%auc)
-#save percent order: (CNN Muon, True Neutrino), (CNN Muon, True Muon), (CNN Neutrino, True Neutrino), (CNN Neutrino, True Muon)
-print("CNN Neutrino, True Neutrino: %.2f"%percent_save[2])
-print("CNN Neutrino, True Muon: %.2f"%percent_save[3])
 
 #if save_output_data and i3:
 #    f = h5py.File("%s/prediction_values_%inumu_%inue_%inutau_%imuon.hdf5"%(save_folder,numu_files,nue_files,nutau_files,muon_files), "w")

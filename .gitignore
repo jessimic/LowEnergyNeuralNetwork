@@ -1,7 +1,7 @@
 #What files to ingore
 
-#singularity image is large, only store one
-flercnn_basic-libs.sif
+#singularity image is too large
+*.sif
 
 VariableChecks/*
 subset_L_16_16_tanh_weightsFalse/*
@@ -29,6 +29,7 @@ outdated/make_even/job_logs/*
 outdated/make_jobs/make_even/job_logs/*
 data_files/*
 vertex_study/*.hdf5
+make_jobs/plot_CNN/plot_class/*log
 
 #Kill all core files
 *core*

@@ -162,6 +162,7 @@ for a_file in event_file_names:
     try:
         file_weights = f["weights"][:]
     except:
+        file_weights = None
         print("no weights included")
         pass
     if use_old_reco:
@@ -256,6 +257,8 @@ if use_old_reco:
 
 if shuffle:
     print("Finished concatonating all the files. Now I will shuffle..")
+    #print("HARD CODING WEIGHTS TO BE NONE")
+    #full_weights = None
     from handle_data import Shuffler
 
     full_features_DC, full_features_IC, full_labels, \
@@ -366,7 +369,8 @@ if split_train or test_only:
         f.create_dataset("Y_test", data=Y_test[test_start:test_end])
         f.create_dataset("X_test_DC", data=X_test_DC[test_start:test_end])
         f.create_dataset("X_test_IC", data=X_test_IC[test_start:test_end])
-        f.create_dataset("weights_test", data=weights_test[test_start:test_end])
+        if weights_test is not None:
+            f.create_dataset("weights_test", data=weights_test[test_start:test_end])
         #f.attrs['output_label_names'] = [a.encode('utf8') for a in output_label_names]
         #f.create_dataset("output_label_names",data=f.attrs['output_label_names'])
         #f.create_dataset("input_transform_factors",data=input_transform_factors)
@@ -376,12 +380,14 @@ if split_train or test_only:
             f.create_dataset("Y_train", data=Y_train[train_start:train_end])
             f.create_dataset("X_train_DC", data=X_train_DC[train_start:train_end])
             f.create_dataset("X_train_IC", data=X_train_IC[train_start:train_end])
-            f.create_dataset("weights_train", data=weights_train[train_start:train_end])
+            if weights_train is not None:
+                f.create_dataset("weights_train", data=weights_train[train_start:train_end])
             if create_validation:
                 f.create_dataset("Y_validate", data=Y_validate[validate_start:validate_end])
                 f.create_dataset("X_validate_IC", data=X_validate_IC[validate_start:validate_end])
                 f.create_dataset("X_validate_DC", data=X_validate_DC[validate_start:validate_end])
-                f.create_dataset("weights_validate", data=weights_validate[validate_start:validate_end])
+                if weights_validate is not None:
+                    f.create_dataset("weights_validate", data=weights_validate[validate_start:validate_end])
         if use_old_reco:
             f.create_dataset("reco_test",data=reco_test[test_start:test_end])
             if not test_only:
