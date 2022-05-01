@@ -1095,7 +1095,7 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
                        specific_bins = None,xline=None,xline_name="DeepCore",
                        epochs=None,reco_name="Retro",cnn_name="CNN",
                        legend="upper center",add_contour=False,
-                       print_bins=False,variable_type="True"):
+                       print_bins=False,variable_type="True",title=None):
     """Plots different variable slices vs each other (systematic set arrays)
     Receives:
         truth= array with truth labels for this one variable
@@ -1200,18 +1200,21 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
         if vs_predict:
             x_axis_array = nn_reco
             x_axis_array2 = old_reco #nn_reco
-            title="%s Resolution Dependence"%(variable)
+            if title is None:
+                title="%s Resolution Dependence"%(variable)
         else:
             if energy_truth is None:
-                title="%s Resolution Dependence"%(variable)
+                if title is None:
+                    title="%s Resolution Dependence"%(variable)
                 x_axis_array = truth
                 x_axis_array2 = truth2
             else:
-                title="%s Resolution %s Dependence"%(variable,xvariable)
+                if title is None:
+                    title="%s Resolution %s Dependence"%(variable,xvariable)
                 energy_truth = numpy.array(energy_truth)
                 x_axis_array = energy_truth
                 x_axis_array2 = energy_truth2
-                
+
         cut = (x_axis_array >= var_from) & (x_axis_array < var_to)
         if print_bins:
             evt_per_bin.append(sum(cut))

@@ -214,8 +214,9 @@ def plot_output(Y_values,outdir,filenumber=None,names=output_names,transform=out
     
     plt.figure()
     plt.hist(Y_values[:,0]*transform[0],bins=100,weights=weights);
-    plt.title("%s Distribution"%names[0],fontsize=25)
+    #plt.title("%s Distribution"%names[0],fontsize=25)
     plt.xlabel("%s %s"%(names[0],units[0]),fontsize=15)
+    plt.ylabel("Number of events",fontsize=15)
     plt.xticks(fontsize=15)
     plt.yticks(fontsize=15)
     #plt.yscale('log')

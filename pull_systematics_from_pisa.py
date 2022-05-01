@@ -64,7 +64,8 @@ for input_file in input_file_list:
 		for nu_key in nu_keys:
 			print("Reading %s"%nu_key)
 			particle[syst_set][nu_key] = f[syst_set][nu_key]
-			saved_particles.append(nu_key)
+            if syst_counter == 0:
+			    saved_particles.append(nu_key)
 	else:
 		print("Only reads in genie/neutrino files!")
 	#f.close()

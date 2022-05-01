@@ -38,6 +38,7 @@ make_jobs/plot_CNN/plot_class/*log
 *.hdf5
 *.i3
 *.zst
-
+*.sif
 #Don't save outfile logs from jobs
 *.out
+*.log
