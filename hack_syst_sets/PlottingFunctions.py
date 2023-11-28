@@ -271,7 +271,7 @@ def plot_distributions_CCNC(truth_all_labels,truth,reco,save=False,savefolder=No
     if not notebook:
         plt.close()
 
-def plot_distributions(truth=None,reco=None,save=False,savefolder=None,old_reco=None,weights=None,variable="Energy",units="(GeV)",reco_name="Retro", minval=None, maxval=None,bins=100,cnn_name="CNN",ylog=False,xlog=False,old_reco_weights=None,title=None,xline=None,xline_label=None,flavor=None,sample=None,notebook=False,true_name="Truth"):
+def plot_distributions(truth,reco=None,save=False,savefolder=None,old_reco=None,weights=None,variable="Energy",units="(GeV)",reco_name="Retro", minval=None, maxval=None,bins=100,cnn_name="CNN",ylog=False,xlog=False,old_reco_weights=None,title=None,xline=None,xline_label=None,flavor=None,sample=None,notebook=False,true_name="Truth"):
     """
     Plot testing set distribution
     Recieves:
@@ -339,28 +339,26 @@ def plot_distributions(truth=None,reco=None,save=False,savefolder=None,old_reco=
         number_bins = bins
         bins = 10**numpy.linspace(logmin, numpy.log10(maxval),number_bins)
         plt.xscale('log')
-
-    if truth is not None:
-        plt.hist(truth, bins=bins,color=color_green,alpha=0.5,range=[minval,maxval],weights=weights*1e3,label=true_name);
-        maskT = numpy.logical_and(truth > minval, truth < maxval)
-        print("%s Total: %i, Events in Plot: %i, Overflow: %i"%(true_name,len(truth),sum(maskT),len(truth)-sum(maskT)))
-        if weights is not None:
-            print("WEIGHTED Truth Total: %.2f, Events in Plot: %.2f, Overflow: %.2f"%(sum(weights)*weights_factor,sum(weights[maskT])*weights_factor,(sum(weights)-sum(weights[maskT]))*weights_factor))
-            plt.ylabel("Rate (mHz)")
-        else:
-            plt.ylabel("event count")
-        outname += true_name.replace(" ","")
+    plt.hist(truth, bins=bins,color=color_green,alpha=0.5,range=[minval,maxval],weights=weights,label=true_name);
+    maskT = numpy.logical_and(truth > minval, truth < maxval)
+    print("%s Total: %i, Events in Plot: %i, Overflow: %i"%(true_name,len(truth),sum(maskT),len(truth)-sum(maskT)))
+    if weights is not None:
+        print("WEIGHTED Truth Total: %.2f, Events in Plot: %.2f, Overflow: %.2f"%(sum(weights)*weights_factor,sum(weights[maskT])*weights_factor,(sum(weights)-sum(weights[maskT]))*weights_factor))
+        plt.ylabel("weighted event count")
+    else:
+        plt.ylabel("event count")
+    outname += "T"
     
     if reco is not None:
-        plt.hist(reco, bins=bins,color=colorscale[0], alpha=0.5,range=[minval,maxval],weights=weights*1e3,label=cnn_name);
-        outname += cnn_name.replace(" ","")
+        plt.hist(reco, bins=bins,color=colorscale[0], alpha=0.5,range=[minval,maxval],weights=weights,label=cnn_name);
+        outname += "R"
         maskR = numpy.logical_and(reco > minval, reco < maxval)
         print("Reco Total: %i, Events in Plot: %i, Overflow: %i"%(len(reco),sum(maskR),len(reco)-sum(maskR)))
         if weights is not None:
             print("WEIGHTED Reco Total: %.2f, Events in Plot: %.2f, Overflow: %.2f"%(sum(weights)*weights_factor,sum(weights[maskR])*weights_factor,(sum(weights)-sum(weights[maskR]))*weights_factor))
     if old_reco is not None:
-        plt.hist(old_reco, bins=bins,color=colorscale[-1], alpha=0.5,range=[minval,maxval],weights=old_reco_weights*1e3,label=reco_name);
-        outname += reco_name.replace(" ","")
+        plt.hist(old_reco, bins=bins,color=colorscale[-1], alpha=0.5,range=[minval,maxval],weights=old_reco_weights,label=reco_name);
+        outname += "OR"
         maskOR = numpy.logical_and(old_reco > minval, old_reco < maxval)
         print("Old Reco Total: %i, Events in Plot: %i, Overflow: %i"%(len(old_reco),sum(maskOR),len(old_reco)-sum(maskOR)))
         if weights is not None:
@@ -1345,9 +1343,12 @@ def plot_bin_slices(truth, nn_reco, energy_truth=None, weights=None,\
 
     if print_bins:
         print(variable_centers)
-        print(evt_per_bin)
+        print(medians)
+        print(abs(err_from-err_to))
         if old_reco is not None:
-            print(evt_per_bin2)
+            #print(evt_per_bin2)
+            print(medians_reco)
+            print(abs(err_from_reco-err_to_reco))
 
     #if epochs:
     #    title += " at %i Epochs"%epochs

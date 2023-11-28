@@ -1,0 +1,26 @@
+#!/bin/bash --login
+
+########## SBATCH Lines for Resource Request ##########
+
+#SBATCH --time=03:59:00             # limit of wall clock time - how long the job will run (same as -t)
+#SBATCH --gres=gpu:k80                # number of different nodes - could be an exact number or a range of nodes (same as -N)
+#SBATCH --mem=100G            # memory required per allocated CPU (or core) - amount of memory (in bytes)
+#SBATCH --job-name CNN_Test      # you can give your job a name for easier identification (same as -J)
+#SBATCH --output /mnt/home/micall12/LowEnergyNeuralNetwork/job_timing_test_gpu.out
+
+########## Command Lines to Run ##########
+INPUT="oscNext_genie_level6.5_v02.00_pass2.140000.00h_to_04h.cleanedpulses_transformed_IC19.no_cuts.test_only.hdf5"
+#INPUT="oscNext_genie_level6.5_v02.00_pass2.140000.000700.i3.bz2_cleanedpulses_transformed_IC19_testonly.no_cuts.hdf5"
+INDIR="/mnt/research/IceCube/jmicallef/official_oscnext/level6.5/140000/"
+OUTDIR="/mnt/home/micall12/LowEnergyNeuralNetwork/"
+OUTNAME="TimingTest"
+
+ENERGY="energy_FLERCNN"
+PID="PID_FLERCNN"
+ZENITH="zenith_FLERCNN"
+VERTEX="XYZ_FLERCNN"
+MUON="muon_v3_FLERCNN"
+
+echo $SLURM_JOB_NODELIST
+
+singularity exec -B /mnt/home/micall12:/mnt/home/micall12 -B /mnt/research/IceCube:/mnt/research/IceCube --nv /mnt/research/IceCube/Software/icetray_stable-tensorflow.sif python ${OUTDIR}/CNN_Test_hdf5.py --input_file $INPUT -d $INDIR --o $OUTDIR/output_plots/${OUTNAME} -n prediction_values_gpu --model_dir "/mnt/research/IceCube/FLERCNN/" --variable_list energy class zenith vertex muon nDOM --modelname_list ${ENERGY} ${PID} ${ZENITH} ${VERTEX} ${MUON} nDOM --factor_list 100 1 1 1 1 1

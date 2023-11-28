@@ -44,7 +44,7 @@ parser.add_argument("--model_dir", type=str,default="/mnt/home/micall12/LowEnerg
                         dest='model_dir',help="name of reco")
 parser.add_argument("--variable_list",nargs='+',default=[],
                     dest="variable_list", help="names of variables that were predicted: energy, zenith, class, muon, vertex, ending")
-parser.add_argument("--epoch_list",nargs='+',default=[None,None,None,None,None],
+parser.add_argument("--epoch_list",nargs='+',default=[0,0,0,0,0,0,0,0,0,0],
                     dest="epoch_list", help="epochs to pull models from")
 parser.add_argument("--modelname_list",nargs='+',default=[None,None,None,None,None],
                     dest="modelname_list", help="name output folder where model is stored, if NONE, assumes it is in the modeldir directly")
@@ -58,6 +58,8 @@ parser.add_argument("--conv_nodes", type=int,default=100,
                     dest="conv_nodes",help="Number of nodes in conv layers, only works for small network")
 parser.add_argument("--save_inputs", default=False,action='store_true',
                     dest="save_inputs", help="saving input features of the cnn")
+parser.add_argument("--newTF",default=False,action='store_true',
+                    dest="newTF",help="flag if using new version (2.7) of tensorflow")
 args = parser.parse_args()
 
 test_file = args.path + args.input_file
@@ -70,6 +72,7 @@ IC_drop_value =dropout
 connected_drop_value = dropout
 
 small_network = args.small_network
+newTF = args.newTF
 dense_nodes = args.dense_nodes
 conv_nodes = args.conv_nodes
 
@@ -87,7 +90,7 @@ if "error" in variable_list:
 model_name_list = []
 num_variables = len(variable_list)
 for variable_index in range(num_variables):
-    if epoch_list[variable_index] is None:
+    if epoch_list[variable_index] is None or epoch_list[variable_index]==0:
         model_name = args.model_dir + "/" + modelname_list[variable_index] + ".hdf5"
     else:
         model_name = "%s/%s/%s_%sepochs_model.hdf5"%(args.model_dir,modelname_list[variable_index], modelname_list[variable_index],epoch_list[variable_index])
@@ -102,18 +105,31 @@ if save==True:
     if os.path.isdir(save_folder_name) != True:
         os.mkdir(save_folder_name)
 
-def cnn_test(features_DC, features_IC, load_model_name, output_variables=1,DC_drop=0.2,IC_drop=0.2,connected_drop=0.2,dense_nodes=300,conv_nodes=100,model_type="energy"):
-    if small_network:
-        from cnn_model_simple import make_network
-        model_DC = make_network(features_DC,features_IC,1,DC_drop,IC_drop,connected_drop,conv_nodes=conv_nodes,dense_nodes=dense_nodes)
-    else:
-        if model_type == "class" or model_type == "muon":
-            from cnn_model_classification import make_network
-        elif model_type == "error":
-            from cnn_model_losserror import make_network
+def cnn_test(features_DC, features_IC, load_model_name, output_variables=1,DC_drop=0.2,IC_drop=0.2,connected_drop=0.2,dense_nodes=300,conv_nodes=100,model_type="energy",newTF=False):
+    if newTF:
+        from cnn_model_newTF import make_network
+        if model_type == "class" or model_type == "muon" or model_type == "muonL4" or model_type == "muonV3":
+            activation = "sigmoid"
         else:
-            from cnn_model import make_network
-        model_DC = make_network(features_DC,features_IC, output_variables, DC_drop, IC_drop,connected_drop)
+            activation = "linear"
+        print("NEW TF network model used")
+        model_DC = make_network(features_DC,features_IC, output_variables, DC_drop_value, IC_drop_value,connected_drop_value,activation=activation)
+    else:
+        if small_network:
+            from cnn_model_simple import make_network
+            model_DC = make_network(features_DC,features_IC,1,DC_drop,IC_drop,connected_drop,conv_nodes=conv_nodes,dense_nodes=dense_nodes)
+            print("small network model used")
+        else:
+            if model_type == "class" or model_type == "muon":
+                from cnn_model_classification import make_network
+                print("classification network model used")
+            elif model_type == "error":
+                print("error network model used")
+                from cnn_model_losserror import make_network
+            else:
+                from cnn_model import make_network
+                print("regression network model used")
+            model_DC = make_network(features_DC,features_IC, output_variables, DC_drop, IC_drop,connected_drop)
     model_DC.load_weights(load_model_name)
 
     Y_test_predicted = model_DC.predict([features_DC,features_IC])
@@ -173,7 +189,7 @@ for network in range(num_variables):
         print("Time to calculate CNN %s on %i events: %f seconds"%(variable_list[network],X_test_DC_use.shape[0],t1-t0))
     else:
         t0 = time.time()
-        cnn_predict = cnn_test(X_test_DC_use, X_test_IC_use, model_name_list[network],model_type=variable_list[network], output_variables=output_var,DC_drop=DC_drop_value,IC_drop=IC_drop_value,connected_drop=connected_drop_value,dense_nodes=dense_nodes,conv_nodes=conv_nodes)
+        cnn_predict = cnn_test(X_test_DC_use, X_test_IC_use, model_name_list[network],model_type=variable_list[network], output_variables=output_var,DC_drop=DC_drop_value,IC_drop=IC_drop_value,connected_drop=connected_drop_value,dense_nodes=dense_nodes,conv_nodes=conv_nodes,newTF=newTF)
         if factor is not None:
             factor = int(factor)
             if output_var == 1:

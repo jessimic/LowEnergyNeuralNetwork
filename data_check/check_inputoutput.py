@@ -214,7 +214,7 @@ def plot_output(Y_values,outdir,filenumber=None,names=output_names,transform=out
     
     plt.figure()
     plt.hist(Y_values[:,0]*transform[0],bins=100,weights=weights);
-    #plt.title("%s Distribution"%names[0],fontsize=25)
+    plt.title("%s Distribution"%names[0],fontsize=25)
     plt.xlabel("%s %s"%(names[0],units[0]),fontsize=15)
     plt.ylabel("Number of events",fontsize=15)
     plt.xticks(fontsize=15)
@@ -224,8 +224,8 @@ def plot_output(Y_values,outdir,filenumber=None,names=output_names,transform=out
         filenum_name = "_%s"%filenum
     else:
         filenum_name = ""
-    #plt.savefig("%s/Output_%s%s.png"%(outdir,names[0].replace(" ", ""),filenum_name))
-    plt.savefig("%s/Output_Energy%s.png"%(outdir,filenum_name),bbox_inches='tight')
+    plt.savefig("%s/Output_%s%s.png"%(outdir,names[0].replace(" ", ""),filenum_name))
+    #plt.savefig("%s/Output_Energy%s.png"%(outdir,filenum_name),bbox_inches='tight')
     
     plt.figure()
     plt.hist(Y_values[:,1]*transform[1],bins=100,weights=weights);
@@ -253,6 +253,20 @@ def plot_output(Y_values,outdir,filenumber=None,names=output_names,transform=out
         filenum_name = ""
     #plt.savefig("%s/Output_%s%s.png"%(outdir,names[1].replace(" ", ""),filenum_name))
     plt.savefig("%s/Output_TrackLength%s.png"%(outdir,filenum_name),bbox_inches='tight')
+   
+    for i in range(4,7):
+        plt.figure()
+        plt.hist(Y_values[:,i]*transform[i],bins=100,weights=weights);
+        plt.title("%s Distribution"%names[i],fontsize=25)
+        plt.xlabel("%s %s"%(names[i],units[i]),fontsize=15)
+        plt.xticks(fontsize=15)
+        plt.yticks(fontsize=15)
+        #plt.yscale('log')
+        if filenum:
+            filenum_name = "_%s"%filenum
+        else:
+            filenum_name = ""
+        plt.savefig("%s/Output_%s%s.png"%(outdir,names[i].replace(" ", ""),filenum_name),bbox_inches='tight')
 
     if Y_values.shape[-1] == 13:
         plt.figure()

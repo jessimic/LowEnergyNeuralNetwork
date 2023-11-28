@@ -37,17 +37,13 @@ if args.savename is not None:
 print("Saving to %s"%save_folder_name)
 
 
-pretty_flavor_name = [r'$\nu_e$' + " CC", r'$\nu_\mu$' + " CC", r'$\nu_\tau$' + " CC", r'$\nu$' + " NC",  r'$\mu_{atm}$']
-color = ["red","orange","blue","green","purple","gray","magenta", "brown", "lime", "mediumslateblue", "goldenrod", "cyan", "hotpink"]
-marker = ["o","s","*","X","^","p","v","3","D","P","1", "H","2"]
-
 #CUT values
 cut = {}
 cut["CNN"] = {}
 cut["RETRO"] = {}
-cut["CNN"]['r'] = 200.
-cut["CNN"]['zmin'] = -495.
-cut["CNN"]['zmax'] = -225.
+cut["CNN"]['r'] = 200
+cut["CNN"]['zmin'] = -495
+cut["CNN"]['zmax'] = -225
 cut["CNN"]['coszen'] = 0.3
 cut["CNN"]['emin'] = 5
 cut["CNN"]['emax'] = 100
@@ -68,11 +64,16 @@ cut["RETRO"]['time'] = 14500
 cut["RETRO"]['track'] = 0.85
 cut["RETRO"]['cascade'] = 0.5
 
+pretty_flavor_name = [r'$\nu_e$' + " CC", r'$\nu_\mu$' + " CC", r'$\nu_\tau$' + " CC", r'$\nu$' + " NC",  r'$\mu_{atm}$']
+color = ["red","orange","blue","green","purple","gray","magenta", "brown", "lime", "mediumslateblue", "goldenrod", "cyan", "hotpink"]
+marker = ["o","s","*","X","^","p","v","3","D","P","1", "H","2"]
+
 nu_keys = ['nue_cc', 'nue_nc', 'nuebar_cc', 'nuebar_nc', 'numu_cc', 'numu_nc', 'numubar_cc', 'numubar_nc', 'nutau_cc', 'nutau_nc', 'nutaubar_cc', 'nutaubar_nc']
 saved_particles = []
 particle = {}
 particle[set_names[0]] = {}
 
+# Read input files
 for input_file in input_file_list:
 	print("Reading file %s"%input_file)
 	f = h5py.File(input_file, "r")
@@ -126,7 +127,7 @@ cnn_vars = ['FLERCNN_energy', 'FLERCNN_coszen', 'FLERCNN_vertex_x', 'FLERCNN_ver
 
 true_vars = ['MCInIcePrimary.energy', 'MCInIcePrimary.dir.coszen', 'MCInIcePrimary.pos.x', 'MCInIcePrimary.pos.y', 'MCInIcePrimary.pos.z']
 
-retro_vars = ['L7_reconstructed_total_energy', 'L7_reconstructed_coszen', 'L7_reconstructed_vertex_x', 'L7_reconstructed_vertex_y', 'L7_reconstructed_vertex_z'] #'L7_reconstructed_azimuth', 'L7_reconstructed_cascade_energy', 'L7_reconstructed_time', 'L7_reconstructed_track_energy', 'L7_reconstructed_track_length', 'L7_reconstructed_vertex_rho36', 'L7_reconstructed_zenith', 'L7_MuonClassifier_ProbNu', 'L7_NarrowCorridorCutPulsesHitStatistics.z_min', 'L7_PIDClassifier_ProbTrack']
+retro_vars = ['L7_reconstructed_total_energy', 'L7_reconstructed_coszen', 'L7_reconstructed_vertex_x', 'L7_reconstructed_vertex_y', 'L7_reconstructed_vertex_z'] 
 
 #Names to save under here
 true = {}
@@ -178,7 +179,6 @@ for a_set in set_names:
 
         #Save main variables: energy, coszen, x, y, z
         for var in range(len(base_save)):
-            #print(base_save[var], saved_particles[par_index],true_vars[var],cnn_vars[var])
             
             #Handle cases for muon and noise where true values not saved
             if particle_name == 'muon':
@@ -302,7 +302,7 @@ for a_set in set_names:
     nu_mask = np.logical_or(np.logical_or(numu_mask_test, nue_mask_test), nutau_mask_test)
     true[a_set]['isNu'] = np.array(nu_mask,dtype=bool)
 
-#Calculated variables
+    #Calculated variables
     true[a_set]['r'] = np.zeros((len(true[a_set]['x']))) 
     x_origin = np.ones((len(true[a_set]['x'])))*46.290000915527344
     y_origin = np.ones((len(true[a_set]['y'])))*-34.880001068115234
@@ -320,7 +320,6 @@ for a_set in set_names:
     mask[a_set]['R'] = reco[a_set]['r'] < cut[reco_name]['r']
     mask[a_set]['Z'] = np.logical_and(reco[a_set]['z'] > cut[reco_name]['zmin'], reco[a_set]['z'] < cut[reco_name]['zmax'])
     mask[a_set]['Vertex'] = np.logical_and(mask[a_set]['R'], mask[a_set]['Z'])
-    print("z",sum(mask[a_set]['Z']), "r", sum(mask[a_set]['R']), "vertex", sum(mask[a_set]['Vertex']), "all", len(mask[a_set]['Z']))
     mask[a_set]['ProbMu'] = reco[a_set]['prob_mu'] <= cut[reco_name]['mu']
     mask[a_set]['ProbTrack'] = reco[a_set]['prob_track'] >= cut[reco_name]["track"]
     mask[a_set]['ProbCascade'] = reco[a_set]['prob_track'] <= cut[reco_name]["cascade"]
@@ -338,7 +337,6 @@ for a_set in set_names:
     mask[a_set]['RecoNoR'] = np.logical_and(mask[a_set]['ProbMu'], np.logical_and(mask[a_set]['Zenith'], np.logical_and(mask[a_set]['Energy'], mask[a_set]['Z'])))
     mask[a_set]['RecoNoVer'] = np.logical_and(mask[a_set]['ProbMu'], np.logical_and(mask[a_set]['Zenith'], mask[a_set]['Energy']))
     mask[a_set]['RecoNoMuCut'] = np.logical_and(mask[a_set]['Energy'], np.logical_and(mask[a_set]['Zenith'], mask[a_set]['Vertex']))
-    print("no z",sum(mask[a_set]['RecoNoZ']), "no r", sum(mask[a_set]['RecoNoR']), "no ver", sum(mask[a_set]['RecoNoVer']), "no energy", sum(mask[a_set]['RecoNoEn']), "no zenith", sum(mask[a_set]['RecoNoZenith']), "no muon cut", sum(mask[a_set]['RecoNoMuCut']), "all reco cuts", sum(mask[a_set]['Reco']))
     mask[a_set]['All'] = true[a_set]['energy'] > 0
     true[a_set]['All'] = true[a_set]['energy'] > 0
 
@@ -361,65 +359,28 @@ for a_set in set_names:
     mask[a_set]['AnalysisNoNtop'] = np.logical_and(np.logical_and(np.logical_and(mask[a_set]['nhit'],mask[a_set]['nouter']),mask[a_set]['Reco']),mask[a_set][last_cut])
     mask[a_set]['AnalysisNoNouter'] = np.logical_and(np.logical_and(np.logical_and(mask[a_set]['nhit'],mask[a_set]['ntop']),mask[a_set]['Reco']),mask[a_set][last_cut])
 
-#print("Events file 1: %i, NuMu Rate: %.2e"%(len(true[a_set]['energy']),sum(weights[a_set][true[a_set]['isNuMu']])))
-
     print("Events file %s: %i, Events after analysis cut: %i"%(a_set,len(true[a_set]['energy']),sum(mask[a_set]['Analysis'])))
 
-def plot_before_after_cut(given_dict,before_cut_dict,after_cut_dict,weights_dict,a_set="cnn",emin=5,emax=100,p_here="NuMuCC",var_here = "energy",type_here = "reco", ideal=None,save=True,save_folder_name=None,bins=100):
 
-        plt.figure()
-        plot_save_name = "%s%s%sCutHist"%(type_here,var_here,p_here)
-        plt.title("%s %s for %s"%(type_here,var_here,p_here))
-        hist_before = plt.hist(given_dict[a_set][var_here][before_cut_dict[a_set][p_here]],density=False,range=[emin,emax],bins=bins,weights=weights_dict[a_set][before_cut_dict[a_set][p_here]],label="Before Cut",alpha=0.5)
-        hist_after = plt.hist(given_dict[a_set][var_here][after_cut_dict[a_set][p_here]],density=False,range=[emin,emax],bins=bins,weights=weights_dict[a_set][after_cut_dict[a_set][p_here]],label="After Cut",alpha=0.5)
-        plt.xlabel("%s %s"%(type_here, var_here))
-        plt.legend()
-        plt.savefig("%s/%s.png"%(save_folder_name,plot_save_name),bbox_inches='tight')
-        
-        plt.figure()
-        plot_save_name = "%s%s%sCutRatio"%(type_here,var_here,p_here)
-        ebins = np.linspace(emin,emax,bins)
-        binwidth=(emax-emin)/bins*0.5
-        ebins = ebins+binwidth
-        plt.title("%s %s for %s: PostCut/PreCut"%(type_here,var_here,p_here))
-        plt.plot(ebins,hist_after[0]/hist_before[0],'k.')
-        if ideal is not None:
-            plt.axhline(0,label="ideal")
-        plt.xlabel("%s %s"%(type_here,var_here))
-        plt.savefig("%s/%s.png"%(save_folder_name,plot_save_name),bbox_inches='tight')
-
-
-variable_names = ['energy', 'coszenith', 'z', 'r', 'x_end', 'y_end', 'z_end', 'r_end', 'x', 'y']
+# Plotting
+variable_names = ['energy', 'coszenith', 'z', 'r', 'x', 'y']
 flavors = ["NuMu", "NuE", "NuTau", "Nu", "Muon", "Nu", "All", "Nu", "Nu"]
 selects = ["CC", "CC", "CC", "NC", "All", "All", "All", "Track", "Cascade"]
+
 ############## CHANGE THESE LINES ##############
-variable_index_list = [0,1,2,3] #[1,2,3] #[0] #chose variable from variable_names above
-check_index_list = [0,1,-4] #[-2, -1] #[0,1,2,3] #corresponds to flavors/selects list above 0 = NuMuCC
+variable_index_list = [0,1]  #chose variable from variable_names above
+check_index_list = [0,1,-4]  #corresponds to BOTH flavors & selects list above, e.g. 0 = NuMuCC
 cut_or = False #use for ending cuts, want below min OR above max
 energy_type = "True" #"EM Equiv" or Deposited or True
 
-print_cuts = False
-print_rates = False
-make_test_samples = False
-make_distributions = False
-make_log_zoom = False
-make_2d_hist = False
-make_2d_hist_vs_reco = False
-make_resolution = False
-make_bin_slice = False
-make_bin_slice_vs_reco = True
-make_confusion = False
-make_PID_confusion = False
-make_PID = False
-plot_pid_eff = False
-muon_var="BDT" #CNN or BDT, only applied to first set (assuming it is cnn)
+make_test_samples = True
+make_distributions = True
+make_2d_hist = True
+make_bin_slice = True
+make_PID = True
 make_muon_confusion = False
 make_muon = False
-find_muon_cut = False
-plot_muon_eff = False
-plot_muon_cut = False
-make_vertex=False
-plot_vertex_eff = False
+make_vertex=True
 ##################################################
 
 # Starting Plots
@@ -460,17 +421,9 @@ keynames = ['Energy', 'Zenith', 'Z', 'R', 'All', 'All', 'All', 'All', 'All', 'Al
 masknames = ['RecoNoEn', 'RecoNoZenith', 'RecoNoZ', 'RecoNoR', 'Reco', 'Reco', 'Reco', 'Reco', 'Reco', 'Reco'] #Don't apply final cut/mask for current variable plotting, else the edges are pulled due to cuts
 
 
-check_depo = true[set1]['energy'] - true[set1]['deposited_energy']
-near_zero = check_depo < 1e-3
-print("Check deposited different than true %s: %i"%(set1,sum(near_zero)))
-if input_file2 is not None:
-	check_depo2 = true[set2]['energy'] - true[set2]['deposited_energy']
-	near_zero2 = check_depo2 < 1e-3
-	print("Check deposited different than true %s: %i"%(set2,sum(near_zero2)))
-
 name_dict = {}
-name1 = "CNN"
-name2 = "Likelihood"
+name1 = set_names[0] #"CNN"
+name2 = set_names[1] #"Retro"
 name_dict[set1] = name1
 if set2 is not None:
     name_dict[set2] = name2
@@ -486,56 +439,6 @@ print(a_cut, sum(sample_mask1), sum(final1), with_cut, no_cut, with_cut/no_cut)
 
 #print("%s\t %s\t %i\t %i\t %.3e\t %.3f\t %.3f"%(set1, "isNu", sum(sample_mask1), sum(final1), sum(weights[set1][sample_mask1]), sum(weights[set1][final1]), sum(weights[set1][final1])/sum(weights[set1][mask[set1][sample_mask1]])))
 
-#### PRINT CUT IMPACT #############
-if print_cuts:
-    sample_mask1 = true[set1]['isNu']
-    if sum(sample_mask1) > 0:
-        check_cuts = ["AnalysisNoDOM","AnalysisNoNhit","AnalysisNoNouter","AnalysisNoNtop"]
-        final1 = np.logical_and(sample_mask1, mask[set1]['Analysis'])
-        total_events = sum(final1)
-        with_cut = sum(weights[set1][final1])*100
-        print("Analysis cuts:", total_events,  with_cut, "mHz")
-        print("Cut", "# Events", "Rate", "all cuts/one cut removed")
-        for a_cut in check_cuts:
-            check1 = np.logical_and(sample_mask1, mask[set1][a_cut])
-            no_cut = sum(weights[set1][check1])*100
-            print(a_cut, sum(check1), no_cut, with_cut/no_cut)
-        check_cuts = ["RecoNoR", "RecoNoZ", "RecoNoEn", "RecoNoZenith", "RecoNoVer","RecoNoMuCut"]
-        for a_cut in check_cuts:
-            check1 = np.logical_and(np.logical_and(sample_mask1, mask[set1][a_cut]),mask[set1]["MC"])
-            no_cut = sum(weights[set1][check1])*100
-            print(a_cut,sum(check1), no_cut, with_cut/no_cut)
-
-####### PRINT RATES ##########
-if print_rates:
-    print("Reco", "Flavor", "Type", "Num events (after)", "Rate (after)", "Fraction Of Sample")
-    for check_set in range(0,7):
-        
-        flavor = flavors[check_set]
-        sample = selects[check_set]
-        if flavor == "All":
-            flavor_key = flavor
-        else:
-            flavor_key = "is%s"%flavor
-        if sample =="CC" or sample == "NC":
-            select = "is%s"%sample
-        else:
-            select = sample
-        
-        sample_mask1 = np.logical_and(true[set1][flavor_key],true[set1][select])
-        final1 = np.logical_and(sample_mask1, mask[set1]['Analysis'])
-        print("%s\t %s\t %s\t %i\t %.3e\t %.3f"%(set1, flavor, sample, sum(final1), sum(weights[set1][final1]), sum(weights[set1][final1])/sum(weights[set1][mask[set1]['Analysis']])))
-        
-        if input_file2 is not None:
-            sample_mask2 = np.logical_and(true[set2][flavor_key],true[set2][select])
-            final2 = np.logical_and(sample_mask2, mask[set2]['Analysis'])
-            print("%s\t %s\t %s\t %i\t %.3e\t %.3f"%(set2,flavor, sample, sum(final2), sum(weights[set2][final2]), sum(weights[set2][final2])/sum(weights[set2][mask[set2]['Analysis']])))
-            
-            #Find shared events
-            shared_events = len(set(true[set1]['full_ID'][final1]) & set(true[set2]['full_ID'][final2]))
-            unique_set1 = len(true[set1]['full_ID'][final1]) - shared_events
-            unique_set2 = len(true[set2]['full_ID'][final2]) - shared_events
-            print("%s\t %s\t %i\t %i\t %i\t %.3f\t %.3f"%(flavor, sample, shared_events, unique_set1, unique_set2, unique_set1/(shared_events+unique_set1),  unique_set2/(shared_events+unique_set2)))
 
 ######### MUON CLASSIFICATION PLOTS ################
 
@@ -543,11 +446,6 @@ if make_muon_confusion:
     for a_set in set_names:
         muon_key = "prob_nu" #BDT
         muon_mask_key = "ProbMu"
-        if "cnn" in a_set or "CNN" in a_set:
-            if muon_var=="CNN":
-                muon_key = "CNN_prob_nu"
-                muon_mask_key = "CNNProbNu"
-            print("Confusion: I think", a_set, "is CNN and I'm using", muon_key, "for muon plots")
 
         print(a_set,muon_key,muon_mask_key,reco[a_set][muon_key][:10],mask[a_set][muon_mask_key][:10])
         print(a_set,"prob_nu","ProbMu",reco[a_set]["prob_nu"][:10],mask[a_set]["ProbMu"][:10])
@@ -556,58 +454,6 @@ if make_muon_confusion:
                     mask=np.logical_and(mask[a_set]["RecoNoMuCut"], mask[a_set]["MC"]),
                     title="%s Muon Cut"%name_dict[a_set],
                     save=save,save_folder_name=save_folder_name)
-
-if find_muon_cut:
-    step=0.01
-    cut_values = np.arange(step,1,step)
-    muon_rates = []
-    numu_rates = []
-    nue_rates = []
-    nutau_rates = []
-    nu_rates = []
-    nc_rates = []
-    ratio_rates = []
-    for muon_cut in cut_values:
-        a_mask = np.logical_and(mask[set1]["RecoNoMuCut"], mask[set1]["MC"])
-        guess_nu_prelim = reco[set1]["prob_nu"] > muon_cut
-        guess_nu = np.logical_and(a_mask, guess_nu_prelim)
-        mu_mask = np.logical_and(true[set1]['isMuon'],guess_nu)
-        numucc_mask = np.logical_and(np.logical_and(true[set1]['isNuMu'],true[set1]['isCC']),guess_nu)
-        nuecc_mask = np.logical_and(np.logical_and(true[set1]['isNuE'],true[set1]['isCC']),guess_nu)
-        nutaucc_mask = np.logical_and(np.logical_and(true[set1]['isNuTau'],true[set1]['isCC']),guess_nu)
-        nunc_mask = np.logical_and(np.logical_and(true[set1]['isNu'],np.logical_not(true[set1]['isCC'])),guess_nu)
-        nu_mask = np.logical_and(true[set1]['isNu'],guess_nu)
-        
-        muon_rate = sum(weights[set1][mu_mask])
-        numu_rate = sum(weights[set1][numucc_mask])
-        nue_rate = sum(weights[set1][nuecc_mask])
-        nutau_rate = sum(weights[set1][nutaucc_mask])
-        nc_rate = sum(weights[set1][nunc_mask])
-        nu_rate = sum(weights[set1][nu_mask])
-
-        muon_rates.append(muon_rate*1000)
-        nue_rates.append(nue_rate*1000)
-        numu_rates.append(numu_rate*1000)
-        ratio_rates.append(numu_rate/muon_rate)
-        nutau_rates.append(nutau_rate*1000)
-        nc_rates.append(nc_rate*1000)
-        nu_rates.append((nue_rate + numu_rate + nutau_rate + nc_rate)*1000)
-
-        #if muon_cut >= 0.3 and muon_cut <= 0.8:
-        #    print(muon_cut, muon_rate*1000,numu_rate*1000)
-
-    plt.figure(figsize=(10,10))
-    plt.plot(cut_values, ratio_rates, label=r'$\nu_\mu/\mu$')
-    #plt.plot(cut_values, numu_rates, label=r'$\nu_\mu$ CC')
-    #plt.plot(cut_values, nue_rates, label=r'$\nu_e$ CC')
-    #plt.plot(cut_values, nutau_rates, label=r'$\nu_\tau$ CC')
-    #plt.plot(cut_values, nc_rates, label=r'$\nu$ NC')
-    plt.grid(which="both")
-    plt.yscale('log')
-    plt.xlabel("Cut value")
-    plt.ylabel("Rate NuMu CC/Muon")
-    plt.legend()
-    plt.savefig("%s/find_rates_ratio.png"%(save_folder_name),bbox_inches='tight')
 
 if make_muon:
     for a_set in set_names:
@@ -669,7 +515,7 @@ if make_muon:
             reco_name=name2,
             mask_name="No Muon Cut",
             save=save,save_folder_name=save_folder_name,
-            variable="Probability Neutrino (%s)"%muon_var) 
+            variable="Probability Neutrino (BDT)") 
     else:
         ROC(true[set1]['isNu'],reco[set1]["prob_nu"],
             mask=np.logical_and(mask[set1]["RecoNoMuCut"], mask[set1]["MC"]),
@@ -677,164 +523,7 @@ if make_muon:
             save=save,save_folder_name=save_folder_name,
             variable="Probability Neutrino (BDT)") 
 
-if plot_muon_eff:
-    #energy_array = np.arange(5, 101, 5)
-    energy_array = np.arange(150, 501, 205)
-    e_type = "true"
-    efficiency_mu = {}
-    nu_keys_here = ["NuE", "NuMu"] #, "NuTau", "Nu"]
-    cc_keys_here = ["CC", "CC"] #, "CC", "NC"]
-    title_here="CNN Muon Classifier Efficiency"
-    plot_save_name="EfficiencyMuon"
-    #a_set = set1
-    width=4
-
-    for a_set in set_names:
-        muon_key = "prob_nu" #BDT
-        muon_mask_key = "ProbMu"
-        if "cnn" in a_set or "CNN" in a_set:
-            if muon_var=="CNN":
-                muon_key = "CNN_prob_nu"
-                muon_mask_key = "CNNProbNu"
-                print("I think", a_set, "is CNN and I'm using", muon_key, "for muon plots")
-        efficiency_mu[a_set] = {}
-        cut_variable_here = mask[a_set][muon_mask_key]
-        if muon_var == "CNN":
-            cut_variable_here = np.logical_not(mask[a_set][muon_mask_key])
-        reco_cut_minus_var = mask[a_set]["RecoNoMuCut"]
-        analysis_cut = np.logical_and(reco_cut_minus_var, mask[a_set]["MC"])
-
-        for i in range(len(nu_keys_here)):
-            key_here = nu_keys_here[i] + cc_keys_here[i]
-            efficiency_mu[a_set][key_here] = np.zeros(len(energy_array)-1)
-        efficiency_mu[a_set]["Muon"] = np.zeros(len(energy_array)-1)  
-
-        for energy_index in range(0,len(energy_array)-1):
-            emin = energy_array[energy_index]
-            emax = energy_array[energy_index+1]
-            if e_type == "reco":
-                ecut = np.logical_and(reco[a_set]["energy"] > emin, reco[a_set]["energy"] < emax)
-            else:
-                print("Using true energy")
-                ecut = np.logical_and(true[a_set]["energy"] > emin, true[a_set]["energy"] < emax)
-            cuts_here = np.logical_and(analysis_cut, ecut)
-
-            for i in range(len(nu_keys_here)):
-                key_here = nu_keys_here[i] + cc_keys_here[i]
-                selection_here = np.logical_and(true[a_set]['is' + nu_keys_here[i]], true[a_set]['is'+ cc_keys_here[i]])
-                nu_cut_mu_mask = np.logical_and(np.logical_and(selection_here, cut_variable_here), cuts_here)
-                selection_cuts_here = np.logical_and(selection_here, cuts_here)
-                #kept_nu = np.ones(len(selection_cuts_here))
-                #efficiency_mu[a_set][key_here][energy_index] = sum(kept_nu[nu_cut_mu_mask])/sum(kept_nu[selection_cuts_here])
-                efficiency_mu[a_set][key_here][energy_index] = sum(weights[a_set][nu_cut_mu_mask])/sum(weights[a_set][selection_cuts_here])
-
-            selection_here = true[a_set]['isMuon']
-            mu_cut_mu_mask = np.logical_and(np.logical_and(selection_here, np.logical_not(cut_variable_here)), cuts_here)
-            selection_cuts_here = np.logical_and(selection_here, cuts_here)
-            #kept_mu = np.ones(len(selection_cuts_here))
-            #efficiency_mu[a_set]["Muon"][energy_index] = sum(kept_mu[mu_cut_mu_mask])/sum(kept_mu[selection_cuts_here])
-            efficiency_mu[a_set]["Muon"][energy_index] = sum(weights[a_set][mu_cut_mu_mask])/sum(weights[a_set][selection_cuts_here])
-            print(a_set, "muon", energy_index, efficiency_mu[a_set]["Muon"][energy_index])
-        
-    plt.figure(figsize=(10,10))
-    plt.title(title_here,fontsize=25)
-    x = list(itertools.chain(*zip(energy_array[:-1],energy_array[1:])))
-    nu_plot = {}
-    nu_plot[set1] = {}
-    if set2 is not None:
-        nu_plot[set2] = {}
-    for i in range(len(nu_keys_here)):
-        key_here = nu_keys_here[i] + cc_keys_here[i]
-        nu_plot[set1][key_here] = list(itertools.chain(*zip(efficiency_mu[set1][key_here],efficiency_mu[set1][key_here])))
-        plt.plot(x,nu_plot[set1][key_here],color=color[i+1],linewidth=width,label="%s (CNN)"%pretty_flavor_name[i])
-        if set2 is not None:
-            nu_plot[set2][key_here] = list(itertools.chain(*zip(efficiency_mu[set2][key_here],efficiency_mu[set2][key_here])))
-            if key_here == "NuECC":
-                plt.plot(x,nu_plot[set2][key_here],color=color[i+1],linestyle=":",linewidth=width,label="%s (Likelihood)"%pretty_flavor_name[i])
-            else:
-                plt.plot(x,nu_plot[set2][key_here],color=color[i+1],linestyle=":",linewidth=width) #,label="%s (Likelihood)"%pretty_flavor_name[i])
-    mu_plot = list(itertools.chain(*zip(efficiency_mu[set1]["Muon"],efficiency_mu[set1]["Muon"])))
-    plt.plot(x,mu_plot,'r-',linewidth=width,label="%s (CNN)"%pretty_flavor_name[-1])
-    if set2 is not None:
-        mu_plot2 = list(itertools.chain(*zip(efficiency_mu[set2]["Muon"],efficiency_mu[set2]["Muon"])))
-        plt.plot(x,mu_plot2,'r-',linewidth=width,linestyle=":") #, label="%s (Likelihood)"%pretty_flavor_name[-1])
-    if e_type == "reco":
-        plt.xlabel("Reconstructed Energy (GeV)", fontsize=20)
-    else:
-        plt.xlabel("True Energy (GeV)", fontsize=20)
-    plt.ylabel("Fraction Correctly Classified",fontsize=20)
-    #plt.legend(bbox_to_anchor=(0.53, 0.55), loc='upper left', fontsize=20)
-    plt.legend(fontsize=20)
-    plt.savefig("%s/%s.png"%(save_folder_name,plot_save_name))
-
-if plot_muon_cut:
-    emin = 0
-    emax = 600
-    bins = 100
-    e_type = "true"
-    before_mu_cut = {}
-    after_mu_cut = {}
-    nu_keys_here = ["NuE", "NuMu", "NuTau", "Nu"]
-    cc_keys_here = ["CC", "CC", "CC", "NC"]
-    title_here="CNN Muon Classifier Efficiency"
-    plot_save_name="EfficiencyMuon"
-    #a_set = set1
-    width=4
-
-    for a_set in set_names:
-        muon_key = "prob_nu" #BDT
-        muon_mask_key = "ProbMu"
-        if "cnn" in a_set or "CNN" in a_set:
-            if muon_var=="CNN":
-                muon_key = "CNN_prob_nu"
-                muon_mask_key = "CNNProbNu"
-                print("I think", a_set, "is CNN and I'm using", muon_key, "for muon plots")
-        cut_variable_here = mask[a_set][muon_mask_key]
-        if muon_var == "CNN":
-            cut_variable_here = np.logical_not(mask[a_set][muon_mask_key])
-        reco_cut_minus_var = mask[a_set]["RecoNoMuCut"]
-        analysis_cut = np.logical_and(reco_cut_minus_var, mask[a_set]["MC"])
-        before_mu_cut[a_set] = {}
-        after_mu_cut[a_set] = {}
-
-        for i in range(len(nu_keys_here)):
-            key_here = nu_keys_here[i] + cc_keys_here[i]
-            selection_here = np.logical_and(true[a_set]['is' + nu_keys_here[i]], true[a_set]['is'+ cc_keys_here[i]])
-            before_mu_cut[a_set][key_here] = np.logical_and(selection_here, analysis_cut)
-            after_mu_cut[a_set][key_here] = np.logical_and(before_mu_cut[a_set][key_here], cut_variable_here)
-        selection_here = true[a_set]['isMuon']
-        before_mu_cut[a_set]["Muon"] = np.logical_and(selection_here, analysis_cut)
-        after_mu_cut[a_set]["Muon"] = np.logical_and(before_mu_cut[a_set]["Muon"], cut_variable_here)
-            
-        plot_before_after_cut(reco,before_cut_dict=before_mu_cut,after_cut_dict=after_mu_cut,weights_dict=weights,a_set="cnn",emin=5,emax=100,p_here="Muon",var_here = "energy",type_here = "reco", ideal=0,save=True,save_folder_name=save_folder_name)
-        plot_before_after_cut(true,before_cut_dict=before_mu_cut,after_cut_dict=after_mu_cut,weights_dict=weights,a_set="cnn",emin=100,emax=600,p_here="Muon",var_here = "energy",type_here = "true", ideal=0,save=True,save_folder_name=save_folder_name)
-        plot_before_after_cut(reco,before_cut_dict=before_mu_cut,after_cut_dict=after_mu_cut,weights_dict=weights,a_set="cnn",emin=5,emax=100,p_here="NuMuCC",var_here = "energy",type_here = "reco", ideal=1,save=True,save_folder_name=save_folder_name)
-        plot_before_after_cut(true,before_cut_dict=before_mu_cut,after_cut_dict=after_mu_cut,weights_dict=weights,a_set="cnn",emin=1,emax=150,p_here="NuMuCC",var_here = "energy",type_here = "true", ideal=1,save=True,save_folder_name=save_folder_name)
-        plot_before_after_cut(reco,before_cut_dict=before_mu_cut,after_cut_dict=after_mu_cut,weights_dict=weights,a_set="cnn",emin=-1,emax=0.3,p_here="Muon",var_here = "coszenith",type_here = "reco", ideal=0,save=True,save_folder_name=save_folder_name)
-        plot_before_after_cut(true,before_cut_dict=before_mu_cut,after_cut_dict=after_mu_cut,weights_dict=weights,a_set="cnn",emin=-1,emax=1,p_here="Muon",var_here = "coszenith",type_here = "true", ideal=0,save=True,save_folder_name=save_folder_name)
-        plot_before_after_cut(reco,before_cut_dict=before_mu_cut,after_cut_dict=after_mu_cut,weights_dict=weights,a_set="cnn",emin=-1,emax=0.3,p_here="NuMuCC",var_here = "coszenith",type_here = "reco", ideal=0,save=True,save_folder_name=save_folder_name)
-        plot_before_after_cut(true,before_cut_dict=before_mu_cut,after_cut_dict=after_mu_cut,weights_dict=weights,a_set="cnn",emin=-1,emax=1,p_here="NuMuCC",var_here = "coszenith",type_here = "true", ideal=0,save=True,save_folder_name=save_folder_name)
-
 ######### PID CLASSIFICATION PLOTS ################
-if make_PID_confusion:
-    for a_set in set_names:
-        if "cnn" in a_set or "CNN" in a_set:
-            print("I think", a_set, "is CNN")
-            reco_name = "CNN"
-        else:
-            reco_name = "RETRO"
-        mask_here = np.logical_and(mask[a_set]['Analysis'], true[a_set]['isNu'])
-        percent_save = my_confusion_matrix(true[a_set]['isTrack'], 
-                    mask[a_set]["ProbTrack"],
-                    weights[a_set],label0="Cascade",label1="Track",
-                    mask=mask_here,title="%s Track Bin"%name_dict[a_set],
-                    save=save,save_folder_name=save_folder_name)
-        percent_save = my_confusion_matrix(np.logical_not(true[a_set]['isTrack']), 
-                    mask[a_set]["ProbCascade"],
-                    weights[a_set],label0="Track",label1="Cascade",
-                    mask=mask_here,title="%s Cascade Bin"%name_dict[a_set],
-                    save=save,save_folder_name=save_folder_name)
-
 if make_PID:
     for a_set in set_names:
         if "cnn" in a_set or "CNN" in a_set:
@@ -868,75 +557,6 @@ if make_PID:
             save=save,save_folder_name=save_folder_name,
             variable="Probability Track") 
 
-if plot_pid_eff:
-    pretty_flavor_name = [r'$\nu_e$' + " CC", r'$\nu_\mu$' + " CC", r'$\nu_\tau$' + " CC*", r'$\nu$' + " NC",  r'$\mu_{atm}$']
-    energy_array = np.arange(5, 101, 5)
-    efficiency_mu = {}
-    nu_keys_here = ["NuE", "NuMu", "NuTau", "Nu"]
-    cc_keys_here = ["CC", "CC", "CC", "NC"]
-    title_here="Track Classifier Efficiency"
-    plot_save_name="EfficiencyTrack"
-    #a_set = set1
-    width=4
-
-    for a_set in set_names:
-        efficiency_mu[a_set] = {}
-        cut_variable_here = mask[a_set]['ProbTrack']
-        analysis_cut = mask[a_set]["Analysis"] 
-
-        for i in range(len(nu_keys_here)):
-            key_here = nu_keys_here[i] + cc_keys_here[i]
-            efficiency_mu[a_set][key_here] = np.zeros(len(energy_array)-1)
-        efficiency_mu[a_set]["Muon"] = np.zeros(len(energy_array)-1)  
-
-        for energy_index in range(0,len(energy_array)-1):
-            emin = energy_array[energy_index]
-            emax = energy_array[energy_index+1]
-            ecut = np.logical_and(reco[a_set]["energy"] > emin, reco[a_set]["energy"] < emax)
-            cuts_here = np.logical_and(analysis_cut, ecut)
-
-            for i in range(len(nu_keys_here)):
-                key_here = nu_keys_here[i] + cc_keys_here[i]
-                selection_here = np.logical_and(true[a_set]['is' + nu_keys_here[i]], true[a_set]['is'+ cc_keys_here[i]])
-                if key_here == "NuMuCC":
-                    nu_cut_mu_mask = np.logical_and(np.logical_and(selection_here, cut_variable_here), cuts_here)
-                else:
-                    nu_cut_mu_mask = np.logical_and(np.logical_and(selection_here, np.logical_not(cut_variable_here)), cuts_here)
-                selection_cuts_here = np.logical_and(selection_here, cuts_here)
-                efficiency_mu[a_set][key_here][energy_index] = sum(weights[a_set][nu_cut_mu_mask])/sum(weights[a_set][selection_cuts_here])
-
-            selection_here = true[a_set]['isMuon']
-            mu_cut_mu_mask = np.logical_and(np.logical_and(selection_here, cut_variable_here), cuts_here)
-            selection_cuts_here = np.logical_and(selection_here, cuts_here)
-            efficiency_mu[a_set]["Muon"][energy_index] = sum(weights[a_set][mu_cut_mu_mask])/sum(weights[a_set][selection_cuts_here])
-        
-    plt.figure(figsize=(10,10))
-    plt.title(title_here,fontsize=25)
-    x = list(itertools.chain(*zip(energy_array[:-1],energy_array[1:])))
-    nu_plot = {}
-    nu_plot[set1] = {}
-    if set2 is not None:
-        nu_plot[set2] = {}
-    for i in range(len(nu_keys_here)):
-        key_here = nu_keys_here[i] + cc_keys_here[i]
-        nu_plot[set1][key_here] = list(itertools.chain(*zip(efficiency_mu[set1][key_here],efficiency_mu[set1][key_here])))
-        plt.plot(x,nu_plot[set1][key_here],color=color[i+1],linewidth=width,label="%s (CNN)"%pretty_flavor_name[i])
-        if set2 is not None:
-            nu_plot[set2][key_here] = list(itertools.chain(*zip(efficiency_mu[set2][key_here],efficiency_mu[set2][key_here])))
-            if key_here == "nuecc":
-                plt.plot(x,nu_plot[set2][key_here],color=color[i+1],linestyle=":",linewidth=width,label="%s (Likelihood)"%pretty_flavor_name[i])
-            else:
-                plt.plot(x,nu_plot[set2][key_here],color=color[i+1],linestyle=":",linewidth=width) #, label="%s (Likelihood)"%pretty_flavor_name[i])
-    mu_plot = list(itertools.chain(*zip(efficiency_mu[set1]["Muon"],efficiency_mu[set1]["Muon"])))
-    plt.plot(x,mu_plot,'r-',linewidth=width,label="%s (CNN)"%pretty_flavor_name[-1])
-    if set2 is not None:
-        mu_plot2 = list(itertools.chain(*zip(efficiency_mu[set2]["Muon"],efficiency_mu[set2]["Muon"])))
-        plt.plot(x,mu_plot2,'r-',linewidth=width,linestyle=":") #,label="%s (Likelihood)"%pretty_flavor_name[-1])
-    plt.xlabel("Reconstructed Energy (GeV)", fontsize=20)
-    plt.ylabel("Fraction Correctly Classified",fontsize=20)
-    plt.legend(fontsize=20)
-    plt.savefig("%s/%s.png"%(save_folder_name,plot_save_name))
-
 ######### VERTEX CLASSIFICATION PLOTS ################
 if make_vertex:
     # COMPARE EXACT CUTS, FOR SET 1 ONLY
@@ -954,72 +574,7 @@ if make_vertex:
                             save=save,save_folder_name=save_folder_name)
         print("Reco %s Positive, True Positive: %.2f"%(a_set,percent_save[2]))
         print("Reco %s Negative, True Negative: %.2f"%(a_set,percent_save[1]))
-            
-if plot_vertex_eff:
-    pretty_flavor_name = [r'$\nu_e$' + " CC", r'$\nu_\mu$' + " CC", r'$\nu_\tau$' + " CC", r'$\nu$' + " NC",  r'$\mu_{atm}$']
-    energy_array = np.arange(5, 101, 5)
-    efficiency_mu = {}
-    nu_keys_here = ["NuE", "NuMu", "NuTau", "Nu"]
-    cc_keys_here = ["CC", "CC", "CC", "NC"]
-    title_here="CNN Vertex Cut Efficiency"
-    plot_save_name="EfficiencyVertex"
-    #a_set = set1
 
-    for a_set in set_names:
-        efficiency_mu[a_set] = {}
-        cut_variable_here = mask[a_set]['Vertex']
-        reco_cut_minus_var = mask[a_set]["RecoNoVer"]
-        analysis_cut = np.logical_and(reco_cut_minus_var, mask[a_set]["MC"])
-
-        for i in range(len(nu_keys_here)):
-            key_here = nu_keys_here[i] + cc_keys_here[i]
-            efficiency_mu[a_set][key_here] = np.zeros(len(energy_array)-1)
-        efficiency_mu[a_set]["Muon"] = np.zeros(len(energy_array)-1)  
-
-        for energy_index in range(0,len(energy_array)-1):
-            emin = energy_array[energy_index]
-            emax = energy_array[energy_index+1]
-            ecut = np.logical_and(reco[a_set]["energy"] > emin, reco[a_set]["energy"] < emax)
-            cuts_here = np.logical_and(analysis_cut, ecut)
-
-            for i in range(len(nu_keys_here)):
-                key_here = nu_keys_here[i] + cc_keys_here[i]
-                selection_here = np.logical_and(true[a_set]['is' + nu_keys_here[i]], true[a_set]['is'+ cc_keys_here[i]])
-                nu_cut_mu_mask = np.logical_and(np.logical_and(selection_here, cut_variable_here), cuts_here)
-                selection_cuts_here = np.logical_and(selection_here, cuts_here)
-                efficiency_mu[a_set][key_here][energy_index] = sum(weights[a_set][nu_cut_mu_mask])/sum(weights[a_set][selection_cuts_here])
-
-            selection_here = true[a_set]['isMuon']
-            mu_cut_mu_mask = np.logical_and(np.logical_and(selection_here, cut_variable_here), cuts_here)
-            selection_cuts_here = np.logical_and(selection_here, cuts_here)
-            efficiency_mu[a_set]["Muon"][energy_index] = sum(weights[a_set][mu_cut_mu_mask])/sum(weights[a_set][selection_cuts_here])
-        
-    plt.figure(figsize=(10,10))
-    plt.title(title_here,fontsize=25)
-    x = list(itertools.chain(*zip(energy_array[:-1],energy_array[1:])))
-    nu_plot = {}
-    nu_plot[set1] = {}
-    if set2 is not None:
-        nu_plot[set2] = {}
-    for i in range(len(nu_keys_here)):
-        key_here = nu_keys_here[i] + cc_keys_here[i]
-        nu_plot[set1][key_here] = list(itertools.chain(*zip(efficiency_mu[set1][key_here],efficiency_mu[set1][key_here])))
-        plt.plot(x,nu_plot[set1][key_here],color=color[i+1],linewidth=width,label="%s (CNN)"%pretty_flavor_name[i])
-        if set2 is not None:
-            nu_plot[set2][key_here] = list(itertools.chain(*zip(efficiency_mu[set2][key_here],efficiency_mu[set2][key_here])))
-            if key_here == "NuECC":
-                plt.plot(x,nu_plot[set2][key_here],color=color[i+1],linestyle=":",linewidth=width,label="%s (Likelihood)"%pretty_flavor_name[i])
-            else:
-                plt.plot(x,nu_plot[set2][key_here],color=color[i+1],linestyle=":",linewidth=width)
-    mu_plot = list(itertools.chain(*zip(efficiency_mu[set1]["Muon"],efficiency_mu[set1]["Muon"])))
-    #plt.plot(x,mu_plot,'r-',linewidth=width,label="%s (CNN)"%pretty_flavor_name[-1])
-    if set2 is not None:
-        mu_plot2 = list(itertools.chain(*zip(efficiency_mu[set2]["Muon"],efficiency_mu[set2]["Muon"])))
-        #plt.plot(x,mu_plot2,'r-',linewidth=width,linestyle=":",label="%s (Likelihood)"%pretty_flavor_name[-1])
-    plt.xlabel("Reconstructed Energy (GeV)", fontsize=20)
-    plt.ylabel("Fraction Correctly Classified",fontsize=20)
-    plt.legend(fontsize=20)
-    plt.savefig("%s/%s.png"%(save_folder_name,plot_save_name))
 ######## END CLASS PLOTS #############
 
 #### CREATE TRUE ENERGY AND ZENITH DISTRIBUTION FOR TEST SAMPLE #########
@@ -1052,7 +607,8 @@ if make_test_samples:
     plt.legend(fontsize=20)
     plt.savefig("%s/TestingNuMuNuE_CosZenDistribution_%ito%i.png"%(save_folder_name,int(minval_here),int(maxval_here)),bbox_inches='tight')
 
-#### LOOP THRO VAR FOR REGRESSION PLOTS #########
+
+######## LOOP THRO VAR FOR REGRESSION PLOTS ############
 for variable_index in variable_index_list:
     for check_set in check_index_list:
         
@@ -1103,7 +659,8 @@ for variable_index in variable_index_list:
 
         sample_mask1 = np.logical_and(true[set1][flavor_key],true[set1][select])
         full_mask1 = np.logical_and(sample_mask1, mask[set1]['Analysis'])
-        minus_var_mask1 = np.logical_and(np.logical_and(sample_mask1, mask[set1]['MC']), mask[set1][maskname])
+        minus_var_mask1 = np.logical_and(np.logical_and(sample_mask1, mask[set1]['MC']), mask[set1][maskname]) #All analysis cuts EXCEPT for variable being plotting (e.g. no energy cut if plotting energy, but keeping all other cuts)
+
         if input_file2 is not None:
             sample_mask2 = np.logical_and(true[set2][flavor_key],true[set2][select])
             full_mask2 = np.logical_and(sample_mask2, mask[set2]['Analysis'])
@@ -1117,28 +674,7 @@ for variable_index in variable_index_list:
         reco1_value_fullAnalysis = reco[set1][variable_name][full_mask1]
         weights1_value_fullAnalysis = weights[set1][full_mask1]
         true1_energy_fullAnalysis = true[set1][use_em + 'energy'][full_mask1]
-        #MAKE A BINARY IN CUT FOR VAR (exampled in 5-100 GeV, or outside)
-        if cut_min is not None:
-            if cut_max is not None:
-                if cut_or:
-                    true1_binary = np.logical_or(true[set1][variable_name][minus_var_mask1] > cut_min, true[set1][variable_name][minus_var_mask1] < cut_max)
-                    reco1_binary = np.logical_or(reco[set1][variable_name][minus_var_mask1] > cut_min, reco[set1][variable_name][minus_var_mask1] < cut_max)
-                    print(variable_name, "Checking > ", cut_min, " OR < ", cut_max)
-                else:
-                    true1_binary = np.logical_and(true[set1][variable_name][minus_var_mask1] > cut_min, true[set1][variable_name][minus_var_mask1] < cut_max)
-                    reco1_binary = np.logical_and(reco[set1][variable_name][minus_var_mask1] > cut_min, reco[set1][variable_name][minus_var_mask1] < cut_max)
-                    print(variable_name, "Checking > ", cut_min, " AND < ", cut_max)
-            else:
-                true1_binary = true[set1][variable_name][minus_var_mask1] > cut_min
-                reco1_binary = reco[set1][variable_name][minus_var_mask1] > cut_min
-                print(variable_name, "Checking > ", cut_min)
-        else:
-            true1_binary = true[set1][variable_name][minus_var_mask1] < cut_max
-            reco1_binary = reco[set1][variable_name][minus_var_mask1] < cut_max
-            print(variable_name, "Checking < ", cut_max)
 
-        print(true1_binary[:10],reco1_binary[:10])
-        #print(sum(weights1_value_fullAnalysis)/sum(weights1[true1['isCC']]))
         print(true1_value[:10], reco1_value[:10])
 
         if input_file2 is not None:
@@ -1149,20 +685,6 @@ for variable_index in variable_index_list:
             weights2_value = weights[set2][minus_var_mask2]
             weights2_value_fullAnalysis = weights[set2][full_mask2]
             true2_energy_fullAnalysis = true[set2][use_em + 'energy'][full_mask2]
-            if cut_min is not None:
-                if cut_max is not None:
-                    true2_binary = np.logical_and(true[set2][variable_name][minus_var_mask2] > cut_min, true[set2][variable_name][minus_var_mask2] < cut_max)
-                    reco2_binary = np.logical_and(reco[set2][variable_name][minus_var_mask2] > cut_min, reco[set2][variable_name][minus_var_mask2] < cut_max)
-                    print(variable_name, "Checking > ", cut_min, " AND < ", cut_max)
-                else:
-                    true2_binary = true[set2][variable_name][minus_var_mask2] > cut_min
-                    reco2_binary = reco[set2][variable_name][minus_var_mask2] > cut_min
-                    print(variable_name, "Checking > ", cut_min)
-            else:
-                true2_binary = true[set2][variable_name][minus_var_mask2] < cut_max
-                reco2_binary = reco[set2][variable_name][minus_var_mask2] < cut_max
-                print(variable_name, "Checking < ", cut_max)
-            #print(sum(weights2_value_fullAnalysis)/sum(weights2[true2['isCC']]))
             print(true2_value[:10], reco2_value[:10])
         else:
             true2_value = None 
@@ -1176,88 +698,29 @@ for variable_index in variable_index_list:
 
 
         ######## STARTING PLOTS ##############
-        if make_log_zoom:
-            plt.figure(figsize=(10,7))
-            plt.hist(true1_value, color="green",label="true",
-                bins=bins_log,range=[minval,logmax],
-                weights=weights1_value,alpha=0.5)
-            plt.hist(reco1_value, color="blue",label="CNN",
-                bins=bins_log,range=[minval,logmax],
-                weights=weights1_value,alpha=0.5)
-            plt.xscale('log')
-            plt.title("Energy Distribution Weighted for %s events"%len(true1_value),fontsize=25)
-            plt.xlabel("Energy (GeV)",fontsize=20)
-            plt.xticks(fontsize=15)
-            plt.yticks(fontsize=15)
-            plt.axvline(5,linewidth=3,linestyle="--",color='k',label="Cut at 5 GeV")
-            plt.legend(loc='upper left',fontsize=15)
-            plt.savefig("%s/%sLogEnergyDist_ZoomInLE.png"%(save_folder_name,name1.replace(" ","")))
-
-            plt.figure(figsize=(10,7))
-            plt.hist(true2_value, color="green",label="true",
-                bins=bins_log,range=[minval,logmax],
-                weights=weights2_value,alpha=0.5)
-            plt.hist(reco2_value, color="blue",label="CNN",
-                bins=bins_log,range=[minval,logmax],
-                weights=weights2_value,alpha=0.5)
-            plt.xscale('log')
-            plt.title("Energy Distribution Weighted for %s events"%len(true2_value),fontsize=25)
-            plt.xlabel("Energy (GeV)",fontsize=20)
-            plt.xticks(fontsize=15)
-            plt.yticks(fontsize=15)
-            plt.axvline(5,linewidth=3,linestyle="--",color='k',label="Cut at 5 GeV")
-            plt.legend(loc='upper left',fontsize=15)
-            plt.savefig("%s/%sLogEnergyDist_ZoomInLE.png"%(save_folder_name,name2.replace(" ","")))
 
         if make_distributions:
             plot_distributions(truth=true1_value_fullAnalysis,
                             reco=reco1_value_fullAnalysis,
                             weights=weights1_value_fullAnalysis,
                             save=save, savefolder=save_folder_name,
-                            #cnn_name = name1,
+                            cnn_name = name1,
                             xlog=binned_frac,
-                            cnn_name = name1 + " Reco",
-                            true_name = name1 + " Truth",
                             variable=plot_name, units= plot_units, 
                             minval=minval,maxval=maxval,
-                            bins=bins)#,true_name=energy_type)
+                            bins=bins,true_name=energy_type)
 
             if input_file2 is not None:
                 plot_distributions(truth=true2_value_fullAnalysis,
                             old_reco=reco2_value_fullAnalysis,
                             weights=weights2_value_fullAnalysis,
                             save=save, savefolder=save_folder_name,
-                            #reco_name = name2,
+                            reco_name = name2,
                             xlog=binned_frac,
-                            reco_name = name2 + " Reco",
-                            true_name = name2 + " Truth",
                             variable=plot_name, units= plot_units,
                             minval=minval,maxval=maxval,
-                            bins=bins)#,true_name=energy_type)
+                            bins=bins,true_name=energy_type)
                 
-                plot_distributions(truth=true1_value_fullAnalysis,
-                            old_reco=true2_value_fullAnalysis,
-                            weights=weights1_value_fullAnalysis,
-                            old_reco_weights=weights2_value_fullAnalysis,
-                            save=save, savefolder=save_folder_name,
-                            xlog=binned_frac,
-                            true_name = name1 + " Truth",
-                            reco_name = name2 + " Truth", variable=plot_name, 
-                            units= plot_units,
-                            minval=minval,maxval=maxval,
-                            bins=bins)
-                
-                plot_distributions(reco=reco1_value_fullAnalysis,
-                            old_reco=reco2_value_fullAnalysis,
-                            weights=weights1_value_fullAnalysis,
-                            old_reco_weights=weights2_value_fullAnalysis,
-                            save=save, savefolder=save_folder_name,
-                            xlog=binned_frac,
-                            cnn_name = name1 + " Reco",
-                            reco_name = name2 + " Reco", variable=plot_name, 
-                            units= plot_units,
-                            minval=minval,maxval=maxval,
-                            bins=bins)
 
         if make_2d_hist:
             switch = False
@@ -1293,69 +756,7 @@ for variable_index in variable_index_list:
                             variable=plot_name, units=plot_units, reco_name=name2,
                             flavor=flavor,sample=sample,variable_type=energy_type)
 
-        if make_2d_hist_vs_reco:
-            switch = True
-            plot_2D_prediction(true1_value, reco1_value,
-                            weights=weights1_value,\
-                            save=save, savefolder=save_folder_name,
-                            bins=bins, switch_axis=switch,
-                            variable=plot_name, units=plot_units, reco_name=name1)
-
-
-            plot_2D_prediction(true1_value, reco1_value,
-                            weights=weights1_value,\
-                            save=save, savefolder=save_folder_name,
-                            bins=bins,switch_axis=switch,\
-                            minval=minval, maxval=maxval,
-                            cut_truth=True, axis_square=True,\
-                            variable=plot_name, units=plot_units, reco_name=name1)
-
-            if input_file2 is not None:
-                plot_2D_prediction(true2_value, reco2_value,
-                            weights=weights2_value,
-                            save=save, savefolder=save_folder_name,
-                            bins=bins,switch_axis=switch,\
-                            variable=plot_name, units=plot_units, reco_name=name2)
-            
-                plot_2D_prediction(true2_value, reco2_value,
-                            weights=weights2_value,
-                            save=save, savefolder=save_folder_name,
-                            bins=bins,switch_axis=switch,\
-                            minval=minval, maxval=maxval,
-                            cut_truth=True, axis_square=True,\
-                            variable=plot_name, units=plot_units, reco_name=name2)
-        
-        if make_resolution:
-            #Resolution
-            if input_file2 is None:
-                use_old_reco = False
-            else:
-                use_old_reco = True
-            plot_single_resolution(true1_value_fullAnalysis, reco1_value_fullAnalysis, 
-                           weights=weights1_value_fullAnalysis,
-                           old_reco_weights=weights2_value_fullAnalysis,
-                           use_old_reco = use_old_reco,
-                           old_reco = reco2_value_fullAnalysis,
-                           old_reco_truth=true2_value_fullAnalysis,\
-                           minaxis=-res_range, maxaxis=res_range, bins=bins,\
-                           save=save, savefolder=save_folder_name,\
-                           variable=plot_name, units=plot_units, reco_name=name1,
-                           flavor=flavor,sample=sample)
-
-            plot_single_resolution(true1_value_fullAnalysis, reco1_value_fullAnalysis,
-                            weights=weights1_value_fullAnalysis,
-                            old_reco_weights=weights2_value_fullAnalysis,\
-                            use_old_reco = use_old_reco,
-                            old_reco = reco2_value_fullAnalysis,
-                            old_reco_truth=true2_value_fullAnalysis,\
-                            minaxis=-frac_res_range, maxaxis=frac_res_range, 
-                            bins=bins, use_fraction=True,\
-                            save=save, savefolder=save_folder_name,\
-                            variable=plot_name, units=plot_units, reco_name=name1,
-                            flavor=flavor,sample=sample)
-
         if make_bin_slice:
-            #Bin Slices
             plot_bin_slices(true1_value, reco1_value, 
                         old_reco = reco2_value,
                         old_reco_truth=true2_value,
@@ -1397,25 +798,4 @@ for variable_index in variable_index_list:
                         variable=plot_name, units=plot_units, 
                         cnn_name=name1, reco_name=name2,variable_type=var_type,
                         vs_predict=True,flavor=flavor,sample=sample)
-
-        if make_confusion:
-
-            percent_save,save_percent_error = my_confusion_matrix(true1_binary, 
-                            reco1_binary, weights1_value,
-                            mask=None,title="%s %s Cut"%(name1,plot_name),
-                            label0="Outside Cut",label1="Inside Cut",
-                            save=save,save_folder_name=save_folder_name)
-            print("Reco1 Positive, True Positive: %.2f"%percent_save[2])
-            print("Reco1 Negative, True Negative: %.2f"%percent_save[1])
-            
-            if input_file2 is not None:
-                percent_save2,save_percent_error2 = my_confusion_matrix(true2_binary,
-                            reco2_binary,
-                            weights2_value,ylabel="Retro Prediction",
-                            label0="Outside Cut",label1="Inside Cut",
-                            mask=None,title="%s %s Cut"%(name2,plot_name),
-                            save=save,save_folder_name=save_folder_name)
-                print("Reco2 Positive, True Positive: %.2f"%percent_save2[2])
-                print("Reco2 Negative, True Negative: %.2f"%percent_save2[1])
-
 

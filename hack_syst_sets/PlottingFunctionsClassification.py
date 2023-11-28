@@ -380,7 +380,7 @@ def my_confusion_matrix(binary_truth, binary_class, weights, mask=None, color="B
             percent_error = float(error)/float(events)
             save_percent.append(percent)
             save_percent_error.append(percent_error)
-            s = "%.2e"%(events) + r'$\pm$' + "%.2e"%error + "\n%.2f"%percent + r'% of truth'
+            s = "%.2e"%(events) + r'$\pm$' + "%.2e"%error + "\n %.2f"%percent + r'% $\pm$' + "%.2f"%(percent_error) + '% \nof truth'
             if events > maxval/2.:
                 c="w"
             ax.text(xbins[j]+0.25,ybins[i]+0.25,"%s"%s, 

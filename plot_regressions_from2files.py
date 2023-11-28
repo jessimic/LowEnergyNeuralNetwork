@@ -271,6 +271,7 @@ if info1 is not None:
 #INFO masks
 if info1 is not None:
     mask1['Hits8'] = more_info1['total_hits'] >= 8
+    print("Hits8 failure cuts:", sum(np.logical_not(mask1['Hits8']))/len(mask1['Hits8']))
     mask1['oscNext_Nu'] = more_info1['prob_nu'] > 0.8 #CHANGED FROM 0.4
     mask1['Noise'] = more_info1['noise_class'] > 0.95
     mask1['nhit'] = more_info1['nhit_doms'] > 2.5
@@ -438,7 +439,14 @@ if input_file2 is not None:
             mask2['NotNAN'] = np.logical_not(reco2['nan'])
             mask2['RetroIterations'] = reco2['iterations'] < 10000
             mask2['RetroPass'] = np.logical_and(np.logical_and(mask2['Hits8'],mask2['RetroIterations']), mask2['NotNAN'])
-            print("Retro failure cuts:", sum(mask2['RetroPass']/len(mask2['RetroPass'])))
+            print("Retro failure cuts:", sum(mask2['RetroPass'])/len(mask2['RetroPass']))
+            retro_failed = true2['full_ID'][np.logical_not(mask2['RetroPass'])]
+            retro_fail = 0
+            for check_fail_id in retro_failed:
+                if check_fail_id in true1['full_ID'][mask1['Analysis']]:
+                    print(check_fail_id)
+                    retro_fail += 1
+            print("Number of events in FLERCNN analysis that failed retro: %i"%retro_fail)
             mask2['Class'] = np.logical_and(mask2['oscNext_Nu'],mask2['Noise'])
             mask2['MC'] = np.logical_and(np.logical_and(np.logical_and(mask2['CoinHits'],mask2['Class']), mask2['RetroPass']),mask2['Time'])
         else:
